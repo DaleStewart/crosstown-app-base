@@ -1,0 +1,19 @@
+# Disabled by default. Extension 06 enables this workflow.
+# To enable: rename this file to `modernize-pr.yml` (drop the .disabled suffix).
+# See: docs/extensions/06_enable_modernize_pr/README.md
+name: modernize-pr (disabled — Extension 06 enables)
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  modernize:
+    if: false   # safety guard — Extension 06 removes this line
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder — Copilot-assisted refactor PR job
+        run: echo "Enable me via Extension 06."

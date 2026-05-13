@@ -1,0 +1,43 @@
+name: deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install azd
+        uses: Azure/setup-azd@v2
+
+      - name: Log in (OIDC)
+        run: |
+          azd auth login \
+            --client-id "$AZURE_CLIENT_ID" \
+            --federated-credential-provider github \
+            --tenant-id "$AZURE_TENANT_ID"
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+
+      - name: Provision (idempotent)
+        run: azd provision --no-prompt
+        env:
+          AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy services
+        run: azd deploy --no-prompt
+        env:
+          AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}

@@ -1,0 +1,38 @@
+name: eval
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "evals/**"
+      - ".github/workflows/eval.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write  # OIDC to Azure for live eval against a deployed env (optional)
+
+jobs:
+  golden:
+    runs-on: ubuntu-latest
+    env:
+      EVAL_MODE: offline  # default: replays cassettes; set to "live" via repo var to hit a real env
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        working-directory: evals
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run golden scenarios (citation-gated)
+        working-directory: evals
+        run: python -m runner --max-uncited-pct 5
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: evals/.report/
