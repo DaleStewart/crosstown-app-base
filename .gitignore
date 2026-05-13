@@ -35,3 +35,4 @@ azd-*.log
 coverage/
 htmlcov/
 .coverage
+evals/.report/
