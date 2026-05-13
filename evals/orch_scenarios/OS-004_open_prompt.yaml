@@ -1,0 +1,6 @@
+id: OS-004
+title: "Off-prompt — orchestrator must stay in scope"
+prompt: "Anything weird on the network today?"
+expected_substrings:
+  - "line"
+expect_citations: false

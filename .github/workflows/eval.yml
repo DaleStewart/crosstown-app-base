@@ -13,7 +13,7 @@ permissions:
   id-token: write  # OIDC to Azure for live eval against a deployed env (optional)
 
 jobs:
-  golden:
+  citation-gate:
     runs-on: ubuntu-latest
     env:
       EVAL_MODE: offline  # default: replays cassettes; set to "live" via repo var to hit a real env
@@ -36,3 +36,63 @@ jobs:
         with:
           name: eval-report
           path: evals/.report/
+
+  orchestrator-gate:
+    runs-on: ubuntu-latest
+    env:
+      EVAL_MODE: offline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        working-directory: evals
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run orchestrator-level eval
+        working-directory: evals
+        run: python -m orchestrator_runner --max-fail-pct 0
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orchestrator-eval-report
+          path: evals/.report/
+
+  foundry-evaluators:
+    # Optional job — only runs when AZURE_OPENAI_ENDPOINT repo var is configured.
+    runs-on: ubuntu-latest
+    if: ${{ vars.AZURE_OPENAI_ENDPOINT != '' }}
+    env:
+      EVAL_MODE: offline
+      AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+      AZURE_OPENAI_CHAT_DEPLOYMENT: ${{ vars.AZURE_OPENAI_CHAT_DEPLOYMENT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Install
+        working-directory: evals
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install "azure-ai-evaluation>=1.0.0"
+      - name: Run Foundry evaluators (groundedness/relevance/coherence/retrieval)
+        working-directory: evals
+        run: python -m runner --max-uncited-pct 5 --with-foundry
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: foundry-eval-report
+          path: evals/.report/
+

@@ -1,0 +1,7 @@
+id: OS-003
+title: "Pattern detection summary mentions runbook"
+prompt: "Look at log L-001234 and tell me if it's part of a known pattern."
+expected_substrings:
+  - "L-001234"
+  - "doors"
+expect_citations: true

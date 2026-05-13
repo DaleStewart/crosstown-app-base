@@ -97,20 +97,23 @@ Open **[docs/use-case-map.md](docs/use-case-map.md)** first — it maps every su
 
 - [docs/architecture.md](docs/architecture.md) — services, data flow, security model
 - [docs/voice.md](docs/voice.md) — Foundry Realtime primary path + Speech Services fallback
+- [docs/evals.md](docs/evals.md) — citation gate, orchestrator gate, Foundry evaluators
 - [docs/redteam.md](docs/redteam.md) — adversarial scenarios + safety gate
 - [docs/use-case-map.md](docs/use-case-map.md) — your use case → where it lives → which extension to try
 - [docs/participant-tailoring.md](docs/participant-tailoring.md) — 3 thirty-minute swap recipes
 
 ## 🛡️ Safety & red team
 
-The repo ships with two CI gates:
+The repo ships with four CI gates:
 
 | Gate | Workflow | Threshold |
 |---|---|---|
-| **Citation eval** — every agent turn must cite a source | `.github/workflows/eval.yml` | ≤5% uncited |
+| **Citation eval** — every agent turn must cite a source (with pinned IDs where deterministic) | `.github/workflows/eval.yml` (job `citation-gate`) | ≤5% uncited |
+| **Orchestrator eval** — user-visible reply contains required substrings + citation token | `.github/workflows/eval.yml` (job `orchestrator-gate`) | 0% failures |
+| **Foundry evaluators** (optional) — groundedness/relevance/coherence/retrieval LLM-judge scores | `.github/workflows/eval.yml` (job `foundry-evaluators`) | each score ≥ 3.0 |
 | **Red team** — 8 adversarial families (prompt injection, indirect injection, jailbreak, off-domain, PII probe, citation skip, hallucination, token bomb) | `.github/workflows/redteam.yml` (manual + weekly) | zero high/critical, ≤10% overall |
 
-Both gates run hermetically offline (cassettes) and switch to live mode against a deployed orchestrator with a single env var. See [docs/redteam.md](docs/redteam.md).
+All four gates run hermetically offline (cassettes) and switch to live mode against a deployed env with a single env var. See [docs/evals.md](docs/evals.md) and [docs/redteam.md](docs/redteam.md).
 
 ## ⚠️ Notes & guardrails
 

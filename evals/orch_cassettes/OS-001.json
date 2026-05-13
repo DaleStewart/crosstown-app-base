@@ -1,0 +1,16 @@
+{
+  "text": "Doors-held cluster on L2 around Beacon at 12:04 (see L-000123) and Atlas at 12:05 (L-000456). Consider runbook RB-01-doors-held for the standard triage path.",
+  "warnings": [],
+  "citations": [
+    {
+      "id": "L-000123",
+      "type": "log",
+      "snippet": "doors.held sample"
+    },
+    {
+      "id": "RB-01-doors-held",
+      "type": "runbook",
+      "snippet": "triage path"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+id: OS-001
+title: "Doors-held on L2 — composed reply with citation"
+prompt: "What's the recent door-held activity on L2?"
+expected_substrings:
+  - "door"
+  - "L2"
+expect_citations: true

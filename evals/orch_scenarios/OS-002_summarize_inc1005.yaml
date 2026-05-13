@@ -1,0 +1,7 @@
+id: OS-002
+title: "Summarize INC-1005 in the user-facing reply"
+prompt: "Summarize incident INC-1005 and which runbook to consult."
+expected_substrings:
+  - "INC-1005"
+  - "runbook"
+expect_citations: true

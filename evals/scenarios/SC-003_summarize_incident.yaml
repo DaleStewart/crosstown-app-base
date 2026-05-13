@@ -7,4 +7,8 @@ expected_tools:
 must_cite:
   - type: incident
   - type: runbook
+must_cite_ids:
+  - "INC-1005"
+  - "RB-03-comms-jitter"
 max_turns: 2
+

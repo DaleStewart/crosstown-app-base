@@ -1,0 +1,21 @@
+{
+  "text": "Log L-001234 sits in a cascading doors-then-dwell cluster on L1. Linked logs include L-000789. See runbook RB-01-doors-held for the canonical pattern.",
+  "warnings": [],
+  "citations": [
+    {
+      "id": "L-001234",
+      "type": "log",
+      "snippet": "seed log"
+    },
+    {
+      "id": "L-000789",
+      "type": "log",
+      "snippet": "correlated log"
+    },
+    {
+      "id": "RB-01-doors-held",
+      "type": "runbook",
+      "snippet": "runbook excerpt"
+    }
+  ]
+}

@@ -7,4 +7,8 @@ expected_tools:
 must_cite:
   - type: log
   - type: runbook
+must_cite_ids:
+  - "L-002500"
+  - "RB-05-interlock-fault"
 max_turns: 2
+

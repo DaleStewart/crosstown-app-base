@@ -7,4 +7,8 @@ expected_tools:
 must_cite:
   - type: incident
   - type: runbook
+must_cite_ids:
+  - "INC-1018"
+  - "RB-07-shunt-then-trip"
 max_turns: 2
+

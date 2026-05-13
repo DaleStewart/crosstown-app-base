@@ -1,0 +1,16 @@
+{
+  "text": "INC-1005 was a comms jitter event on L2. The recommended runbook is RB-03-comms-jitter; switch the redundant fiber path and roll back the controller firmware if jitter persists.",
+  "warnings": [],
+  "citations": [
+    {
+      "id": "INC-1005",
+      "type": "incident",
+      "snippet": "comms jitter"
+    },
+    {
+      "id": "RB-03-comms-jitter",
+      "type": "runbook",
+      "snippet": "switch path"
+    }
+  ]
+}
