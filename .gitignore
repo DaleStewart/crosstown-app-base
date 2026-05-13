@@ -36,3 +36,4 @@ coverage/
 htmlcov/
 .coverage
 evals/.report/
+redteam/.report/

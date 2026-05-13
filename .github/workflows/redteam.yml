@@ -1,0 +1,52 @@
+name: redteam
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "offline (use cassettes) | live (hit deployed orchestrator)"
+        required: false
+        default: "offline"
+        type: choice
+        options: [offline, live]
+      max_fail_pct:
+        description: "Max overall failure percent before the gate fails."
+        required: false
+        default: "10"
+  schedule:
+    - cron: "0 12 * * 1"  # weekly Monday 12:00 UTC — catches scenario rot
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  redteam:
+    runs-on: ubuntu-latest
+    env:
+      EVAL_MODE: ${{ github.event.inputs.mode || 'offline' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        working-directory: redteam
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Optional - Azure login for live mode (OIDC)
+        if: ${{ github.event.inputs.mode == 'live' }}
+        run: |
+          echo "Live mode requires ORCHESTRATOR_URL set as a repo variable."
+          test -n "${{ vars.ORCHESTRATOR_URL }}" || (echo "Missing ORCHESTRATOR_URL var" && exit 1)
+      - name: Run red-team gate
+        working-directory: redteam
+        env:
+          ORCHESTRATOR_URL: ${{ vars.ORCHESTRATOR_URL }}
+        run: python -m runner --max-fail-pct ${{ github.event.inputs.max_fail_pct || 10 }}
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: redteam-report
+          path: redteam/.report/
