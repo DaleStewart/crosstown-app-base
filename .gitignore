@@ -35,5 +35,6 @@ azd-*.log
 coverage/
 htmlcov/
 .coverage
+.hypothesis/
 evals/.report/
 redteam/.report/
