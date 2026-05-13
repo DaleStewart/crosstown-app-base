@@ -1,0 +1,15 @@
+{
+  "appManagedEnvironments": "cae",
+  "appContainerApps": "ca",
+  "cognitiveServicesAccounts": "cog",
+  "containerRegistries": "cr",
+  "dbserversFlexible": "psql",
+  "documentDBDatabaseAccounts": "cosmos",
+  "insightsComponents": "appi",
+  "keyVaultsVaults": "kv",
+  "machineLearningServicesWorkspaces": "mlw",
+  "managedIdentitiesUserAssignedIdentities": "id",
+  "operationalInsightsWorkspaces": "log",
+  "searchSearchServices": "srch",
+  "storageStorageAccounts": "st"
+}

@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mta-log-analyst"
+version = "0.1.0"
+description = "MTA AI Hackathon — Log Analyst microservice (FastAPI)."
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.4",
+  "azure-identity>=1.17",
+  "azure-search-documents>=11.5",
+  "azure-cosmos>=4.7",
+  "openai>=1.40",
+  "azure-monitor-opentelemetry>=1.6",
+  "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "pytest-mock>=3.14",
+  "asgi-lifespan>=2.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["tools"]
+only-include = ["tools", "main.py", "citations.py", "settings.py", "azure_clients.py", "tool_router.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+extend-select = ["I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+files = ["main.py", "citations.py", "settings.py", "azure_clients.py", "tool_router.py", "tools", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["azure.search.documents.*", "azure.cosmos.*", "azure.monitor.opentelemetry.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
