@@ -97,7 +97,7 @@ Open **[docs/use-case-map.md](docs/use-case-map.md)** first — it maps every su
 
 - [docs/architecture.md](docs/architecture.md) — services, data flow, security model
 - [docs/voice.md](docs/voice.md) — Foundry Realtime primary path + Speech Services fallback
-- [docs/evals.md](docs/evals.md) — citation gate, orchestrator gate, Foundry evaluators
+- [docs/evals.md](docs/evals.md) — citation gate, orchestrator gate, tool routing, Foundry evaluators, [calibration math](../evals/calibration.md)
 - [docs/redteam.md](docs/redteam.md) — adversarial scenarios + safety gate
 - [docs/use-case-map.md](docs/use-case-map.md) — your use case → where it lives → which extension to try
 - [docs/participant-tailoring.md](docs/participant-tailoring.md) — 3 thirty-minute swap recipes

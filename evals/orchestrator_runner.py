@@ -47,6 +47,7 @@ class OrchOutcome:
     passed: bool
     reason: str = ""
     missing_substrings: list[str] = field(default_factory=list)
+    missing_expected_tools: list[str] = field(default_factory=list)
     foundry_scores: list[dict[str, Any]] = field(default_factory=list)
     foundry_failures: list[str] = field(default_factory=list)
 
@@ -90,6 +91,20 @@ def grade(scn: dict[str, Any], cassette_or_live: dict[str, Any], with_foundry: b
         if not CITATION_REGEX.search(out.response):
             out.passed = False
             out.reason = (out.reason + " | no_citation_in_text").strip(" |")
+
+    # Tool-routing assertion: every expected_tools entry must be present in tool_calls.
+    expected_tools = [str(t) for t in scn.get("expected_tools", [])]
+    if expected_tools:
+        observed_tools = [
+            str(tc.get("name", ""))
+            for tc in (cassette_or_live.get("tool_calls") or [])
+            if isinstance(tc, dict)
+        ]
+        missing = [t for t in expected_tools if t not in observed_tools]
+        out.missing_expected_tools = missing
+        if missing:
+            out.passed = False
+            out.reason = (out.reason + f" | wrong_routing: missing {missing}").strip(" |")
 
     if with_foundry:
         try:
@@ -173,6 +188,9 @@ def render(outcomes: list[OrchOutcome], max_fail_pct: float) -> tuple[bool, dict
     console.print(
         f"\nScenarios: {total} - failed: {len(failed)} ({fail_pct:.1f}%) - "
         f"gate <= {max_fail_pct}% -> {'PASS' if gate_ok else 'FAIL'}"
+        f"\nObserved {fail_pct:.1f}% vs threshold {max_fail_pct:.1f}% - "
+        f"noise budget: floor({max_fail_pct / 100:.2f} * {total}) = "
+        f"{int((max_fail_pct / 100) * total)} scenarios. See evals/calibration.md."
     )
 
     REPORT.mkdir(exist_ok=True)

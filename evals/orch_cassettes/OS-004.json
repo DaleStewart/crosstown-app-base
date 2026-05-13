@@ -1,7 +1,8 @@
 {
-  "text": "I can summarize what is currently logged on each line (L1, L2, L3). Pick a line or a station and I will pull the latest events.",
+  "tool_calls": [],
+  "citations": [],
   "warnings": [
     "uncited"
   ],
-  "citations": []
+  "text": "I can summarize what is currently logged on each line (L1, L2, L3). Pick a line or a station and I will pull the latest events."
 }

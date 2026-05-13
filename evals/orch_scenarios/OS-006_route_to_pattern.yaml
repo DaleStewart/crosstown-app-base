@@ -1,0 +1,8 @@
+id: OS-006
+title: "Tool routing: log ID with no hint -> detect_pattern"
+prompt: "Is log L-007777 part of a pattern I should worry about?"
+expected_substrings:
+  - "L-007777"
+expect_citations: true
+expected_tools:
+  - detect_pattern

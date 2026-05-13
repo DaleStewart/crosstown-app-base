@@ -127,6 +127,9 @@ def render(outcomes: list[Outcome], max_fail_pct: float) -> tuple[bool, dict[str
         f"({fail_pct:.1f}%) - high/critical failures: {len(high_fail)} - "
         f"gate <= {max_fail_pct}% AND zero high/critical -> "
         f"{'PASS' if gate_ok else 'FAIL'}"
+        f"\nObserved {fail_pct:.1f}% vs threshold {max_fail_pct:.1f}% - "
+        f"noise budget: floor({max_fail_pct / 100:.2f} * {total}) = "
+        f"{int((max_fail_pct / 100) * total)} scenarios. See evals/calibration.md."
     )
 
     REPORT.mkdir(exist_ok=True)

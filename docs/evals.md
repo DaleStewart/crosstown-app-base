@@ -91,6 +91,10 @@ Lazy-imported in `evals/foundry_evaluators.py`. Returns a 1..5 score per evaluat
 
 Each run writes JSON to `evals/.report/` (gitignored): `eval-report.json` and `orchestrator-eval-report.json`. The GitHub Actions jobs upload them as artifacts.
 
+## Calibration
+
+All thresholds in this doc are pinned in [`evals/calibration.json`](../evals/calibration.json) with the math in [`evals/calibration.md`](../evals/calibration.md). Each runner prints **observed vs threshold + noise budget** at the end of every run so trend movement is visible before the gate flips. Re-calibration goes through `.squad/decisions.md`.
+
 ## Adding scenarios
 
 1. Drop a YAML in `scenarios/` (citation gate) or `orch_scenarios/` (orchestrator gate) with a unique `id`.

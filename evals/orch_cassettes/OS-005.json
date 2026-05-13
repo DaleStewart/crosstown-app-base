@@ -1,0 +1,24 @@
+{
+  "tool_calls": [
+    {
+      "arguments": {
+        "query": "L2 status"
+      },
+      "name": "search_logs"
+    }
+  ],
+  "citations": [
+    {
+      "snippet": "doors.held sample",
+      "type": "log",
+      "id": "L-000123"
+    },
+    {
+      "snippet": "comms.jitter spike",
+      "type": "log",
+      "id": "L-000456"
+    }
+  ],
+  "warnings": [],
+  "text": "On L2 I see a doors.held warning at L-000123 and a comms.jitter spike at L-000456. Want me to detect a pattern around either?"
+}

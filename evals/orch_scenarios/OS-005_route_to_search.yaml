@@ -1,0 +1,8 @@
+id: OS-005
+title: "Tool routing: vague status question -> search_logs"
+prompt: "Anything wrong with L2 right now?"
+expected_substrings:
+  - "L2"
+expect_citations: true
+expected_tools:
+  - search_logs

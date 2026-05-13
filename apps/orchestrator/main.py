@@ -63,9 +63,16 @@ class TurnRequest(BaseModel):
     text: str
 
 
+class TurnToolCall(BaseModel):
+    name: str
+    arguments: dict[str, Any]
+    call_id: str = ""
+
+
 class TurnResponse(BaseModel):
     text: str
     citations: list[dict[str, Any]]
+    tool_calls: list[TurnToolCall] = []
     warnings: list[str] = []
 
 
@@ -85,11 +92,15 @@ async def api_turn(body: TurnRequest) -> TurnResponse:
     session = await provider.open_session(SYSTEM_PROMPT, tools.specs)
     citations: list[dict[str, Any]] = []
     warnings: list[str] = []
+    tool_calls: list[TurnToolCall] = []
     final_text = ""
     try:
         await session.send_text(body.text)
         async for ev in session.events():
             if isinstance(ev, ToolCall):
+                tool_calls.append(
+                    TurnToolCall(name=ev.name, arguments=dict(ev.arguments), call_id=ev.call_id)
+                )
                 try:
                     result = await tools.dispatch(ev.name, ev.arguments)
                 except Exception as exc:  # pragma: no cover - defensive
@@ -112,7 +123,12 @@ async def api_turn(body: TurnRequest) -> TurnResponse:
     if not citations and "uncited" not in warnings:
         warnings.append("uncited")
 
-    return TurnResponse(text=final_text, citations=citations, warnings=warnings)
+    return TurnResponse(
+        text=final_text,
+        citations=citations,
+        tool_calls=tool_calls,
+        warnings=warnings,
+    )
 
 
 @app.websocket("/ws/voice")

@@ -5,3 +5,5 @@ expected_substrings:
   - "L-001234"
   - "doors"
 expect_citations: true
+expected_tools:
+  - detect_pattern

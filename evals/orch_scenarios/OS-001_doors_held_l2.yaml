@@ -5,3 +5,5 @@ expected_substrings:
   - "door"
   - "L2"
 expect_citations: true
+expected_tools:
+  - search_logs

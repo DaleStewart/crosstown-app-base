@@ -1,0 +1,24 @@
+{
+  "tool_calls": [
+    {
+      "arguments": {
+        "incident_id": "INC-1010"
+      },
+      "name": "summarize_incident"
+    }
+  ],
+  "citations": [
+    {
+      "snippet": "emergency brake event",
+      "type": "incident",
+      "id": "INC-1010"
+    },
+    {
+      "snippet": "post-event triage",
+      "type": "runbook",
+      "id": "RB-06-emergency-brake"
+    }
+  ],
+  "warnings": [],
+  "text": "INC-1010 was a critical emergency-brake event on L2 near Summit. Recommended runbook: RB-06-emergency-brake."
+}

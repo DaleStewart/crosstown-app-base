@@ -223,6 +223,9 @@ def render_report(outcomes: list[ScenarioOutcome], max_uncited_pct: float) -> tu
     console.print(
         f"\nTotal turns: {total_turns} - uncited: {total_uncited} "
         f"({pct:.1f}%) - gate <= {max_uncited_pct}% -> {'PASS' if citation_ok else 'FAIL'}"
+        f"\nObserved {pct:.1f}% vs threshold {max_uncited_pct:.1f}% - "
+        f"noise budget: floor({max_uncited_pct/100:.2f} * {total_turns}) = "
+        f"{int((max_uncited_pct / 100) * total_turns)} turns. See evals/calibration.md."
     )
 
     REPORT.mkdir(exist_ok=True)

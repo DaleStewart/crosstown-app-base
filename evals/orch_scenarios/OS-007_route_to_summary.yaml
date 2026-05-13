@@ -1,0 +1,8 @@
+id: OS-007
+title: "Tool routing: incident ID -> summarize_incident"
+prompt: "What happened in INC-1010?"
+expected_substrings:
+  - "INC-1010"
+expect_citations: true
+expected_tools:
+  - summarize_incident

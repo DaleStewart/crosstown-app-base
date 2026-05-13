@@ -1,0 +1,10 @@
+id: OS-008
+title: "Tool routing: composite ask -> search_logs then summarize_incident"
+prompt: "Show me door-held events on L1 and then summarize INC-1010."
+expected_substrings:
+  - "door"
+  - "INC-1010"
+expect_citations: true
+expected_tools:
+  - search_logs
+  - summarize_incident

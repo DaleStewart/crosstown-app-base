@@ -2,7 +2,7 @@
   "tool_calls": [
     {
       "arguments": {
-        "log_id": "L-001234"
+        "log_id": "L-007777"
       },
       "name": "detect_pattern"
     }
@@ -11,19 +11,19 @@
     {
       "snippet": "seed log",
       "type": "log",
-      "id": "L-001234"
+      "id": "L-007777"
     },
     {
       "snippet": "correlated log",
       "type": "log",
-      "id": "L-000789"
+      "id": "L-007800"
     },
     {
       "snippet": "runbook excerpt",
       "type": "runbook",
-      "id": "RB-01-doors-held"
+      "id": "RB-05-interlock-fault"
     }
   ],
   "warnings": [],
-  "text": "Log L-001234 sits in a cascading doors-then-dwell cluster on L1. Linked logs include L-000789. See runbook RB-01-doors-held for the canonical pattern."
+  "text": "Log L-007777 is part of an interlock-pre-emergency pattern. Correlated logs L-007800. See runbook RB-05-interlock-fault."
 }

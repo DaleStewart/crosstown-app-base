@@ -5,3 +5,5 @@ expected_substrings:
   - "INC-1005"
   - "runbook"
 expect_citations: true
+expected_tools:
+  - summarize_incident

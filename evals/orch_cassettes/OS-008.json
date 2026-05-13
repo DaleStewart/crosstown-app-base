@@ -1,0 +1,40 @@
+{
+  "tool_calls": [
+    {
+      "arguments": {
+        "query": "doors held L1"
+      },
+      "name": "search_logs"
+    },
+    {
+      "arguments": {
+        "incident_id": "INC-1010"
+      },
+      "name": "summarize_incident"
+    }
+  ],
+  "citations": [
+    {
+      "snippet": "doors.held",
+      "type": "log",
+      "id": "L-009100"
+    },
+    {
+      "snippet": "doors.held",
+      "type": "log",
+      "id": "L-009200"
+    },
+    {
+      "snippet": "emergency brake",
+      "type": "incident",
+      "id": "INC-1010"
+    },
+    {
+      "snippet": "triage",
+      "type": "runbook",
+      "id": "RB-06-emergency-brake"
+    }
+  ],
+  "warnings": [],
+  "text": "Door-held events on L1: L-009100 at Atlas, L-009200 at Beacon. Summary of INC-1010: critical emergency-brake event on L2 near Summit (see RB-06-emergency-brake)."
+}

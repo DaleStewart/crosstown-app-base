@@ -54,6 +54,8 @@ def test_api_turn_returns_text_and_citations(client: TestClient) -> None:
     assert body["text"] == "Doors held cluster at Beacon on L2."
     assert any(c["id"] == "L-000123" for c in body["citations"])
     assert "uncited" not in body["warnings"]
+    assert any(tc["name"] == "search_logs" for tc in body["tool_calls"])
+    assert body["tool_calls"][0]["arguments"] == {"query": "x"}
 
 
 def test_api_turn_marks_uncited_when_no_citations(client: TestClient) -> None:
