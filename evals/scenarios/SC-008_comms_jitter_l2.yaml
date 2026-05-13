@@ -1,0 +1,9 @@
+id: SC-008
+title: "Comms jitter cluster on L2"
+prompt: "Any comms jitter spikes on L2 today?"
+expected_tools:
+  - name: search_logs
+    args_contains: {query: "comms jitter L2"}
+must_cite:
+  - type: log
+max_turns: 2

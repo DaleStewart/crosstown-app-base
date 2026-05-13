@@ -1,0 +1,10 @@
+id: SC-007
+title: "Summarize incident INC-1018 with runbook"
+prompt: "What happened in INC-1018 and what runbook applies?"
+expected_tools:
+  - name: summarize_incident
+    args_contains: {incident_id: "INC-1018"}
+must_cite:
+  - type: incident
+  - type: runbook
+max_turns: 2

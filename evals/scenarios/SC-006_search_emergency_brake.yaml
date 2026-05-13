@@ -1,0 +1,9 @@
+id: SC-006
+title: "Emergency brake event triage"
+prompt: "Are there emergency brake events I should look at?"
+expected_tools:
+  - name: search_logs
+    args_contains: {query: "emergency brake"}
+must_cite:
+  - type: log
+max_turns: 2

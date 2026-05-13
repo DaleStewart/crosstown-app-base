@@ -1,0 +1,89 @@
+{
+  "total_turns": 8,
+  "uncited_turns": 0,
+  "uncited_pct": 0.0,
+  "max_uncited_pct": 5.0,
+  "citation_gate": "pass",
+  "scenarios": [
+    {
+      "id": "SC-001",
+      "title": "L2 doors-held cluster around Beacon",
+      "passed": true,
+      "turns": 1,
+      "uncited_turns": 0,
+      "missing_expected_tools": [],
+      "missing_citation_types": [],
+      "errors": []
+    },
+    {
+      "id": "SC-002",
+      "title": "Pattern detection: cascading doors-then-dwell",
+      "passed": true,
+      "turns": 1,
+      "uncited_turns": 0,
+      "missing_expected_tools": [],
+      "missing_citation_types": [],
+      "errors": []
+    },
+    {
+      "id": "SC-003",
+      "title": "Incident summary INC-1005",
+      "passed": true,
+      "turns": 1,
+      "uncited_turns": 0,
+      "missing_expected_tools": [],
+      "missing_citation_types": [],
+      "errors": []
+    },
+    {
+      "id": "SC-004",
+      "title": "Interlock-pre-emergency pattern detection on L1",
+      "passed": true,
+      "turns": 1,
+      "uncited_turns": 0,
+      "missing_expected_tools": [],
+      "missing_citation_types": [],
+      "errors": []
+    },
+    {
+      "id": "SC-005",
+      "title": "Shunt-then-trip search on L3",
+      "passed": true,
+      "turns": 1,
+      "uncited_turns": 0,
+      "missing_expected_tools": [],
+      "missing_citation_types": [],
+      "errors": []
+    },
+    {
+      "id": "SC-006",
+      "title": "Emergency brake event triage",
+      "passed": true,
+      "turns": 1,
+      "uncited_turns": 0,
+      "missing_expected_tools": [],
+      "missing_citation_types": [],
+      "errors": []
+    },
+    {
+      "id": "SC-007",
+      "title": "Summarize incident INC-1018 with runbook",
+      "passed": true,
+      "turns": 1,
+      "uncited_turns": 0,
+      "missing_expected_tools": [],
+      "missing_citation_types": [],
+      "errors": []
+    },
+    {
+      "id": "SC-008",
+      "title": "Comms jitter cluster on L2",
+      "passed": true,
+      "turns": 1,
+      "uncited_turns": 0,
+      "missing_expected_tools": [],
+      "missing_citation_types": [],
+      "errors": []
+    }
+  ]
+}

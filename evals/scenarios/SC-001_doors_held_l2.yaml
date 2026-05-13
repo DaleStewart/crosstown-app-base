@@ -1,0 +1,9 @@
+id: SC-001
+title: "L2 doors-held cluster around Beacon"
+prompt: "Show me door-held events on L2 near Beacon in the last hour."
+expected_tools:
+  - name: search_logs
+    args_contains: {query: "doors held L2 Beacon"}
+must_cite:
+  - type: log
+max_turns: 2

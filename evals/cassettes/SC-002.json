@@ -1,0 +1,43 @@
+{
+  "calls": [
+    {
+      "tool": "detect_pattern",
+      "response": {
+        "tool": "detect_pattern",
+        "result": {
+          "matched_signatures": [
+            {
+              "runbook_id": "RB-01-doors-held",
+              "matching_log_ids": [
+                "L-001234",
+                "L-000789"
+              ],
+              "name": "cascading_doors_then_dwell"
+            }
+          ]
+        },
+        "trace_id": "t-2",
+        "citations": [
+          {
+            "snippet": "seed log",
+            "id": "L-001234",
+            "type": "log"
+          },
+          {
+            "snippet": "correlated log",
+            "id": "L-000789",
+            "type": "log"
+          },
+          {
+            "snippet": "runbook excerpt",
+            "id": "RB-01-doors-held",
+            "type": "runbook"
+          }
+        ]
+      },
+      "args_contains": {
+        "log_id": "L-001234"
+      }
+    }
+  ]
+}

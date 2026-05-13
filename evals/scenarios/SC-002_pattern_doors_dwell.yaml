@@ -1,0 +1,10 @@
+id: SC-002
+title: "Pattern detection: cascading doors-then-dwell"
+prompt: "Look at log L-001234 and tell me if it's part of a known pattern."
+expected_tools:
+  - name: detect_pattern
+    args_contains: {log_id: "L-001234"}
+must_cite:
+  - type: log
+  - type: runbook
+max_turns: 2

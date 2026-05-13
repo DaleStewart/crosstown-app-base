@@ -1,0 +1,10 @@
+id: SC-003
+title: "Incident summary INC-1005"
+prompt: "Summarize incident INC-1005 and which runbook to consult."
+expected_tools:
+  - name: summarize_incident
+    args_contains: {incident_id: "INC-1005"}
+must_cite:
+  - type: incident
+  - type: runbook
+max_turns: 2

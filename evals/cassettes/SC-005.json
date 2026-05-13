@@ -1,0 +1,48 @@
+{
+  "calls": [
+    {
+      "tool": "search_logs",
+      "response": {
+        "tool": "search_logs",
+        "result": {
+          "hits": [
+            {
+              "message": "trackcircuit.shunt sample message",
+              "severity": "WARN",
+              "event_type": "trackcircuit.shunt",
+              "timestamp": "2026-05-18T12:04:00+00:00",
+              "log_id": "L-000123",
+              "station": "Beacon",
+              "line": "L3"
+            },
+            {
+              "message": "trackcircuit.shunt another message",
+              "severity": "WARN",
+              "event_type": "trackcircuit.shunt",
+              "timestamp": "2026-05-18T12:05:00+00:00",
+              "log_id": "L-000456",
+              "station": "Atlas",
+              "line": "L3"
+            }
+          ]
+        },
+        "trace_id": "t-1",
+        "citations": [
+          {
+            "snippet": "trackcircuit.shunt sample message",
+            "id": "L-000123",
+            "type": "log"
+          },
+          {
+            "snippet": "trackcircuit.shunt another message",
+            "id": "L-000456",
+            "type": "log"
+          }
+        ]
+      },
+      "args_contains": {
+        "query": "track circuit shunt L3"
+      }
+    }
+  ]
+}

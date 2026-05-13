@@ -1,0 +1,9 @@
+id: SC-005
+title: "Shunt-then-trip search on L3"
+prompt: "Find track-circuit shunt events on L3 in the last 24h."
+expected_tools:
+  - name: search_logs
+    args_contains: {query: "track circuit shunt L3"}
+must_cite:
+  - type: log
+max_turns: 2

@@ -1,0 +1,48 @@
+{
+  "calls": [
+    {
+      "tool": "search_logs",
+      "response": {
+        "tool": "search_logs",
+        "result": {
+          "hits": [
+            {
+              "message": "comms.jitter sample message",
+              "severity": "WARN",
+              "event_type": "comms.jitter",
+              "timestamp": "2026-05-18T12:04:00+00:00",
+              "log_id": "L-000123",
+              "station": "Beacon",
+              "line": "L2"
+            },
+            {
+              "message": "comms.jitter another message",
+              "severity": "WARN",
+              "event_type": "comms.jitter",
+              "timestamp": "2026-05-18T12:05:00+00:00",
+              "log_id": "L-000456",
+              "station": "Atlas",
+              "line": "L2"
+            }
+          ]
+        },
+        "trace_id": "t-1",
+        "citations": [
+          {
+            "snippet": "comms.jitter sample message",
+            "id": "L-000123",
+            "type": "log"
+          },
+          {
+            "snippet": "comms.jitter another message",
+            "id": "L-000456",
+            "type": "log"
+          }
+        ]
+      },
+      "args_contains": {
+        "query": "comms jitter L2"
+      }
+    }
+  ]
+}

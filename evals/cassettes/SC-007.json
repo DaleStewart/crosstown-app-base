@@ -1,0 +1,35 @@
+{
+  "calls": [
+    {
+      "tool": "summarize_incident",
+      "response": {
+        "tool": "summarize_incident",
+        "result": {
+          "incident": {
+            "incidentId": "INC-1018",
+            "line": "L2",
+            "summary": "Mock summary for cassette"
+          },
+          "recommended_runbook": "RB-07-shunt-then-trip",
+          "summary": "Two-sentence mock summary. Consult the linked runbook."
+        },
+        "trace_id": "t-3",
+        "citations": [
+          {
+            "snippet": "Mock summary",
+            "id": "INC-1018",
+            "type": "incident"
+          },
+          {
+            "snippet": "Runbook excerpt",
+            "id": "RB-07-shunt-then-trip",
+            "type": "runbook"
+          }
+        ]
+      },
+      "args_contains": {
+        "incident_id": "INC-1018"
+      }
+    }
+  ]
+}

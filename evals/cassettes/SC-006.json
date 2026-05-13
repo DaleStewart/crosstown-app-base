@@ -1,0 +1,48 @@
+{
+  "calls": [
+    {
+      "tool": "search_logs",
+      "response": {
+        "tool": "search_logs",
+        "result": {
+          "hits": [
+            {
+              "message": "emergency.brake sample message",
+              "severity": "WARN",
+              "event_type": "emergency.brake",
+              "timestamp": "2026-05-18T12:04:00+00:00",
+              "log_id": "L-000123",
+              "station": "Beacon",
+              "line": "L1"
+            },
+            {
+              "message": "emergency.brake another message",
+              "severity": "WARN",
+              "event_type": "emergency.brake",
+              "timestamp": "2026-05-18T12:05:00+00:00",
+              "log_id": "L-000456",
+              "station": "Atlas",
+              "line": "L1"
+            }
+          ]
+        },
+        "trace_id": "t-1",
+        "citations": [
+          {
+            "snippet": "emergency.brake sample message",
+            "id": "L-000123",
+            "type": "log"
+          },
+          {
+            "snippet": "emergency.brake another message",
+            "id": "L-000456",
+            "type": "log"
+          }
+        ]
+      },
+      "args_contains": {
+        "query": "emergency brake"
+      }
+    }
+  ]
+}

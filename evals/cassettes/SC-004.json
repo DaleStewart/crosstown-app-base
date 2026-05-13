@@ -1,0 +1,43 @@
+{
+  "calls": [
+    {
+      "tool": "detect_pattern",
+      "response": {
+        "tool": "detect_pattern",
+        "result": {
+          "matched_signatures": [
+            {
+              "runbook_id": "RB-05-interlock-fault",
+              "matching_log_ids": [
+                "L-002500",
+                "L-000789"
+              ],
+              "name": "interlock_pre_emergency"
+            }
+          ]
+        },
+        "trace_id": "t-2",
+        "citations": [
+          {
+            "snippet": "seed log",
+            "id": "L-002500",
+            "type": "log"
+          },
+          {
+            "snippet": "correlated log",
+            "id": "L-000789",
+            "type": "log"
+          },
+          {
+            "snippet": "runbook excerpt",
+            "id": "RB-05-interlock-fault",
+            "type": "runbook"
+          }
+        ]
+      },
+      "args_contains": {
+        "log_id": "L-002500"
+      }
+    }
+  ]
+}

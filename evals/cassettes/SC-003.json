@@ -1,0 +1,35 @@
+{
+  "calls": [
+    {
+      "tool": "summarize_incident",
+      "response": {
+        "tool": "summarize_incident",
+        "result": {
+          "incident": {
+            "incidentId": "INC-1005",
+            "line": "L2",
+            "summary": "Mock summary for cassette"
+          },
+          "recommended_runbook": "RB-03-comms-jitter",
+          "summary": "Two-sentence mock summary. Consult the linked runbook."
+        },
+        "trace_id": "t-3",
+        "citations": [
+          {
+            "snippet": "Mock summary",
+            "id": "INC-1005",
+            "type": "incident"
+          },
+          {
+            "snippet": "Runbook excerpt",
+            "id": "RB-03-comms-jitter",
+            "type": "runbook"
+          }
+        ]
+      },
+      "args_contains": {
+        "incident_id": "INC-1005"
+      }
+    }
+  ]
+}
