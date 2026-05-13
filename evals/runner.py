@@ -143,7 +143,7 @@ def render_report(outcomes: list[ScenarioOutcome], max_uncited_pct: float) -> tu
     citation_ok = pct <= max_uncited_pct
     all_pass = all(o.passed for o in outcomes) and citation_ok
 
-    console = Console()
+    console = Console(force_terminal=True, legacy_windows=False)
     t = Table(title="Eval Results")
     t.add_column("Scenario")
     t.add_column("Turns")
@@ -160,12 +160,12 @@ def render_report(outcomes: list[ScenarioOutcome], max_uncited_pct: float) -> tu
             ", ".join(o.missing_expected_tools) or "-",
             ", ".join(o.missing_citation_types) or "-",
             ", ".join(o.errors) or "-",
-            "✅" if o.passed else "❌",
+            "PASS" if o.passed else "FAIL",
         )
     console.print(t)
     console.print(
-        f"\nTotal turns: {total_turns} · uncited: {total_uncited} "
-        f"({pct:.1f}%) · gate ≤{max_uncited_pct}% → {'PASS' if citation_ok else 'FAIL'}"
+        f"\nTotal turns: {total_turns} - uncited: {total_uncited} "
+        f"({pct:.1f}%) - gate <= {max_uncited_pct}% -> {'PASS' if citation_ok else 'FAIL'}"
     )
 
     REPORT.mkdir(exist_ok=True)
