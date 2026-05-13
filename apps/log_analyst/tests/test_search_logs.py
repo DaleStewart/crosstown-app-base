@@ -42,3 +42,24 @@ async def test_search_logs_no_hits_yields_uncited_warning(
 async def test_search_logs_rejects_empty_query(client: httpx.AsyncClient) -> None:
     resp = await client.post("/tools/search_logs", json={"query": ""})
     assert resp.status_code == 400
+    body = resp.json()
+    # Even error responses honour the tool envelope contract.
+    assert body["tool"] == "search_logs"
+    assert body["citations"] == []
+    assert "uncited" in body["warnings"]
+
+
+async def test_search_logs_rejects_bad_timestamp(client: httpx.AsyncClient) -> None:
+    resp = await client.post(
+        "/tools/search_logs",
+        json={"query": "x", "time_range": {"from": "not-a-date", "to": "2026-05-18T07:00:00+00:00"}},
+    )
+    assert resp.status_code == 400
+
+
+async def test_search_logs_rejects_non_object_body(client: httpx.AsyncClient) -> None:
+    resp = await client.post("/tools/search_logs", json=["not", "an", "object"])
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["tool"] == "search_logs"
+    assert body["citations"] == []

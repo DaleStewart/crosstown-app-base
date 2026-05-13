@@ -67,7 +67,26 @@ class FakeIncidentsContainer:
     def __init__(self, items: dict[str, dict[str, Any]] | None = None) -> None:
         self.items: dict[str, dict[str, Any]] = dict(items or {})
 
+    def query_items(
+        self,
+        *,
+        query: str,
+        parameters: list[dict[str, Any]],
+        partition_key: str | None = None,
+        **_: Any,
+    ) -> list[dict[str, Any]]:
+        # Only one query shape is issued by the tool:
+        #   SELECT * FROM c WHERE c.incidentId = @id
+        params = {p["name"]: p["value"] for p in parameters}
+        wanted = params.get("@id")
+        if wanted is None:
+            return []
+        if wanted in self.items:
+            return [self.items[wanted]]
+        return []
+
     def read_item(self, *, item: str, partition_key: str) -> dict[str, Any]:
+        # Kept for completeness; not used by the tool any more.
         if item not in self.items:
             raise RuntimeError(f"NotFound: {item}")
         assert partition_key == item

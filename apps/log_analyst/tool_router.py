@@ -4,6 +4,10 @@ The registry maps a tool name to (descriptor, async handler). The handler
 receives the parsed JSON body and returns a :class:`ToolResponse`. Routing is
 table-driven so adding a tool is a single registration call in
 :mod:`tools.__init__`.
+
+Errors raised by handlers are wrapped back into the ``ToolResponse`` envelope
+so the orchestrator's eval gate always sees ``citations`` and ``warnings`` —
+even on validation failure or upstream 404.
 """
 from __future__ import annotations
 
@@ -12,6 +16,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from citations import ToolDescriptor, ToolResponse
 
@@ -33,6 +38,22 @@ def get_handler(name: str) -> ToolHandler | None:
     return entry[1] if entry else None
 
 
+def _error_envelope(
+    tool: str,
+    trace_id: str,
+    status: int,
+    detail: str,
+) -> JSONResponse:
+    payload = ToolResponse(
+        tool=tool,
+        result={"error": detail, "status": status},
+        citations=[],
+        trace_id=trace_id,
+        warnings=["error", "uncited"],
+    )
+    return JSONResponse(status_code=status, content=payload.model_dump())
+
+
 def build_router() -> APIRouter:
     router = APIRouter()
 
@@ -41,16 +62,23 @@ def build_router() -> APIRouter:
         return list_descriptors()
 
     @router.post("/tools/{name}")
-    async def dispatch(name: str, request: Request) -> ToolResponse:
+    async def dispatch(name: str, request: Request) -> Any:
+        trace_id = request.headers.get("x-trace-id") or str(uuid.uuid4())
         handler = get_handler(name)
         if handler is None:
-            raise HTTPException(status_code=404, detail=f"unknown tool: {name}")
+            return _error_envelope(name, trace_id, 404, f"unknown tool: {name}")
         try:
-            body: dict[str, Any] = await request.json()
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail="invalid JSON body") from exc
-        trace_id = request.headers.get("x-trace-id") or str(uuid.uuid4())
-        response = await handler(body, trace_id)
+            body_any: Any = await request.json()
+        except ValueError:
+            return _error_envelope(name, trace_id, 400, "invalid JSON body")
+        if not isinstance(body_any, dict):
+            return _error_envelope(name, trace_id, 400, "request body must be a JSON object")
+        try:
+            response = await handler(body_any, trace_id)
+        except HTTPException as exc:
+            detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+            return _error_envelope(name, trace_id, exc.status_code, detail)
         return response.finalize()
 
     return router
+

@@ -1,6 +1,7 @@
 """detect_pattern tool — match known multi-event signatures within a window."""
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -23,6 +24,7 @@ SIGNATURE_TO_RUNBOOK: dict[str, str] = {
 }
 
 _SNIPPET_LEN = 120
+_WINDOW_PAGE_SIZE = 1000
 
 
 def _parse_iso(ts: str) -> datetime:
@@ -43,6 +45,12 @@ def _fetch_seed_log(log_id: str) -> dict[str, Any]:
 
 
 def _fetch_window_logs(line: str, start: datetime, end: datetime) -> list[dict[str, Any]]:
+    """Fetch logs on `line` within [start, end].
+
+    For the hackathon dataset the window comfortably fits in ``_WINDOW_PAGE_SIZE``
+    rows. Real production traffic would need cursor pagination; we cap defensively
+    and log a warning rather than silently dropping data.
+    """
     client = azure_clients.get_search_client()
     safe_line = line.replace("'", "''")
     odata = (
@@ -53,19 +61,12 @@ def _fetch_window_logs(line: str, start: datetime, end: datetime) -> list[dict[s
     raw: Any = client.search(
         search_text="*",
         filter=odata,
-        top=1000,
+        top=_WINDOW_PAGE_SIZE,
     )
     return [dict(hit) for hit in raw]
 
 
-async def handle_detect_pattern(body: dict[str, Any], trace_id: str) -> ToolResponse:
-    log_id = body.get("log_id")
-    if not isinstance(log_id, str) or not log_id.strip():
-        raise HTTPException(status_code=400, detail="log_id must be a non-empty string")
-    window_minutes = body.get("window_minutes", 60)
-    if not isinstance(window_minutes, int) or window_minutes <= 0:
-        raise HTTPException(status_code=400, detail="window_minutes must be a positive integer")
-
+def _scan_window(log_id: str, window_minutes: int) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     seed = _fetch_seed_log(log_id)
     seed_ts_raw = seed.get("timestamp")
     seed_line = seed.get("line")
@@ -76,8 +77,20 @@ async def handle_detect_pattern(body: dict[str, Any], trace_id: str) -> ToolResp
         )
     seed_ts = _parse_iso(seed_ts_raw)
     delta = timedelta(minutes=window_minutes)
+    window = _fetch_window_logs(seed_line, seed_ts - delta, seed_ts + delta)
+    return seed, window
 
-    window_logs = _fetch_window_logs(seed_line, seed_ts - delta, seed_ts + delta)
+
+async def handle_detect_pattern(body: dict[str, Any], trace_id: str) -> ToolResponse:
+    log_id = body.get("log_id")
+    if not isinstance(log_id, str) or not log_id.strip():
+        raise HTTPException(status_code=400, detail="log_id must be a non-empty string")
+    window_minutes = body.get("window_minutes", 60)
+    if not isinstance(window_minutes, int) or window_minutes <= 0:
+        raise HTTPException(status_code=400, detail="window_minutes must be a positive integer")
+
+    seed, window_logs = await asyncio.to_thread(_scan_window, log_id, window_minutes)
+
     by_event: dict[str, list[dict[str, Any]]] = {}
     for entry in window_logs:
         event = str(entry.get("event_type", ""))
