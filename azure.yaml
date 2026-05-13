@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+name: mta-ai-hackathon
+metadata:
+  template: mta-ai-hackathon@0.1.0
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+services:
+  log-analyst:
+    project: ./apps/log_analyst
+    host: containerapp
+    language: python
+    docker:
+      path: Dockerfile
+      context: .
+  orchestrator:
+    project: ./apps/orchestrator
+    host: containerapp
+    language: python
+    docker:
+      path: Dockerfile
+      context: .
+  frontend:
+    project: ./apps/frontend
+    host: containerapp
+    language: ts
+    docker:
+      path: Dockerfile
+      context: .
+
+hooks:
+  postprovision:
+    windows:
+      shell: pwsh
+      run: ./scripts/load_search_index.ps1
+      continueOnError: true
+      interactive: false
+    posix:
+      shell: sh
+      run: ./scripts/load_search_index.sh
+      continueOnError: true
+      interactive: false
