@@ -1,0 +1,205 @@
+{
+  "_comment": "MOCK DATA \u2014 NOT FROM MTA. For hackathon training only.",
+  "incidents": [
+    {
+      "incidentId": "INC-1001",
+      "line": "L1",
+      "openedAt": "2026-05-18T06:25:00+00:00",
+      "closedAt": "2026-05-18T09:43:00+00:00",
+      "severity": "CRITICAL",
+      "summary": "Cascading dwell on northbound peak: doors held at Beacon triggered a 14-train queue.",
+      "patternSignature": "cascading_doors_then_dwell",
+      "relatedRunbook": "RB-03-comms-jitter"
+    },
+    {
+      "incidentId": "INC-1002",
+      "line": "L2",
+      "openedAt": "2026-05-18T09:02:00+00:00",
+      "closedAt": "2026-05-18T11:35:00+00:00",
+      "severity": "WARN",
+      "summary": "Interlock fault at Meridian preceded emergency brake on train 1042; relay R-117 replaced.",
+      "patternSignature": null,
+      "relatedRunbook": "RB-01-doors-held"
+    },
+    {
+      "incidentId": "INC-1003",
+      "line": "L3",
+      "openedAt": "2026-05-18T12:12:00+00:00",
+      "closedAt": "2026-05-18T13:45:00+00:00",
+      "severity": "CRITICAL",
+      "summary": "Loss of shunt on TC-228 forced manual block working for 47 minutes mid-day.",
+      "patternSignature": "cascading_doors_then_dwell",
+      "relatedRunbook": "RB-01-doors-held"
+    },
+    {
+      "incidentId": "INC-1004",
+      "line": "L1",
+      "openedAt": "2026-05-18T15:32:00+00:00",
+      "closedAt": "2026-05-18T18:27:00+00:00",
+      "severity": "CRITICAL",
+      "summary": "Comms jitter spike to WC-09 correlated with a string of door-held warnings between Atlas and Crescent.",
+      "patternSignature": "cascading_doors_then_dwell",
+      "relatedRunbook": "RB-03-comms-jitter"
+    },
+    {
+      "incidentId": "INC-1005",
+      "line": "L2",
+      "openedAt": "2026-05-18T19:18:00+00:00",
+      "closedAt": "2026-05-18T20:01:00+00:00",
+      "severity": "WARN",
+      "summary": "Axle counter AC-44 discrepancy at Pioneer turned out to be a known sensor mis-calibration.",
+      "patternSignature": null,
+      "relatedRunbook": "RB-01-doors-held"
+    },
+    {
+      "incidentId": "INC-1006",
+      "line": "L3",
+      "openedAt": "2026-05-18T21:28:00+00:00",
+      "closedAt": "2026-05-18T22:07:00+00:00",
+      "severity": "CRITICAL",
+      "summary": "Traction power trip in sector 7-B; standby supply engaged within 8s, no service impact.",
+      "patternSignature": "shunt_then_power_trip",
+      "relatedRunbook": "RB-01-doors-held"
+    },
+    {
+      "incidentId": "INC-1007",
+      "line": "L1",
+      "openedAt": "2026-05-19T00:17:00+00:00",
+      "closedAt": "2026-05-19T02:27:00+00:00",
+      "severity": "WARN",
+      "summary": "Speed restriction held for 3 hours between Granite and Harbor pending track-circuit investigation.",
+      "patternSignature": null,
+      "relatedRunbook": "RB-09-axle-counter"
+    },
+    {
+      "incidentId": "INC-1008",
+      "line": "L2",
+      "openedAt": "2026-05-19T03:05:00+00:00",
+      "closedAt": "2026-05-19T04:00:00+00:00",
+      "severity": "CRITICAL",
+      "summary": "False-positive emergency brake event from train 2103 traced to a stuck onboard sensor.",
+      "patternSignature": "shunt_then_power_trip",
+      "relatedRunbook": "RB-07-shunt-then-trip"
+    },
+    {
+      "incidentId": "INC-1009",
+      "line": "L3",
+      "openedAt": "2026-05-19T06:38:00+00:00",
+      "closedAt": "2026-05-19T09:10:00+00:00",
+      "severity": "CRITICAL",
+      "summary": "Shunt-then-trip pattern recurred at TC-228 \u2014 flagged as candidate for predictive maintenance.",
+      "patternSignature": null,
+      "relatedRunbook": "RB-05-interlock-fault"
+    },
+    {
+      "incidentId": "INC-1010",
+      "line": "L1",
+      "openedAt": "2026-05-19T10:17:00+00:00",
+      "closedAt": "2026-05-19T11:47:00+00:00",
+      "severity": "ERROR",
+      "summary": "Door-held warnings clustered at Junction during a planned event; staffing adjustment recommended.",
+      "patternSignature": "interlock_pre_emergency",
+      "relatedRunbook": "RB-07-shunt-then-trip"
+    },
+    {
+      "incidentId": "INC-1011",
+      "line": "L2",
+      "openedAt": "2026-05-19T12:37:00+00:00",
+      "closedAt": "2026-05-19T16:20:00+00:00",
+      "severity": "ERROR",
+      "summary": "Interlock self-test failures during overnight maintenance window; cleared by manual reseat.",
+      "patternSignature": "interlock_pre_emergency",
+      "relatedRunbook": "RB-07-shunt-then-trip"
+    },
+    {
+      "incidentId": "INC-1012",
+      "line": "L3",
+      "openedAt": "2026-05-19T16:11:00+00:00",
+      "closedAt": "2026-05-19T19:44:00+00:00",
+      "severity": "ERROR",
+      "summary": "Wayside controller WC-22 firmware rollback after a comms jitter regression.",
+      "patternSignature": "interlock_pre_emergency",
+      "relatedRunbook": "RB-05-interlock-fault"
+    },
+    {
+      "incidentId": "INC-1013",
+      "line": "L1",
+      "openedAt": "2026-05-19T18:46:00+00:00",
+      "closedAt": "2026-05-19T22:03:00+00:00",
+      "severity": "WARN",
+      "summary": "Investigation of repeated dwell at Iris northbound found a misaligned platform sensor.",
+      "patternSignature": "interlock_pre_emergency",
+      "relatedRunbook": "RB-01-doors-held"
+    },
+    {
+      "incidentId": "INC-1014",
+      "line": "L2",
+      "openedAt": "2026-05-19T22:20:00+00:00",
+      "closedAt": "2026-05-20T02:04:00+00:00",
+      "severity": "CRITICAL",
+      "summary": "Critical: emergency brake on train 1207 approaching Summit; cause confirmed wayside spurious signal.",
+      "patternSignature": null,
+      "relatedRunbook": "RB-07-shunt-then-trip"
+    },
+    {
+      "incidentId": "INC-1015",
+      "line": "L3",
+      "openedAt": "2026-05-20T00:34:00+00:00",
+      "closedAt": "2026-05-20T03:05:00+00:00",
+      "severity": "CRITICAL",
+      "summary": "Axle counter chain on northbound L3 re-baselined after 36 hours of intermittent discrepancies.",
+      "patternSignature": "cascading_doors_then_dwell",
+      "relatedRunbook": "RB-07-shunt-then-trip"
+    },
+    {
+      "incidentId": "INC-1016",
+      "line": "L1",
+      "openedAt": "2026-05-20T03:39:00+00:00",
+      "closedAt": "2026-05-20T06:38:00+00:00",
+      "severity": "CRITICAL",
+      "summary": "Comms jitter from WC-05 resolved by switching to the redundant fiber path.",
+      "patternSignature": "interlock_pre_emergency",
+      "relatedRunbook": "RB-03-comms-jitter"
+    },
+    {
+      "incidentId": "INC-1017",
+      "line": "L2",
+      "openedAt": "2026-05-20T06:57:00+00:00",
+      "closedAt": "2026-05-20T08:34:00+00:00",
+      "severity": "WARN",
+      "summary": "Door held + dwell + jitter cluster at Beacon \u2014 see runbook 03 for the canonical pattern.",
+      "patternSignature": "shunt_then_power_trip",
+      "relatedRunbook": "RB-05-interlock-fault"
+    },
+    {
+      "incidentId": "INC-1018",
+      "line": "L3",
+      "openedAt": "2026-05-20T09:07:00+00:00",
+      "closedAt": "2026-05-20T11:19:00+00:00",
+      "severity": "WARN",
+      "summary": "Power trip sector 7-B recurrence: candidate for the 'shunt-then-trip' signature in runbook 07.",
+      "patternSignature": null,
+      "relatedRunbook": "RB-05-interlock-fault"
+    },
+    {
+      "incidentId": "INC-1019",
+      "line": "L1",
+      "openedAt": "2026-05-20T13:25:00+00:00",
+      "closedAt": "2026-05-20T14:44:00+00:00",
+      "severity": "CRITICAL",
+      "summary": "Severity-warn flood at Pioneer turned out to be a logging-level regression on the controller.",
+      "patternSignature": "shunt_then_power_trip",
+      "relatedRunbook": "RB-09-axle-counter"
+    },
+    {
+      "incidentId": "INC-1020",
+      "line": "L2",
+      "openedAt": "2026-05-20T16:06:00+00:00",
+      "closedAt": "2026-05-20T18:11:00+00:00",
+      "severity": "CRITICAL",
+      "summary": "Interlock-pre-emergency signature confirmed on overnight train 2099; no injuries; track held 22min.",
+      "patternSignature": null,
+      "relatedRunbook": "RB-07-shunt-then-trip"
+    }
+  ]
+}
