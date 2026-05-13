@@ -5,7 +5,7 @@ Three gates ship in `.github/workflows/eval.yml`:
 | Gate | Runner | Threshold | What it grades |
 |---|---|---|---|
 | **Citation** | `python -m runner` | `≤5%` uncited turns | Tool-layer responses from the Log Analyst carry citations of the right type and pinned IDs where applicable. |
-| **Orchestrator** | `python -m orchestrator_runner` | `0%` failures | The composed user-facing reply contains required substrings and at least one citation token. |
+| **Orchestrator** | `python -m orchestrator_runner` | `0%` failures | The composed user-facing reply contains required substrings, at least one citation token, **and the orchestrator picked the expected tool(s)** (`expected_tools` field). |
 | **Foundry** (optional) | `python -m runner --with-foundry` | `score ≥ 3.0` on each evaluator | Groundedness, relevance, coherence, retrieval — Foundry-hosted LLM-judge scores. |
 
 Plus the safety gate in [`docs/redteam.md`](redteam.md).
@@ -74,7 +74,11 @@ title: "Doors-held on L2 — composed reply with citation"
 prompt: "What's the recent door-held activity on L2?"
 expected_substrings: ["door", "L2"]
 expect_citations: true              # response text must contain at least one L-/INC-/RB- token
+expected_tools:                     # tool-routing assertion (cassettes carry tool_calls)
+  - search_logs
 ```
+
+Tool-routing scenarios (OS-005..008) target the routing question specifically — a vague status question must route to `search_logs`, a raw log ID must route to `detect_pattern`, an incident ID must route to `summarize_incident`, and a composite ask must invoke both.
 
 ## Foundry evaluators
 

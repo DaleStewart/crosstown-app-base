@@ -6,6 +6,7 @@
 [![Track](https://img.shields.io/badge/track-2%20App%20Modernization-purple)]()
 [![Hour-1](https://img.shields.io/badge/Hour--1-voice%20%2B%20agent%20demo-brightgreen)]()
 [![Skill](https://img.shields.io/badge/skill%20level-beginner--friendly-orange)]()
+[![Gates](https://img.shields.io/badge/CI%20gates-citation%20%7C%20orchestrator%20%7C%20foundry%20%7C%20redteam-blueviolet)]()
 
 ---
 

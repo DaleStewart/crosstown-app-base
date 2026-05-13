@@ -25,7 +25,7 @@ pip install -r requirements.txt
 python -m runner --max-fail-pct 10
 ```
 
-By default the runner is **offline** — each scenario replays a canned response from `cassettes/`. Switch to live mode by exposing a `POST /api/turn` text endpoint on the orchestrator and:
+By default the runner is **offline** — each scenario replays a canned response from `cassettes/`. Switch to live mode against the deployed orchestrator's shipped `POST /api/turn` endpoint:
 
 ```bash
 EVAL_MODE=live ORCHESTRATOR_URL=https://orchestrator.<env>.azurecontainerapps.io \

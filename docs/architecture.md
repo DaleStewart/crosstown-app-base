@@ -7,7 +7,7 @@ The MTA AI Hackathon accelerator is an opt-in Track 2 scaffolding. It deploys to
 | Service | Tech | ACA ingress | Responsibility |
 |---|---|---|---|
 | `frontend` | Vite + React + shadcn/ui | external :80 | Push-to-talk, transcript, tool-call/citation panel |
-| `orchestrator` | Python 3.11 + FastAPI | external :8000 (WebSocket) | Routes turns, calls specialists, owns the conversation memory window, brokers voice |
+| `orchestrator` | Python 3.11 + FastAPI | external :8000 (WebSocket + HTTP) | Routes turns, calls specialists, owns the conversation memory window, brokers voice. Endpoints: `GET /health`, `GET /api/conversations/{id}`, **`POST /api/turn`** (text-only single-turn for evals + red team + non-voice clients), `WS /ws/voice` |
 | `log-analyst` | Python 3.11 + FastAPI | internal :8001 | Three tools (`search_logs`, `detect_pattern`, `summarize_incident`); every response carries citations |
 
 ## Azure resources (Bicep-provisioned)
@@ -55,6 +55,17 @@ The voice path is selected by `VOICE_PROVIDER` env var. See [voice.md](voice.md)
 - OpenTelemetry via `azure-monitor-opentelemetry` in each Python service
 - App Insights connection string injected via env (Key Vault for secret form)
 - Foundry tracing enabled on every agent turn
+
+## Quality gates (CI)
+
+| Gate | Workflow / Runner | Threshold | Calibration |
+|---|---|---|---|
+| Citation | `.github/workflows/eval.yml` job `citation-gate` (`evals/runner.py`) | ≤5% uncited turns | [`evals/calibration.md#citation-gate`](../evals/calibration.md) |
+| Orchestrator (incl. tool-routing) | `.github/workflows/eval.yml` job `orchestrator-gate` (`evals/orchestrator_runner.py`) | 0% scenario failures | [`evals/calibration.md#orchestrator-gate`](../evals/calibration.md) |
+| Foundry evaluators (optional) | `.github/workflows/eval.yml` job `foundry-evaluators` | each evaluator ≥3.0/5 | [`evals/calibration.md#foundry-evaluators`](../evals/calibration.md) |
+| Red team | `.github/workflows/redteam.yml` (manual + weekly) | 0 high/critical AND ≤10% overall | [`evals/calibration.md#red-team-gate`](../evals/calibration.md) |
+
+All gates run hermetically offline (cassettes) and switch to live mode against the deployed orchestrator's `POST /api/turn` (red team, orchestrator) or `LOG_ANALYST_URL/tools/*` (citation) with a single env var.
 
 ## Extension points
 - New specialists: copy `apps/log_analyst/` to `apps/<name>/`, add Bicep call in `main.bicep`, register routing in orchestrator

@@ -33,15 +33,7 @@ A pytest wrapper is provided: `pytest redteam/test_redteam_gate.py`.
 
 ## Live mode
 
-Live mode POSTs each prompt to `${ORCHESTRATOR_URL}/api/turn` and grades the JSON response. The Hour-1 orchestrator only exposes `/ws/voice`; expose a 5-line text route to enable live red-teaming:
-
-```python
-@app.post("/api/turn")
-async def turn(body: dict[str, str]) -> dict[str, str]:
-    text = body["text"]
-    reply = await orchestrator.run_text_turn(text)
-    return {"text": reply}
-```
+Live mode POSTs each prompt to `${ORCHESTRATOR_URL}/api/turn` and grades the JSON response. The orchestrator ships this route by default — see [`apps/orchestrator/README.md`](../apps/orchestrator/README.md#endpoints). No setup required beyond pointing `ORCHESTRATOR_URL` at the deployed env.
 
 ## CI
 
