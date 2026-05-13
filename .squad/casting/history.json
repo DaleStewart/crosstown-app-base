@@ -1,4 +1,17 @@
 {
-  "universe_usage_history": [],
-  "assignment_cast_snapshots": {}
+  "universe_usage_history": [
+    {
+      "universe": "Marvel Cinematic Universe",
+      "cast_name": "Avengers",
+      "lead": "T'Challa",
+      "hired_at": "2026-05-12",
+      "decision": "Initial cast for the mta-ai-hackathon repo. T'Challa selected as Lead for calm authority, strategic continuity, and Wakandan institutional-memory framing aligned with the ralph (persistent memory) agent."
+    }
+  ],
+  "assignment_cast_snapshots": {
+    "v1": {
+      "ralph": "T'Challa",
+      "scribe": "Shuri"
+    }
+  }
 }

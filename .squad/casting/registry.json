@@ -1,3 +1,30 @@
 {
-  "agents": {}
+  "universe": "Marvel Cinematic Universe",
+  "cast_name": "Avengers",
+  "lead": "T'Challa",
+  "cast_version": 1,
+  "hired_at": "2026-05-12",
+  "agents": {
+    "ralph": {
+      "character": "T'Challa",
+      "alias": "Black Panther",
+      "is_lead": true,
+      "role": "Squad Lead - strategic continuity, persistent memory, decision broker. Calls votes, breaks ties, and owns the institutional record."
+    },
+    "scribe": {
+      "character": "Shuri",
+      "alias": "Princess of Wakanda",
+      "role": "Knowledge archivist + R&D - captures decisions, maintains the wisdom log, and prototypes new tooling for the team."
+    }
+  },
+  "bench": [
+    {"character": "Tony Stark",       "alias": "Iron Man",       "intended_role": "Architect - system design, infra patterns, hard tech calls."},
+    {"character": "Natasha Romanoff", "alias": "Black Widow",    "intended_role": "Security & red team - adversarial scenarios, threat modeling, breakglass procedures."},
+    {"character": "Bruce Banner",     "alias": "Hulk",           "intended_role": "Data science & evaluation - golden scenarios, eval gates, model quality measurement."},
+    {"character": "Sam Wilson",       "alias": "Falcon",         "intended_role": "Observability & reliability - telemetry, SLOs, incident response."},
+    {"character": "Peter Parker",     "alias": "Spider-Man",     "intended_role": "Onboarding & developer advocacy - docs, tutorials, the friendly first contact."},
+    {"character": "Okoye",                                       "intended_role": "Operations & delivery - CI/CD, release management, deployment integrity."},
+    {"character": "Wanda Maximoff",   "alias": "Scarlet Witch",  "intended_role": "Anomaly detection & agent QA - drift watching, regression hunting, behavioral evals."},
+    {"character": "Stephen Strange",  "alias": "Doctor Strange", "intended_role": "Architectural reviewer - counterfactuals, future-state design reviews, contingency planning."}
+  ]
 }
