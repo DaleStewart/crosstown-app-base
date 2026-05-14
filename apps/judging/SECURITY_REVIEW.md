@@ -155,3 +155,154 @@
 - [ ] Verify AAD app registration `redirect_uris` only include the SWA hostname
 - [ ] Confirm the `admin` role is assigned via Azure Portal → SWA → Role Management (not auto-granted)
 - [ ] Expand `.gitignore` (M3) before any dev onboards
+
+---
+
+## Verification — 2026-05-13
+
+**Reviewer:** Strange  |  **Commits audited:** `7f6b670` (Stark), `ae0cdeb` (Okoye)
+
+### C1 — CSV Export: Formula Injection
+**Status: ✅ FIXED**
+
+`api/export/index.js:8-9` — `csvEscape()` now tests for hostile cell-start characters before quoting:
+```js
+// CWE-1236: prefix cells that Excel/Sheets would interpret as a formula
+if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+```
+Matches the recommended fix exactly. All rows pass through `row.map(csvEscape)` at line 87.
+
+---
+
+### C2 — `{{TODO_TENANT_GUID}}` Placeholder Still in Config
+**Status: ✅ FIXED**
+
+`staticwebapp.config.json:6` — placeholder replaced with the real Microsoft tenant GUID:
+```json
+"openIdIssuer": "https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/v2.0"
+```
+AAD issuer is now valid. No `{{TODO_*}}` strings remain in the file.
+
+---
+
+### H1 — Missing Security Response Headers
+**Status: ✅ FIXED**
+
+`staticwebapp.config.json:29-33` — all four recommended headers added to `globalHeaders`:
+```json
+"X-Frame-Options": "DENY",
+"X-Content-Type-Options": "nosniff",
+"Referrer-Policy": "strict-origin-when-cross-origin",
+"Content-Security-Policy": "default-src 'self'; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; ..."
+```
+Clickjacking protection, MIME-sniffing protection, and CSP are all in place. Fix is identical to the recommendation.
+
+---
+
+### H2 — Cosmos DB Public Network Access Enabled, No Firewall
+**Status: ⚠️ PARTIAL**
+
+`infra/main.bicep:51-61` — `networkAclBypass: 'AzureServices'` and `ipRules: []` were added with a detailed comment explaining the constraint (SWA managed Functions use dynamic IPs not expressible as a fixed allowlist). `publicNetworkAccess` remains `'Enabled'`.
+
+The addition of `ipRules: []` does **not** create a deny-all posture when combined with `publicNetworkAccess: 'Enabled'` — Cosmos DB interprets an empty `ipRules` array as "no IP restrictions" rather than "block all". The DB is still reachable from the public internet with valid credentials. The comment correctly identifies the architectural constraint and marks a TODO for private endpoint or SWA outbound IP pinning, but the runtime attack surface from H2 is not meaningfully reduced. Accepting the operational limitation is reasonable for a hackathon; it must be resolved before any production hardening pass.
+
+---
+
+### H3 — `allowConfigFileUpdates: true` on SWA
+**Status: ✅ FIXED**
+
+`infra/main.bicep:112` — property set to `false`:
+```bicep
+// SECURITY (H3): config managed via Bicep only
+allowConfigFileUpdates: false
+```
+Config overrides via repo pushes are now blocked at the platform level.
+
+---
+
+### H4 — No JSON Body Size Limit
+**Status: ✅ FIXED**
+
+`api/host.json:7-9` — 100 KB cap applied to all Functions:
+```json
+"extensions": { "http": { "maxRequestBodySize": 102400 } }
+```
+Matches the recommendation exactly (102400 bytes = 100 KB).
+
+---
+
+### M1 — Leaderboard Exposes All Scores Before Lock
+**Status: ✅ FIXED**
+
+`api/leaderboard/index.js:27-30` — gate added after auth:
+```js
+if (!isAdmin(user) && !(await isTrackLocked(track))) {
+  context.res = { status: 403, body: { error: 'Leaderboard not available until scoring closes' } };
+  return;
+}
+```
+Non-admins receive 403 until the track is locked. Admins retain real-time visibility. Fix is consistent with the recommended approach.
+
+---
+
+### M2 — Lock Route Also Needs GET Handler for Status Check
+**Status: ✅ FIXED**
+
+`api/lock/function.json:3` — `"GET"` added to methods array:
+```json
+"methods": ["GET", "POST"]
+```
+`api/lock/index.js:18-37` — GET branch reads and returns lock status; POST branch (admin-only) unchanged. The frontend `GET /api/lock?track=...` call will now succeed.
+
+---
+
+### M3 — `.gitignore` Only Covers `api/local.settings.json`
+**Status: ✅ FIXED**
+
+`apps/judging/.gitignore` — expanded to cover all recommended patterns:
+```
+.env
+.env.*
+*.env.local
+.azure/
+node_modules/
+*.pem
+*.pfx
+*.key
+test-results/
+playwright-report/
+.cache/
+```
+All common secret-carrying file patterns are now excluded.
+
+---
+
+### M4 — Cosmos Connection String Visible in ARM Deployment History
+**Status: ⚠️ PARTIAL**
+
+`infra/main.bicep:118-133` — a detailed comment was added documenting the threat model and future Key Vault path. The underlying call `cosmos.listConnectionStrings().connectionStrings[0].connectionString` remains inline and still resolves at deploy time. ARM deployment history will still contain the evaluated connection string for anyone with `Microsoft.Resources/deployments/read` on the resource group. The comment accurately describes the risk and marks the remediation path (Key Vault secret reference or `disableLocalAuth: true` with AAD RBAC), but the runtime exposure from M4 is not closed in this pass. Acceptable for a time-boxed hackathon; must be resolved before any tenant with broader RBAC access is onboarded.
+
+---
+
+### Verification Summary
+
+| ID | Finding | Status |
+|----|---------|--------|
+| C1 | CSV formula injection | ✅ FIXED |
+| C2 | Tenant GUID placeholder | ✅ FIXED |
+| H1 | Missing security headers | ✅ FIXED |
+| H2 | Cosmos public network open | ⚠️ PARTIAL |
+| H3 | `allowConfigFileUpdates: true` | ✅ FIXED |
+| H4 | No body size limit | ✅ FIXED |
+| M1 | Leaderboard pre-lock exposure | ✅ FIXED |
+| M2 | Lock GET handler missing | ✅ FIXED |
+| M3 | `.gitignore` too narrow | ✅ FIXED |
+| M4 | Connection string in ARM history | ⚠️ PARTIAL |
+
+**Fixed:** 8/10  |  **Partial:** 2/10 (H2, M4)  |  **Not fixed:** 0/10
+
+Both partials (H2, M4) are infrastructure-layer concerns with documented technical constraints for a hackathon deployment. All user-facing and API-layer security gaps are closed. The two partials require action before any production-grade or multi-tenant deployment.
+
+## 🟡 Ship after small remediations
+
+H2 and M4 remain open at the infrastructure layer with documented technical rationale. Acceptable to ship for a bounded hackathon event; revisit H2 (Cosmos firewall / private endpoint) and M4 (Key Vault secret reference) before any broader rollout.
