@@ -1,2 +1,24 @@
 # Judging app — local-only files
 api/local.settings.json
+
+# Local secrets
+.env
+.env.*
+*.env.local
+
+# Azure
+.azure/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Certificates / keys
+*.pem
+*.pfx
+*.key
+
+# Build/test output
+test-results/
+playwright-report/
+.cache/

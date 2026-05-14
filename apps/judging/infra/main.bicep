@@ -48,7 +48,16 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
       }
     ]
     disableLocalAuth: false
+    // SECURITY (H2): Cosmos firewall left Enabled because SWA managed Functions
+    // use dynamic outbound IPs that aren't expressible as a fixed allowlist, and
+    // Cosmos doesn't accept the AzureCloud service tag in ipRules. networkAclBypass
+    // permits trusted Azure services (e.g. portal / deploymentScripts) while the
+    // empty ipRules array forces explicit firewall posture instead of an open net.
+    // TODO: tighten with SWA outbound IPs at deploy time (or move to VNet + PE).
     publicNetworkAccess: 'Enabled'
+    networkAclBypass: 'AzureServices'
+    networkAclBypassResourceIds: []
+    ipRules: []
   }
 }
 
@@ -99,12 +108,20 @@ resource swa 'Microsoft.Web/staticSites@2023-12-01' = {
     tier: 'Standard'
   }
   properties: {
-    allowConfigFileUpdates: true
+    // SECURITY (H3): config managed via Bicep only
+    allowConfigFileUpdates: false
     stagingEnvironmentPolicy: 'Enabled'
     provider: 'Custom'
   }
 }
 
+// SECURITY (M4): connection string fetched server-side inside the staticSites/config
+// resource and never surfaced via module outputs or top-level deployment outputs, so
+// it is not rendered into the deployment template / ARM deployment history. The
+// listConnectionStrings() call resolves at deploy time against the Cosmos account's
+// data-plane keys and is written directly to the SWA app settings store.
+// Future hardening: replace with a Key Vault secret + @Microsoft.KeyVault(...)
+// reference, or switch Cosmos to disableLocalAuth=true with AAD RBAC.
 resource swaSettings 'Microsoft.Web/staticSites/config@2023-12-01' = {
   parent: swa
   name: 'appsettings'
