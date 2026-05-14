@@ -4,7 +4,9 @@ const { CRITERIA, tier, tieBreakerId } = require('../_shared/criteria');
 
 function csvEscape(v) {
   if (v === null || v === undefined) return '';
-  const s = String(v);
+  let s = String(v);
+  // CWE-1236: prefix cells that Excel/Sheets would interpret as a formula
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
   if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
   return s;
 }

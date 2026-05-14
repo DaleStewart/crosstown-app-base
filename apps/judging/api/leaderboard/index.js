@@ -1,9 +1,20 @@
 const { getContainer } = require('../_shared/cosmos');
-const { requireAuth } = require('../_shared/auth');
+const { requireAuth, isAdmin } = require('../_shared/auth');
 const { CRITERIA, tier, tieBreakerId } = require('../_shared/criteria');
 
+async function isTrackLocked(track) {
+  try {
+    const events = getContainer('events');
+    const { resource } = await events.item(`lock-status-${track}`, track).read();
+    return !!(resource && resource.payload && resource.payload.locked);
+  } catch (err) {
+    if (err && err.code === 404) return false;
+    throw err;
+  }
+}
+
 module.exports = async function (context, req) {
-  const { res: authRes } = requireAuth(req);
+  const { user, res: authRes } = requireAuth(req);
   if (authRes) { context.res = authRes; return; }
 
   const track = (req.query.track || '').toLowerCase();
@@ -12,6 +23,12 @@ module.exports = async function (context, req) {
     context.res = { status: 400, body: { error: 'track query param must be one of: azure, copilot' } };
     return;
   }
+
+  if (!isAdmin(user) && !(await isTrackLocked(track))) {
+    context.res = { status: 403, body: { error: 'Leaderboard not available until scoring closes' } };
+    return;
+  }
+
   const tbId = tieBreakerId(track);
 
   try {
