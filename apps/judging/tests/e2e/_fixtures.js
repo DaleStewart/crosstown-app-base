@@ -5,6 +5,9 @@
  */
 'use strict';
 
+const fs = require('node:fs');
+const path = require('node:path');
+
 const ANON = { clientPrincipal: null };
 
 function principal(roles, email) {
@@ -61,8 +64,26 @@ function jsonRoute(payload, status) {
   };
 }
 
+/**
+ * Intercept /shared/criteria.js so the scorecard page gets the real module
+ * even when the static server is rooted at apps/judging/src/ (which has no
+ * shared/ subdirectory).
+ */
+async function stubCriteria(page) {
+  const criteriaPath = path.join(__dirname, '..', '..', 'shared', 'criteria.js');
+  const criteriaSource = fs.readFileSync(criteriaPath, 'utf8');
+  await page.route('**/shared/criteria.js', function (route) {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: criteriaSource
+    });
+  });
+}
+
 module.exports = {
   stubAuth,
+  stubCriteria,
   sampleTeams,
   sampleLeaderboard,
   jsonRoute

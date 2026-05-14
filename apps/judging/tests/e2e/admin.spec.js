@@ -69,7 +69,7 @@ test.describe('admin page', function () {
       await expect(page.locator('#admin-body')).toBeVisible();
       await page.locator('#lb-body tr[data-idx]').first().waitFor();
 
-      await page.locator('#lock-toggle').check();
+      await page.locator('#lock-toggle').check({ force: true });
 
       await expect.poll(function () { return posted; }, { timeout: 5000 }).not.toBeNull();
       expect(posted).toEqual({ track: 'azure', locked: true });

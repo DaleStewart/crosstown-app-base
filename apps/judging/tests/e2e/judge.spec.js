@@ -1,10 +1,11 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-const { stubAuth, sampleTeams, jsonRoute } = require('./_fixtures');
+const { stubAuth, stubCriteria, sampleTeams, jsonRoute } = require('./_fixtures');
 
 test.describe('judge page', function () {
   test.beforeEach(async function ({ page }) {
     await stubAuth(page, 'judge');
+    await stubCriteria(page);
     await page.route('**/api/teams**', function (route) {
       if (route.request().method() === 'GET') {
         return jsonRoute(sampleTeams())(route);

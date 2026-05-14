@@ -7,7 +7,19 @@
 
 ## Learnings
 
-### 2026-05-13 (session 2) — test authoring for post-reboot build session
+### 2026-05-13 (session 3) — first execution run, fixes for stale tests
+
+- Ran `node unit/criteria.test.js` → **9/9 pass** on first run, no changes.
+- Ran Playwright E2E (Chromium, static server at `http://localhost:4280`) against Stark's security fixes (D-008): lock GET branch + leaderboard gating.
+- Initial run: **7/10 pass**. 3 failures — both stale test issues, **no regressions from Stark's changes**.
+  - **judge.spec.js (2 tests)** — `#btn-alignment-5` never appeared. Root cause: static server roots at `apps/judging/src/`; `/shared/criteria.js` 404s; `criteria-ui.js` gracefully falls back to empty spine → no score buttons rendered.
+    - Fix: added `stubCriteria(page)` to `_fixtures.js` — a `page.route('**/shared/criteria.js', ...)` handler serving the real file from disk. Added it to `judge.spec.js` `beforeEach`.
+  - **admin.spec.js** — lock toggle: `<span class="track"></span>` CSS overlay intercepts pointer events on the hidden checkbox. Fix: `.check({ force: true })`.
+- After fixes: **10/10 E2E pass**.
+- Stark's GET-on-lock: tests already stubbed both GET and POST in `beforeEach`; no test changes needed.
+- Stark's leaderboard non-admin 403: tests stub `/api/leaderboard` directly; gate is server-side only; not a regression.
+- Committed and pushed test updates.
+
 
 - Continued test authoring from initial scaffold (session 1)
 - Added comprehensive coverage: auth flow (AAD login, token refresh, logout, expiry), judge interface (team picker, criterion scoring, tier feedback), leaderboard (rank order, tie-breaking, tier labels, locked state), admin console (lock/unlock tracks, CSV export)
