@@ -37,7 +37,7 @@ The frontend is provider-agnostic — it streams microphone audio to the orchest
 **How it works:**
 - Orchestrator runs three loops in parallel per turn:
   1. STT (continuous recognition) on the user's audio stream.
-  2. Chat completions against `gpt-4o` for routing + composition.
+  2. Chat completions against `gpt-4.1` for routing + composition.
   3. TTS on the composed reply, streamed back to the frontend.
 - The orchestrator still dispatches tool calls to the Log Analyst over HTTP — that part is unchanged.
 
@@ -48,7 +48,7 @@ The frontend is provider-agnostic — it streams microphone audio to the orchest
 **Env vars consumed:**
 - `AZURE_SPEECH_ENDPOINT`
 - `AZURE_SPEECH_REGION`
-- `AZURE_OPENAI_CHAT_DEPLOYMENT` (default `gpt-4o`)
+- `AZURE_OPENAI_CHAT_DEPLOYMENT` (default `gpt-4.1`)
 
 ## Switching providers
 

@@ -1,0 +1,7 @@
+{
+  "name": "judging-api",
+  "version": "0.1.0",
+  "main": "index.js",
+  "engines": { "node": ">=20" },
+  "dependencies": { "@azure/cosmos": "^4.0.0" }
+}

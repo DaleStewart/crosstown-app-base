@@ -65,15 +65,15 @@ resource aoaiAccount 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   }
 }
 
-// gpt-4o — Standard deployment, 10 K TPM (hackathon scale)
+// gpt-4.1 — Standard deployment, 10 K TPM (hackathon scale)
 resource gpt4oDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
   parent: aoaiAccount
-  name: 'gpt-4o'
+  name: 'gpt-4.1'
   sku: { name: 'Standard', capacity: 10 }
   properties: {
     model: {
       format: 'OpenAI'
-      name: 'gpt-4o'
+      name: 'gpt-4.1'
       version: '2024-11-20'
     }
   }

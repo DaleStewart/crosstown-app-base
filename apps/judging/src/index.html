@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MTA AI Hackathon — Coach Scoring</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="page">
+
+  <div class="topbar">
+    <a class="hack-roundel" href="/" aria-label="MTA AI Hackathon home">
+      <span class="bullet blue" aria-hidden="true">AI</span>
+      <span class="wordmark">MTA AI<small>Hackathon · 2026</small></span>
+    </a>
+    <div id="topbar-user"></div>
+  </div>
+
+  <section class="signage reveal">
+    <div class="station-eyebrow">
+      <span class="rule"></span>
+      MTA AI Hackathon · May 19–20, 2026 · NYC
+    </div>
+    <h1>Coach Scoring<br>Console</h1>
+    <p class="sub">Pick the track you're judging. In-progress and submitted scores save as you go — no spreadsheets, no swapped-around printouts.</p>
+    <div class="station-rule" aria-hidden="true"></div>
+  </section>
+
+  <div class="tracks reveal" style="margin-top:32px;">
+    <a class="track-card azure" href="/judge.html?track=azure">
+      <span class="bullet blue xxl t-bullet" aria-hidden="true">A</span>
+      <div class="t-eyebrow">Track 01 / Azure Foundry</div>
+      <div class="t-title">Azure<br>Foundry</div>
+      <div class="t-desc">Score teams building agentic solutions on Azure AI Foundry. Five weighted criteria — problem fit, architecture, reliability, UX, demo.</div>
+      <div class="t-cta">Open scorecard <i class="ti ti-arrow-right" aria-hidden="true"></i></div>
+    </a>
+    <a class="track-card copilot" href="/judge.html?track=copilot">
+      <span class="bullet red xxl t-bullet" aria-hidden="true">C</span>
+      <div class="t-eyebrow">Track 02 / Copilot Studio</div>
+      <div class="t-title">Copilot<br>Studio</div>
+      <div class="t-desc">Score copilots built in Microsoft Copilot Studio. Same five-criterion rubric, tuned for low-code agents.</div>
+      <div class="t-cta">Open scorecard <i class="ti ti-arrow-right" aria-hidden="true"></i></div>
+    </a>
+  </div>
+
+  <a class="admin-strip" id="admin-card" href="/admin.html" style="display:none;">
+    <i class="ti ti-key lead" aria-hidden="true"></i>
+    <div>
+      <div class="t">Restricted</div>
+      <div class="l">Admin console · leaderboard, locks, export</div>
+    </div>
+    <i class="ti ti-arrow-right arrow" aria-hidden="true"></i>
+  </a>
+
+  <div id="signin-hint" class="banner info" style="display:none;">
+    <i class="ti ti-info-circle"></i>
+    <span>You're not signed in. <a href="/.auth/login/aad">Sign in with Microsoft Entra</a> to begin judging.</span>
+  </div>
+</div>
+
+<script src="/auth.js"></script>
+<script src="/toast.js"></script>
+<script>
+(async function () {
+  const user = await window.MTAAuth.getUser();
+  window.MTAAuth.mountTopbar(user);
+
+  if (!user) {
+    document.getElementById('signin-hint').style.display = '';
+    return;
+  }
+  if (window.MTAAuth.isAdmin(user)) {
+    document.getElementById('admin-card').style.display = '';
+  }
+})();
+</script>
+</body>
+</html>

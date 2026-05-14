@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scorecard — MTA AI Hackathon</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="page">
+
+  <div class="topbar">
+    <a class="hack-roundel" href="/" aria-label="MTA AI Hackathon home">
+      <span class="bullet blue" aria-hidden="true">AI</span>
+      <span class="wordmark">MTA AI<small>Hackathon · 2026</small></span>
+    </a>
+    <div class="crumbs" style="gap:10px;">
+      <span class="bullet sm" id="track-bullet" aria-hidden="true">A</span>
+      <span id="crumb-track">Track</span>
+    </div>
+    <div id="topbar-user"></div>
+  </div>
+
+  <div class="header reveal" id="header-block">
+    <div class="eyebrow">
+      <span class="rule"></span>
+      <span id="eyebrow-track">MTA AI Hackathon</span>
+    </div>
+    <h1 id="page-title">Scorecard</h1>
+    <p class="lede" id="page-lede" style="max-width:54ch;">Loading…</p>
+  </div>
+
+  <div id="lock-banner" class="banner warn" style="display:none;">
+    <i class="ti ti-lock"></i>
+    <span>Scoring is locked for this track. Submissions are disabled.</span>
+  </div>
+
+  <!-- Team picker view -->
+  <div id="picker-view" style="display:none;">
+    <div class="picker-mast reveal">
+      <div class="count" id="picker-count">—<small>Teams in this track</small></div>
+      <button class="btn ghost" id="picker-refresh" type="button">
+        <i class="ti ti-refresh"></i> Refresh
+      </button>
+    </div>
+    <div id="team-grid" class="team-grid"></div>
+    <div id="picker-empty" class="empty" style="display:none;">
+      <i class="ti ti-mood-empty" style="font-size:24px;"></i>
+      <div>No teams have been added for this track yet.</div>
+    </div>
+  </div>
+
+  <!-- Scorecard view -->
+  <div id="scorecard-view" style="display:none;">
+    <div id="team-block" class="card" style="margin-bottom:14px;">
+      <div class="card-top">
+        <div class="card-info">
+          <i class="ti ti-users-group card-icon"></i>
+          <div>
+            <div class="card-title" id="team-name">—</div>
+            <div class="card-desc" id="team-meta">—</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge" id="team-track-badge">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="criteria-container"></div>
+
+    <div class="summary">
+      <div class="summary-top">
+        <div>
+          <div class="summary-label">Weighted total</div>
+          <div class="summary-sub" id="scored-count">0/5 criteria scored</div>
+          <div class="tier-block" id="tier-block" style="display:none;">
+            <span class="bullet sm" id="tier-bullet" aria-hidden="true"></span>
+            <span id="tier-label">—</span>
+          </div>
+        </div>
+        <div class="total-score" id="total-display">—<span>/100</span></div>
+      </div>
+      <div class="bars" id="bars-container"></div>
+      <div class="btn-row">
+        <button class="btn" type="button" onclick="window.location.href = backToPicker()">
+          <i class="ti ti-arrow-left"></i> Back to teams
+        </button>
+        <button class="btn primary" id="submit-btn" disabled type="button">
+          <i class="ti ti-device-floppy"></i> <span id="submit-label">Submit score</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="/shared/criteria.js"></script>
+<script src="/criteria-ui.js"></script>
+<script src="/auth.js"></script>
+<script src="/toast.js"></script>
+<script>
+const esc = window.MTAAuth.escapeHtml;
+const params = new URLSearchParams(window.location.search);
+let track = (params.get('track') || 'azure').toLowerCase();
+if (track !== 'azure' && track !== 'copilot') track = 'azure';
+const teamIdParam = params.get('team');
+
+const TRACK_LABEL = { azure: 'Azure / Foundry', copilot: 'Copilot Studio' };
+const TRACK_BULLET = { azure: { letter: 'A', cls: 'blue' }, copilot: { letter: 'C', cls: 'red' } };
+document.getElementById('crumb-track').textContent = TRACK_LABEL[track];
+document.getElementById('eyebrow-track').textContent = 'MTA AI Hackathon · ' + TRACK_LABEL[track] + ' track';
+(function () {
+  const tb = document.getElementById('track-bullet');
+  if (tb) { tb.textContent = TRACK_BULLET[track].letter; tb.className = 'bullet sm ' + TRACK_BULLET[track].cls; }
+})();
+
+function backToPicker() { return '/judge.html?track=' + encodeURIComponent(track); }
+
+function scoreClass(n) { return n <= 2 ? 'red' : n === 3 ? 'amber' : 'green'; }
+function tierClass(total) {
+  if (total >= 90) return 'green';
+  if (total >= 70) return 'blue';
+  if (total >= 50) return 'orange';
+  return 'red';
+}
+function tierLabel(total) {
+  if (total >= 90) return 'Exceptional';
+  if (total >= 70) return 'Strong';
+  if (total >= 50) return 'Developing';
+  return 'Needs work';
+}
+
+let CRITERIA = []; // augmented with icon/desc/anchors
+const state = {
+  teams: [],
+  myScores: [],         // [{teamId, criteria:{}, notes:{}, total, tier}]
+  team: null,           // currently-scored team
+  scores: {},           // {id: 1..5}
+  notes: {},            // {id: string}
+  locked: false,
+  submitting: false
+};
+
+async function fetchJson(url, opts) {
+  const r = await fetch(url, Object.assign({ credentials: 'include' }, opts || {}));
+  if (r.status === 401 || r.status === 403) {
+    const err = new Error('Not authorized');
+    err.status = r.status;
+    throw err;
+  }
+  if (r.status === 423) {
+    const err = new Error('Locked');
+    err.status = 423;
+    throw err;
+  }
+  if (!r.ok) {
+    let body = '';
+    try { body = await r.text(); } catch (_) {}
+    const err = new Error('HTTP ' + r.status + ' ' + (body || ''));
+    err.status = r.status;
+    throw err;
+  }
+  return r.json();
+}
+
+async function init() {
+  const user = await window.MTAAuth.getUser();
+  window.MTAAuth.mountTopbar(user);
+  if (!user) {
+    document.getElementById('page-lede').innerHTML =
+      'You need to <a href="/.auth/login/aad">sign in</a> before judging.';
+    return;
+  }
+
+  CRITERIA = window.MTAHackCriteriaUI.augment(track);
+
+  try {
+    const [teams, myScores] = await Promise.all([
+      fetchJson('/api/teams?track=' + encodeURIComponent(track)),
+      fetchJson('/api/myscores?track=' + encodeURIComponent(track))
+    ]);
+    state.teams = Array.isArray(teams) ? teams : [];
+    state.myScores = Array.isArray(myScores) ? myScores : [];
+  } catch (err) {
+    console.error(err);
+    window.toast('Could not load teams: ' + (err.message || err), 'error');
+    document.getElementById('page-lede').textContent = 'Failed to load teams. Try refreshing.';
+    return;
+  }
+
+  const team = teamIdParam ? state.teams.find(function (t) { return String(t.id) === String(teamIdParam); }) : null;
+  if (team) {
+    renderScorecard(team);
+  } else {
+    renderPicker();
+  }
+}
+
+function myScoreFor(teamId) {
+  return state.myScores.find(function (s) { return String(s.teamId) === String(teamId); }) || null;
+}
+
+function renderPicker() {
+  document.getElementById('page-title').textContent = 'Pick a team to score';
+  document.getElementById('page-lede').textContent =
+    'Tap a team to open its scorecard. Teams you\'ve already scored show your current total — you can edit any time.';
+  document.getElementById('picker-view').style.display = '';
+  document.getElementById('scorecard-view').style.display = 'none';
+
+  const countEl = document.getElementById('picker-count');
+  if (countEl) {
+    countEl.innerHTML = String(state.teams.length).padStart(2, '0') +
+      '<small>' + (state.teams.length === 1 ? 'Team' : 'Teams') + ' in this track</small>';
+  }
+
+  const grid = document.getElementById('team-grid');
+  grid.innerHTML = '';
+  if (!state.teams.length) {
+    document.getElementById('picker-empty').style.display = '';
+    return;
+  }
+  document.getElementById('picker-empty').style.display = 'none';
+
+  state.teams.forEach(function (t, idx) {
+    const mine = myScoreFor(t.id);
+    const members = Array.isArray(t.members) ? t.members.join(', ') : '';
+    const totalStr = mine && mine.total != null ? Math.round(Number(mine.total)) : null;
+    const trackCls = TRACK_BULLET[track].cls;        // 'blue' or 'red'
+    const bulletCls = mine ? tierClass(mine.total || 0) : trackCls;
+    const bulletText = mine ? String(totalStr) : String(idx + 1).padStart(2, '0');
+    const card = document.createElement('a');
+    card.className = 'team-card' + (mine ? ' scored' : '');
+    card.href = '/judge.html?track=' + encodeURIComponent(track) + '&team=' + encodeURIComponent(t.id);
+    card.style.animationDelay = Math.min(idx * 50, 400) + 'ms';
+    card.innerHTML =
+      '<span class="bullet lg tc-bullet ' + bulletCls + '" aria-hidden="true">' + esc(bulletText) + '</span>' +
+      '<div class="tc-eyebrow">' +
+        '<span>Team · ' + String(idx + 1).padStart(2, '0') + '</span>' +
+        '<span>' + (mine ? tierLabel(mine.total || 0) : 'Awaiting score') + '</span>' +
+      '</div>' +
+      '<div class="name">' + esc(t.name || 'Unnamed team') + '</div>' +
+      '<div class="meta">' +
+        (t.room ? '<span><i class="ti ti-door"></i>' + esc(t.room) + '</span>' : '') +
+        (t.slot ? '<span><i class="ti ti-clock"></i>' + esc(t.slot) + '</span>' : '') +
+      '</div>' +
+      (members ? '<div class="members">' + esc(members) + '</div>' : '') +
+      '<div class="row">' +
+        '<span class="go">' + (mine ? 'Edit score' : 'Open scorecard') + ' <i class="ti ti-arrow-right"></i></span>' +
+      '</div>';
+    grid.appendChild(card);
+  });
+  // Apply reveal stagger to the grid
+  grid.classList.add('reveal');
+}
+
+function renderScorecard(team) {
+  state.team = team;
+  state.scores = {};
+  state.notes = {};
+  const existing = myScoreFor(team.id);
+  if (existing) {
+    if (existing.criteria) Object.keys(existing.criteria).forEach(function (k) {
+      const v = Number(existing.criteria[k]);
+      if (v >= 1 && v <= 5) state.scores[k] = v;
+    });
+    if (existing.notes) Object.keys(existing.notes).forEach(function (k) {
+      state.notes[k] = String(existing.notes[k] || '');
+    });
+  }
+
+  document.getElementById('picker-view').style.display = 'none';
+  document.getElementById('scorecard-view').style.display = '';
+  document.getElementById('page-title').textContent = 'Scorecard';
+  document.getElementById('page-lede').textContent =
+    'Score each criterion 1–5. Anchor descriptions clarify what each number means. Submit when all five are set.';
+
+  document.getElementById('team-name').textContent = team.name || 'Unnamed team';
+  const metaBits = [];
+  if (team.room) metaBits.push('Room ' + team.room);
+  if (team.slot) metaBits.push('Slot ' + team.slot);
+  if (Array.isArray(team.members) && team.members.length) metaBits.push(team.members.join(', '));
+  document.getElementById('team-meta').textContent = metaBits.join(' · ') || '—';
+  document.getElementById('team-track-badge').textContent = TRACK_LABEL[track];
+
+  document.getElementById('submit-label').textContent = existing ? 'Update score' : 'Submit score';
+
+  buildCriteria();
+  update();
+}
+
+function buildCriteria() {
+  const container = document.getElementById('criteria-container');
+  container.innerHTML = '';
+  CRITERIA.forEach(function (c, idx) {
+    const numStr = String(idx + 1).padStart(2, '0');
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'card-' + c.id;
+    card.innerHTML =
+      '<div class="card-top">' +
+        '<div class="card-info">' +
+          '<span class="bullet md blue crit-bullet" aria-hidden="true">' + numStr + '</span>' +
+          '<div>' +
+            '<div class="card-title">' + esc(c.label) + (c.tieBreaker ? ' <span class="badge" style="margin-left:6px;">tie-breaker</span>' : '') + '</div>' +
+            '<div class="card-desc">' + esc(c.desc) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="badges">' +
+          '<span class="badge">' + Math.round(c.weight * 100) + '% weight</span>' +
+          '<span class="badge pts" id="pts-' + c.id + '" style="display:none"></span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="score-row">' +
+        [1,2,3,4,5].map(function (n) {
+          return '<button type="button" class="score-btn" id="btn-' + c.id + '-' + n + '" ' +
+                 'aria-label="Score ' + n + ' of 5 for ' + esc(c.label) + '" ' +
+                 'data-cid="' + c.id + '" data-n="' + n + '">' + n + '</button>';
+        }).join('') +
+      '</div>' +
+      '<button type="button" class="anchors-toggle" data-cid="' + c.id + '">' +
+        '<i class="ti ti-chevron-down" id="chevron-' + c.id + '" aria-hidden="true"></i>' +
+        '<span id="anchor-label-' + c.id + '">View scoring anchors</span>' +
+      '</button>' +
+      '<div class="anchors-list" id="anchors-' + c.id + '">' +
+        c.anchors.map(function (a, i) {
+          return '<div class="anchor-row">' +
+            '<span class="anchor-num ' + scoreClass(i + 1) + '">' + (i + 1) + '</span>' +
+            '<span class="anchor-text">' + esc(a) + '</span>' +
+          '</div>';
+        }).join('') +
+      '</div>' +
+      '<textarea id="notes-' + c.id + '" placeholder="Notes (optional)" data-cid="' + c.id + '">' + esc(state.notes[c.id] || '') + '</textarea>';
+    container.appendChild(card);
+  });
+
+  // Wire interactions
+  container.querySelectorAll('.score-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (state.locked) return;
+      setScore(btn.dataset.cid, Number(btn.dataset.n));
+    });
+  });
+  container.querySelectorAll('.anchors-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () { toggleAnchors(btn.dataset.cid); });
+  });
+  container.querySelectorAll('textarea').forEach(function (ta) {
+    ta.addEventListener('input', function () { state.notes[ta.dataset.cid] = ta.value; });
+  });
+
+  // Apply pre-existing scores
+  Object.keys(state.scores).forEach(function (id) { paintCriterion(id); });
+
+  // Apply locked state
+  applyLocked();
+
+  document.getElementById('submit-btn').addEventListener('click', submit);
+}
+
+function paintCriterion(id) {
+  [1,2,3,4,5].forEach(function (i) {
+    const btn = document.getElementById('btn-' + id + '-' + i);
+    if (!btn) return;
+    btn.className = 'score-btn' + (state.scores[id] === i ? ' active ' + scoreClass(i) : '');
+  });
+  const card = document.getElementById('card-' + id);
+  if (card) card.classList.toggle('scored', !!state.scores[id]);
+}
+
+function setScore(id, n) {
+  if (state.scores[id] === n) delete state.scores[id]; else state.scores[id] = n;
+  paintCriterion(id);
+  update();
+}
+
+function toggleAnchors(id) {
+  const list = document.getElementById('anchors-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const label = document.getElementById('anchor-label-' + id);
+  const open = list.classList.toggle('open');
+  chevron.className = 'ti ti-chevron-' + (open ? 'up' : 'down');
+  label.textContent = open ? 'Hide scoring anchors' : 'View scoring anchors';
+}
+
+let lastTotalDisplayed = 0;
+let lastTierKey = null;
+function animateNumber(el, from, to, suffixHtml, klass) {
+  const start = performance.now();
+  const dur = 380;
+  function frame(t) {
+    const p = Math.min(1, (t - start) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const v = Math.round(from + (to - from) * eased);
+    el.innerHTML = v + suffixHtml;
+    el.className = klass;
+    if (p < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+function update() {
+  const scored = CRITERIA.filter(function (c) { return state.scores[c.id]; });
+  const count = scored.length;
+  const allScored = count === CRITERIA.length;
+  const total = window.MTAHackCriteria.computeTotal(track, state.scores) || 0;
+
+  document.getElementById('scored-count').textContent = count + '/' + CRITERIA.length + ' criteria scored';
+
+  const el = document.getElementById('total-display');
+  const tierBlock = document.getElementById('tier-block');
+  const tierBullet = document.getElementById('tier-bullet');
+  const tierLabelEl = document.getElementById('tier-label');
+  if (allScored) {
+    const tk = tierClass(total);
+    const cls = 'total-score ' + tk;
+    animateNumber(el, lastTotalDisplayed, Math.round(total), '<span>/100</span>', cls);
+    lastTotalDisplayed = Math.round(total);
+    if (lastTierKey && lastTierKey !== tk) {
+      el.classList.add('flash');
+      setTimeout(function () { el.classList.remove('flash'); }, 420);
+    }
+    lastTierKey = tk;
+    if (tierBlock) {
+      tierBlock.style.display = '';
+      tierBullet.className = 'bullet sm ' + tk;
+      tierBullet.textContent = '●';
+      tierLabelEl.textContent = tierLabel(total);
+      tierLabelEl.classList.remove('tier-swap');
+      void tierLabelEl.offsetWidth;
+      tierLabelEl.classList.add('tier-swap');
+    }
+  } else {
+    el.innerHTML = '—<span>/100</span>';
+    el.className = 'total-score';
+    lastTotalDisplayed = 0;
+    lastTierKey = null;
+    if (tierBlock) tierBlock.style.display = 'none';
+  }
+
+  CRITERIA.forEach(function (c) {
+    const s = state.scores[c.id];
+    const badge = document.getElementById('pts-' + c.id);
+    if (!badge) return;
+    if (s) {
+      const pts = Math.round(s * c.weight * 20);
+      const max = Math.round(c.weight * 100);
+      badge.textContent = '+' + pts + '/' + max + ' pts';
+      badge.style.display = '';
+      badge.className = 'badge pts ' + scoreClass(s);
+    } else {
+      badge.style.display = 'none';
+    }
+  });
+
+  const bars = document.getElementById('bars-container');
+  bars.innerHTML = '';
+  CRITERIA.forEach(function (c) {
+    const s = state.scores[c.id] || 0;
+    const pts = s * c.weight * 20;
+    const maxPts = c.weight * 100;
+    const pct = maxPts > 0 ? (pts / maxPts) * 100 : 0;
+    const cls = s ? scoreClass(s) : '';
+    const fillColor = cls === 'red' ? 'var(--red)' : cls === 'amber' ? 'var(--amber)' : cls === 'green' ? 'var(--green)' : 'transparent';
+    bars.innerHTML +=
+      '<div class="bar-row">' +
+        '<span class="bar-label">' + esc(c.label) + '</span>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + fillColor + '"></div></div>' +
+        '<span class="bar-pts">' + (s ? (Math.round(pts) + '/' + Math.round(maxPts)) : '—') + '</span>' +
+      '</div>';
+  });
+
+  document.getElementById('submit-btn').disabled = !allScored || state.locked || state.submitting;
+}
+
+function applyLocked() {
+  const banner = document.getElementById('lock-banner');
+  banner.style.display = state.locked ? '' : 'none';
+  document.querySelectorAll('.score-btn').forEach(function (b) { b.disabled = state.locked; });
+  document.querySelectorAll('textarea[data-cid]').forEach(function (t) { t.disabled = state.locked; });
+  update();
+}
+
+async function submit() {
+  if (state.submitting || state.locked) return;
+  state.submitting = true;
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Submitting…';
+  try {
+    await fetchJson('/api/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        teamId: state.team.id,
+        track: track,
+        criteria: state.scores,
+        notes: state.notes
+      })
+    });
+    window.toast('Score saved for ' + (state.team.name || 'team'), 'success');
+    setTimeout(function () { window.location.href = backToPicker(); }, 600);
+  } catch (err) {
+    console.error(err);
+    if (err.status === 423) {
+      state.locked = true;
+      applyLocked();
+      window.toast('Scoring is locked for this track.', 'error');
+    } else if (err.status === 401 || err.status === 403) {
+      window.toast('Not authorized. Try signing in again.', 'error');
+    } else {
+      window.toast('Could not save score: ' + (err.message || err), 'error');
+    }
+    btn.innerHTML = '<i class="ti ti-device-floppy"></i> Submit score';
+    state.submitting = false;
+    update();
+  }
+}
+
+init();
+</script>
+</body>
+</html>

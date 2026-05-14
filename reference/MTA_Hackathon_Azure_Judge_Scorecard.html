@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MTA AI Agent Hackathon — Judge Scorecard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+:root {
+  --navy: #1A3A6B;
+  --navy-mid: #2B5BA8;
+  --navy-light: #D6E4F7;
+  --bg: #F7F9FC;
+  --surface: #FFFFFF;
+  --surface-2: #F0F4FA;
+  --border: #D1DCF0;
+  --border-strong: #A8BDD9;
+  --text: #0F1C35;
+  --text-2: #445577;
+  --text-3: #7A92B5;
+  --red: #C93838;
+  --amber: #B86A0A;
+  --green: #2E6B2E;
+  --red-bg: #FEF0F0;
+  --amber-bg: #FFF8EE;
+  --green-bg: #EFF8EF;
+  --radius: 10px;
+  --radius-lg: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --navy: #7EB3F7;
+    --navy-mid: #5A93D8;
+    --navy-light: #1A2F50;
+    --bg: #0D1520;
+    --surface: #152033;
+    --surface-2: #1E2D42;
+    --border: #253A58;
+    --border-strong: #3A5278;
+    --text: #E8F0FD;
+    --text-2: #8AADD4;
+    --text-3: #4A6E96;
+    --red: #F07070;
+    --amber: #E89A45;
+    --green: #6BBF6B;
+    --red-bg: #2A1515;
+    --amber-bg: #2A1E08;
+    --green-bg: #0F2A0F;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Barlow', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+}
+
+.page { max-width: 720px; margin: 0 auto; }
+
+/* Header */
+.header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.eyebrow {
+  display: flex; align-items: center; gap: 7px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-3);
+  margin-bottom: 8px;
+}
+
+h1 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 32px; font-weight: 700;
+  color: var(--navy); letter-spacing: -0.01em;
+  margin-bottom: 1.25rem;
+  line-height: 1.1;
+}
+
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field label {
+  display: block; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: 5px;
+}
+.field input {
+  width: 100%; padding: 9px 12px;
+  font-family: 'Barlow', sans-serif; font-size: 14px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+.field input:focus { outline: none; border-color: var(--navy-mid); }
+
+/* Criterion cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 1.125rem 1.25rem;
+  margin-bottom: 10px;
+  transition: border-color 0.15s;
+}
+.card.scored { border-color: var(--navy-mid); border-left-color: var(--navy-mid); }
+
+.card-top {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; gap: 12px; margin-bottom: 12px;
+}
+.card-info { display: flex; gap: 10px; align-items: flex-start; flex: 1; }
+.card-icon {
+  font-size: 18px; color: var(--text-3); margin-top: 2px; flex-shrink: 0;
+}
+.card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.card-desc { font-size: 12px; color: var(--text-2); line-height: 1.55; }
+
+.badges { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+.badge {
+  font-size: 11px; font-weight: 600; padding: 2px 9px;
+  border-radius: 20px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text-3);
+  white-space: nowrap;
+}
+.badge.pts { border-color: currentColor; background: transparent; }
+.badge.pts.red { color: var(--red); }
+.badge.pts.amber { color: var(--amber); }
+.badge.pts.green { color: var(--green); }
+
+/* Score buttons */
+.score-row { display: flex; gap: 6px; margin-bottom: 10px; }
+.score-btn {
+  flex: 1; height: 42px; font-family: 'Barlow', sans-serif;
+  font-size: 16px; font-weight: 600;
+  border-radius: var(--radius); cursor: pointer;
+  background: var(--surface-2); color: var(--text-2);
+  border: 1px solid var(--border); transition: all 0.1s;
+}
+.score-btn:hover:not(.active) { border-color: var(--border-strong); color: var(--text); }
+.score-btn.active.red  { background: var(--red);   border-color: var(--red);   color: #fff; }
+.score-btn.active.amber { background: var(--amber); border-color: var(--amber); color: #fff; }
+.score-btn.active.green { background: var(--green); border-color: var(--green); color: #fff; }
+
+/* Anchors */
+.anchors-toggle {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Barlow', sans-serif; font-size: 12px;
+  color: var(--text-3); display: flex; align-items: center; gap: 4px;
+  padding: 0; margin-bottom: 0;
+}
+.anchors-toggle:hover { color: var(--text-2); }
+.anchors-list { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.anchors-list.open { display: grid; gap: 7px; }
+.anchor-row { display: flex; gap: 8px; align-items: flex-start; }
+.anchor-num {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+  font-size: 11px; font-weight: 700; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.anchor-num.red   { background: var(--red); }
+.anchor-num.amber { background: var(--amber); }
+.anchor-num.green { background: var(--green); }
+.anchor-text { font-size: 12px; color: var(--text-2); line-height: 1.55; }
+
+textarea {
+  width: 100%; margin-top: 10px; padding: 8px 10px;
+  font-family: 'Barlow', sans-serif; font-size: 13px;
+  background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  resize: vertical; min-height: 52px;
+}
+textarea:focus { outline: none; border-color: var(--navy-mid); }
+textarea::placeholder { color: var(--text-3); }
+
+/* Summary */
+.summary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem; margin-top: 6px;
+}
+.summary-top {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; margin-bottom: 1.25rem;
+}
+.summary-label { font-size: 13px; color: var(--text-2); margin-bottom: 3px; }
+.summary-sub { font-size: 11px; color: var(--text-3); }
+.total-score {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 42px; font-weight: 700; line-height: 1;
+  color: var(--text-3);
+}
+.total-score span { font-size: 18px; color: var(--text-3); }
+.total-score.red   { color: var(--red); }
+.total-score.amber { color: var(--amber); }
+.total-score.green { color: var(--green); }
+
+/* Progress bars */
+.bars { display: grid; gap: 8px; margin-bottom: 1.25rem; }
+.bar-row { display: flex; align-items: center; gap: 8px; }
+.bar-label { font-size: 11px; color: var(--text-2); width: 185px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+.bar-pts { font-size: 11px; color: var(--text-3); width: 52px; text-align: right; flex-shrink: 0; }
+
+/* Buttons */
+.btn-row { display: flex; gap: 8px; }
+.btn {
+  flex: 1; padding: 11px; font-family: 'Barlow', sans-serif;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text-2);
+  transition: all 0.15s; display: flex; align-items: center;
+  justify-content: center; gap: 7px;
+}
+.btn:hover:not(:disabled) { border-color: var(--border-strong); color: var(--text); }
+.btn.primary {
+  background: var(--navy); border-color: var(--navy); color: #fff;
+}
+.btn.primary:hover:not(:disabled) { opacity: 0.9; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--navy); color: #fff;
+  padding: 10px 20px; border-radius: 20px;
+  font-size: 13px; font-weight: 500;
+  transition: transform 0.25s ease; z-index: 999;
+  pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Print */
+@media print {
+  body { background: white; padding: 0; }
+  .btn-row, .anchors-toggle { display: none !important; }
+  .card, .summary { break-inside: avoid; }
+  .anchors-list { display: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="eyebrow">
+      <i class="ti ti-train" aria-hidden="true"></i>
+      MTA AI Agent Hackathon
+    </div>
+    <h1>Judge Scorecard</h1>
+    <div class="fields">
+      <div class="field">
+        <label for="judge-name">Judge name</label>
+        <input type="text" id="judge-name" placeholder="Your name" oninput="update()">
+      </div>
+      <div class="field">
+        <label for="team-name">Team / project name</label>
+        <input type="text" id="team-name" placeholder="Team name" oninput="update()">
+      </div>
+    </div>
+  </div>
+
+  <div id="criteria-container"></div>
+
+  <div class="summary">
+    <div class="summary-top">
+      <div>
+        <div class="summary-label">Weighted total</div>
+        <div class="summary-sub" id="scored-count">0/5 criteria scored</div>
+      </div>
+      <div class="total-score" id="total-display">—<span>/100</span></div>
+    </div>
+    <div class="bars" id="bars-container"></div>
+    <div class="btn-row">
+      <button class="btn" id="print-btn" onclick="window.print()">
+        <i class="ti ti-printer" aria-hidden="true"></i> Print
+      </button>
+      <button class="btn primary" id="copy-btn" disabled onclick="copySummary()">
+        <i class="ti ti-clipboard-copy" aria-hidden="true"></i> Copy summary
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">Summary copied to clipboard</div>
+
+<script>
+const CRITERIA = [
+  { id:"problem", label:"Transit Problem Validity", weight:0.20, icon:"ti-train",
+    desc:"Is the problem specific to MTA/transit ops? Does solving it meaningfully impact riders, operators, or agency staff?",
+    anchors:["Problem vague, hypothetical, or unrelated to real MTA operations","Transit connection exists but lacks specificity or operational evidence","Clear MTA/transit problem with identifiable stakeholders and meaningful impact","Well-researched problem backed by data or operational context validating urgency","Documented MTA pain point with strong stakeholder impact, defined scope, and credible context"]},
+  { id:"agent", label:"Agent Architecture & Functionality", weight:0.30, icon:"ti-robot",
+    desc:"Does the agent execute a real loop (plan → call tools → observe → recover)? Does it handle failures and edge cases?",
+    anchors:["No real agent loop — LLM used as simple chatbot or text generator only","Partial agent behavior; tools called but no error handling or multi-step reasoning","Working agent loop with tool calls, basic error handling, and observable output","Multi-step reasoning with graceful failure recovery and clear agent state","Sophisticated orchestration — planning, tool use, self-correction, and resilience under edge cases"]},
+  { id:"tech", label:"Azure AI / Technology Integration", weight:0.25, icon:"ti-cloud",
+    desc:"Is the AI/model use central (not cosmetic)? Does it leverage Azure AI services, MTA APIs, or relevant transit data?",
+    anchors:["AI is cosmetic — could be removed entirely with no impact on core solution","AI present but poorly matched to problem; integration is shallow or generic","AI is central with appropriate service selection and working integration","Azure AI services meaningfully chosen; transit data or MTA APIs in the agent loop","Exemplary Azure AI architecture — deliberate, integrated, and non-trivially applied"]},
+  { id:"innovation", label:"Innovation & Creativity", weight:0.15, icon:"ti-bulb",
+    desc:"Does the approach surprise? Novel application of AI agents to transit — or a reskin of an existing tool?",
+    anchors:["Direct reskin or copy with no novel transit adaptation","Familiar pattern with minor transit-specific modifications","Creative application of a known AI approach to a real transit context","Novel combination of techniques or data producing a surprising result","New paradigm — reframes how AI agents can serve transit operations or riders"]},
+  { id:"demo", label:"Demo & Real-World Readiness", weight:0.10, icon:"ti-presentation",
+    desc:"Is the demo functional (not mocked)? Could this realistically pilot within MTA's operational constraints?",
+    anchors:["Demo is mocked, broken, or doesn't run end-to-end","Works in limited scope; relies on placeholder data or has significant gaps","Functional end-to-end demo; plausible path to a real MTA pilot exists","Polished demo with real/realistic transit data; deployment considerations discussed","Production-quality demo with credible MTA pilot roadmap and operational awareness"]}
+];
+
+const state = { scores: {}, notes: {} };
+
+function scoreClass(n) {
+  return n <= 2 ? 'red' : n === 3 ? 'amber' : 'green';
+}
+
+function buildCriteria() {
+  const container = document.getElementById('criteria-container');
+  CRITERIA.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'card'; card.id = `card-${c.id}`;
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="card-info">
+          <i class="ti ${c.icon} card-icon" aria-hidden="true"></i>
+          <div>
+            <div class="card-title">${c.label}</div>
+            <div class="card-desc">${c.desc}</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge">${Math.round(c.weight*100)}% weight</span>
+          <span class="badge pts" id="pts-${c.id}" style="display:none"></span>
+        </div>
+      </div>
+      <div class="score-row">
+        ${[1,2,3,4,5].map(n=>`<button class="score-btn" id="btn-${c.id}-${n}" aria-label="Score ${n} of 5" onclick="setScore('${c.id}',${n})">${n}</button>`).join('')}
+      </div>
+      <button class="anchors-toggle" onclick="toggleAnchors('${c.id}')">
+        <i class="ti ti-chevron-down" id="chevron-${c.id}" aria-hidden="true"></i>
+        <span id="anchor-label-${c.id}">View scoring anchors</span>
+      </button>
+      <div class="anchors-list" id="anchors-${c.id}">
+        ${c.anchors.map((a,i)=>`
+          <div class="anchor-row">
+            <span class="anchor-num ${scoreClass(i+1)}">${i+1}</span>
+            <span class="anchor-text">${a}</span>
+          </div>`).join('')}
+      </div>
+      <textarea id="notes-${c.id}" placeholder="Notes (optional)" oninput="state.notes['${c.id}']=this.value"></textarea>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function setScore(id, n) {
+  state.scores[id] = state.scores[id] === n ? null : n;
+  if (!state.scores[id]) delete state.scores[id];
+  CRITERIA.find(c=>c.id===id); // ref
+  [1,2,3,4,5].forEach(i => {
+    const btn = document.getElementById(`btn-${id}-${i}`);
+    btn.className = 'score-btn' + (state.scores[id]===i ? ` active ${scoreClass(i)}` : '');
+  });
+  const card = document.getElementById(`card-${id}`);
+  card.classList.toggle('scored', !!state.scores[id]);
+  update();
+}
+
+function toggleAnchors(id) {
+  const list = document.getElementById(`anchors-${id}`);
+  const chevron = document.getElementById(`chevron-${id}`);
+  const label = document.getElementById(`anchor-label-${id}`);
+  const open = list.classList.toggle('open');
+  chevron.className = `ti ti-chevron-${open?'up':'down'}`;
+  label.textContent = open ? 'Hide scoring anchors' : 'View scoring anchors';
+}
+
+function update() {
+  const scored = CRITERIA.filter(c=>state.scores[c.id]);
+  const count = scored.length;
+  const total = CRITERIA.reduce((s,c)=>s+(state.scores[c.id]||0)*c.weight*20, 0);
+  const allScored = count === CRITERIA.length;
+
+  document.getElementById('scored-count').textContent = `${count}/${CRITERIA.length} criteria scored`;
+
+  const el = document.getElementById('total-display');
+  if (allScored) {
+    const rounded = Math.round(total);
+    el.textContent = '';
+    el.appendChild(document.createTextNode(rounded));
+    const span = document.createElement('span'); span.textContent = '/100';
+    el.appendChild(span);
+    el.className = 'total-score ' + (rounded>=70?'green':rounded>=50?'amber':'red');
+  } else {
+    el.innerHTML = '—<span>/100</span>';
+    el.className = 'total-score';
+  }
+
+  // Points badges
+  CRITERIA.forEach(c => {
+    const s = state.scores[c.id];
+    const badge = document.getElementById(`pts-${c.id}`);
+    if (s) {
+      const pts = Math.round(s * c.weight * 20);
+      const max = Math.round(c.weight * 100);
+      badge.textContent = `+${pts}/${max} pts`;
+      badge.style.display = '';
+      badge.className = `badge pts ${scoreClass(s)}`;
+    } else {
+      badge.style.display = 'none';
+    }
+  });
+
+  // Bars
+  const bars = document.getElementById('bars-container');
+  bars.innerHTML = '';
+  CRITERIA.forEach(c => {
+    const s = state.scores[c.id] || 0;
+    const pts = s * c.weight * 20;
+    const maxPts = c.weight * 100;
+    const pct = maxPts > 0 ? (pts/maxPts)*100 : 0;
+    const cls = s ? scoreClass(s) : '';
+    const fillColor = cls==='red'?'var(--red)':cls==='amber'?'var(--amber)':cls==='green'?'var(--green)':'transparent';
+    bars.innerHTML += `
+      <div class="bar-row">
+        <span class="bar-label">${c.label}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${fillColor}"></div></div>
+        <span class="bar-pts">${s?`${Math.round(pts)}/${Math.round(maxPts)}`:'—'}</span>
+      </div>`;
+  });
+
+  document.getElementById('copy-btn').disabled = !allScored;
+}
+
+function copySummary() {
+  const judge = document.getElementById('judge-name').value || 'Unknown';
+  const team = document.getElementById('team-name').value || 'Unknown';
+  const total = Math.round(CRITERIA.reduce((s,c)=>s+(state.scores[c.id]||0)*c.weight*20,0));
+  const tier = total>=90?'Exceptional':total>=70?'Strong':total>=50?'Developing':'Needs work';
+  const lines = CRITERIA.map(c=>{
+    const s = state.scores[c.id];
+    const pts = Math.round(s * c.weight * 20);
+    const max = Math.round(c.weight * 100);
+    const note = state.notes[c.id] ? `\n   Note: ${state.notes[c.id]}` : '';
+    return `  ${c.label} (${Math.round(c.weight*100)}% weight)\n  Score: ${s}/5 → ${pts}/${max} pts${note}`;
+  }).join('\n\n');
+  const date = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const text = `MTA AI AGENT HACKATHON — JUDGE SCORECARD\n${'─'.repeat(44)}\nJudge: ${judge}\nTeam:  ${team}\nDate:  ${date}\n\nTOTAL: ${total}/100 — ${tier}\n\n${'─'.repeat(44)}\nBREAKDOWN\n\n${lines}\n\n${'─'.repeat(44)}\nScoring: 90-100 Exceptional | 70-89 Strong | 50-69 Developing | <50 Needs work\nTie-breaker: Agent Architecture & Functionality score`;
+  navigator.clipboard.writeText(text).then(()=>{
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2500);
+  });
+}
+
+buildCriteria();
+update();
+</script>
+</body>
+</html>

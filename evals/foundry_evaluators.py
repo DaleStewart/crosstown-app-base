@@ -10,7 +10,7 @@ returns ``score=None`` with the error in ``reason``.
 Required env when enabled:
 
     AZURE_AI_FOUNDRY_PROJECT_ENDPOINT    (or AZURE_OPENAI_ENDPOINT)
-    AZURE_OPENAI_CHAT_DEPLOYMENT          (judge model, default ``gpt-4o``)
+    AZURE_OPENAI_CHAT_DEPLOYMENT          (judge model, default ``gpt-4.1``)
 
 The wrapper is intentionally tiny — the heavy lifting lives in
 ``azure-ai-evaluation``. Install with:
@@ -43,7 +43,7 @@ def _judge_config() -> dict[str, str] | None:
         os.environ.get("AZURE_OPENAI_ENDPOINT")
         or os.environ.get("AZURE_AI_FOUNDRY_PROJECT_ENDPOINT")
     )
-    deployment = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4o")
+    deployment = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4.1")
     if not endpoint:
         return None
     return {

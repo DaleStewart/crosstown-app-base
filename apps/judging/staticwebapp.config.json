@@ -1,0 +1,30 @@
+{
+  "auth": {
+    "identityProviders": {
+      "azureActiveDirectory": {
+        "registration": {
+          "openIdIssuer": "https://login.microsoftonline.com/{{TODO_TENANT_GUID}}/v2.0",
+          "clientIdSettingName": "AAD_CLIENT_ID",
+          "clientSecretSettingName": "AAD_CLIENT_SECRET"
+        }
+      }
+    }
+  },
+  "routes": [
+    { "route": "/judge.html",     "allowedRoles": ["authenticated"] },
+    { "route": "/admin.html",     "allowedRoles": ["admin"] },
+    { "route": "/api/teams",      "methods": ["POST"], "allowedRoles": ["admin"] },
+    { "route": "/api/teams",      "methods": ["GET"],  "allowedRoles": ["authenticated"] },
+    { "route": "/api/myscores",   "allowedRoles": ["authenticated"] },
+    { "route": "/api/score",      "allowedRoles": ["authenticated"] },
+    { "route": "/api/leaderboard","allowedRoles": ["authenticated"] },
+    { "route": "/api/lock",       "allowedRoles": ["admin"] },
+    { "route": "/api/export",     "allowedRoles": ["admin"] }
+  ],
+  "responseOverrides": {
+    "401": { "redirect": "/.auth/login/aad", "statusCode": 302 }
+  },
+  "globalHeaders": {
+    "Cache-Control": "no-store"
+  }
+}

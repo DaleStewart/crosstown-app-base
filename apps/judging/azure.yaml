@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+name: mta-hackathon-judging
+metadata:
+  template: mta-hackathon-judging@0.1.0
+infra:
+  provider: bicep
+  path: infra
+  module: main
+services:
+  web:
+    project: ./src
+    host: staticwebapp
+    language: js

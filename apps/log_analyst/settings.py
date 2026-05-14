@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     # Azure OpenAI
     azure_openai_endpoint: str | None = None
-    azure_openai_chat_deployment: str = "gpt-4o"
+    azure_openai_chat_deployment: str = "gpt-4.1"
     azure_openai_api_version: str = "2024-08-01-preview"
 
     # Azure AI Search

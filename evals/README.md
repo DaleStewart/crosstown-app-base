@@ -25,7 +25,7 @@ python -m orchestrator_runner --max-fail-pct 0
 
 # Gate 3 (requires Azure OpenAI endpoint + SDK)
 pip install "azure-ai-evaluation>=1.0.0"
-AZURE_OPENAI_ENDPOINT=https://... AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-4o \
+AZURE_OPENAI_ENDPOINT=https://... AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-4.1 \
   python -m runner --max-uncited-pct 5 --with-foundry
 ```
 

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — MTA AI Hackathon</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="page">
+
+  <div class="topbar">
+    <a class="hack-roundel" href="/" aria-label="MTA AI Hackathon home">
+      <span class="bullet blue" aria-hidden="true">AI</span>
+      <span class="wordmark">MTA AI<small>Hackathon · 2026</small></span>
+    </a>
+    <div class="crumbs" style="gap:10px;">
+      <span class="bullet sm yellow" aria-hidden="true">!</span>
+      <span>Admin</span>
+    </div>
+    <div id="topbar-user"></div>
+  </div>
+
+  <div class="header reveal">
+    <div class="eyebrow"><span class="rule"></span> Admin · Restricted access</div>
+    <h1>Standings<br>&amp; Controls</h1>
+    <p class="lede" style="max-width:54ch;">Live leaderboard, scoring locks, CSV export, and team management for both hackathon tracks.</p>
+  </div>
+
+  <div id="auth-gate" class="banner error" style="display:none;">
+    <i class="ti ti-shield-x"></i>
+    <span>You don't have admin access. <a href="/">Back to home</a>.</span>
+  </div>
+
+  <div id="admin-body" style="display:none;" class="reveal">
+    <div class="tabs" role="tablist">
+      <button class="tab active" role="tab" data-track="azure"><span class="bullet sm blue">A</span> Azure / Foundry</button>
+      <button class="tab" role="tab" data-track="copilot"><span class="bullet sm red">C</span> Copilot Studio</button>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <h2 id="lb-title">Leaderboard — Azure</h2>
+        <div class="btn-row" style="flex:0 0 auto;">
+          <button class="btn ghost" id="refresh-btn" type="button"><i class="ti ti-refresh"></i> Refresh</button>
+          <a class="btn" id="export-btn" href="#" download><i class="ti ti-file-download"></i> Export CSV</a>
+        </div>
+      </div>
+
+      <div class="section-head" style="margin-bottom:1rem;">
+        <label class="switch">
+          <input type="checkbox" id="lock-toggle">
+          <span class="track"></span>
+          <span class="label">Scoring locked</span>
+        </label>
+        <span id="lock-state" class="pill muted">unknown</span>
+      </div>
+
+      <div id="lock-banner-host"></div>
+      <div class="table-wrap" id="lb-wrap">
+        <table class="lb" id="lb-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Team</th>
+              <th>Judges</th>
+              <th class="num">Avg total</th>
+              <th class="num">Tie-break</th>
+              <th>Tier</th>
+            </tr>
+          </thead>
+          <tbody id="lb-body">
+            <tr><td colspan="6" class="empty"><span class="spinner"></span> Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <details class="add-team">
+      <summary><i class="ti ti-plus"></i> Add a team</summary>
+      <form class="form-body" id="add-team-form">
+        <div>
+          <label class="field-label" for="add-name">Team name</label>
+          <input type="text" id="add-name" required>
+        </div>
+        <div class="form-grid-2">
+          <div>
+            <label class="field-label" for="add-room">Room</label>
+            <input type="text" id="add-room" placeholder="e.g. Room 4">
+          </div>
+          <div>
+            <label class="field-label" for="add-slot">Slot</label>
+            <input type="text" id="add-slot" placeholder="e.g. 2:30 PM">
+          </div>
+        </div>
+        <div>
+          <label class="field-label" for="add-members">Members (one per line)</label>
+          <textarea id="add-members" rows="4" placeholder="Alice Smith&#10;Bob Jones"></textarea>
+        </div>
+        <div class="btn-row">
+          <button type="submit" class="btn primary"><i class="ti ti-circle-plus"></i> Add team</button>
+        </div>
+      </form>
+    </details>
+  </div>
+
+</div>
+
+<script src="/shared/criteria.js"></script>
+<script src="/auth.js"></script>
+<script src="/toast.js"></script>
+<script>
+const esc = window.MTAAuth.escapeHtml;
+const state = { track: 'azure', locked: { azure: false, copilot: false }, refreshing: false };
+
+function tierClass(total) {
+  if (total >= 90) return 'green';
+  if (total >= 70) return 'blue';
+  if (total >= 50) return 'orange';
+  return 'red';
+}
+function tierLabel(total) {
+  if (total >= 90) return 'Exceptional';
+  if (total >= 70) return 'Strong';
+  if (total >= 50) return 'Developing';
+  return 'Needs work';
+}
+
+async function fetchJson(url, opts) {
+  const r = await fetch(url, Object.assign({ credentials: 'include' }, opts || {}));
+  if (!r.ok) {
+    const err = new Error('HTTP ' + r.status);
+    err.status = r.status;
+    try { err.body = await r.text(); } catch (_) {}
+    throw err;
+  }
+  return r.json();
+}
+
+async function init() {
+  const user = await window.MTAAuth.getUser();
+  window.MTAAuth.mountTopbar(user);
+  if (!user || !window.MTAAuth.isAdmin(user)) {
+    document.getElementById('auth-gate').style.display = '';
+    return;
+  }
+  document.getElementById('admin-body').style.display = '';
+
+  // Tab wiring
+  document.querySelectorAll('.tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const t = btn.dataset.track;
+      if (t === state.track) return;
+      state.track = t;
+      document.querySelectorAll('.tab').forEach(function (b) { b.classList.toggle('active', b === btn); });
+      refresh();
+    });
+  });
+
+  document.getElementById('refresh-btn').addEventListener('click', refresh);
+  document.getElementById('lock-toggle').addEventListener('change', onLockToggle);
+  document.getElementById('add-team-form').addEventListener('submit', onAddTeam);
+
+  refresh();
+}
+
+async function refresh() {
+  if (state.refreshing) return;
+  state.refreshing = true;
+  const t = state.track;
+  document.getElementById('lb-title').textContent =
+    'Leaderboard — ' + (t === 'azure' ? 'Azure / Foundry' : 'Copilot Studio');
+  document.getElementById('export-btn').href = '/api/export?track=' + encodeURIComponent(t);
+  document.getElementById('lb-body').innerHTML =
+    '<tr><td colspan="6" class="empty"><span class="spinner"></span> Loading…</td></tr>';
+
+  try {
+    const rows = await fetchJson('/api/leaderboard?track=' + encodeURIComponent(t));
+    renderLeaderboard(Array.isArray(rows) ? rows : []);
+  } catch (err) {
+    console.error(err);
+    document.getElementById('lb-body').innerHTML =
+      '<tr><td colspan="6" class="empty"><i class="ti ti-alert-triangle"></i> Failed to load leaderboard.</td></tr>';
+    if (err.status === 401 || err.status === 403) window.toast('Not authorized for this endpoint.', 'error');
+    else window.toast('Could not load leaderboard.', 'error');
+  }
+
+  // Lock state is informational; backend echoes via /api/lock GET if available,
+  // otherwise we read it lazily from leaderboard requests / score 423s.
+  // Best-effort fetch (ignore if not supported):
+  try {
+    const data = await fetchJson('/api/lock?track=' + encodeURIComponent(t));
+    state.locked[t] = !!(data && data.locked);
+  } catch (_) { /* optional */ }
+  paintLock();
+
+  state.refreshing = false;
+}
+
+function renderLeaderboard(rows) {
+  const body = document.getElementById('lb-body');
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="6" class="empty">No scored teams yet.</td></tr>';
+    return;
+  }
+  body.innerHTML = rows.map(function (r, idx) {
+    const total = Number(r.avgTotal) || 0;
+    const rank = r.rank != null ? r.rank : (idx + 1);
+    const tk = tierClass(total);
+    const apc = r.avgPerCriterion || {};
+    const apcRows = Object.keys(apc).map(function (k) {
+      const v = Math.max(0, Math.min(5, Number(apc[k]) || 0));
+      return '<div class="row"><span class="lbl">' + esc(k) + '</span>' +
+        '<div class="trk"><div class="fll" style="width:' + (v / 5 * 100) + '%"></div></div>' +
+        '<span class="val">' + v.toFixed(2) + '</span></div>';
+    }).join('');
+    return '<tr data-idx="' + idx + '">' +
+      '<td class="rank"><span class="bullet md ' + tk + '">' + rank + '</span></td>' +
+      '<td class="team">' + esc(r.teamName || r.teamId || '—') + '</td>' +
+      '<td class="judges">' + (r.judgeCount != null ? r.judgeCount : 0) + ' judges</td>' +
+      '<td class="total">' + total.toFixed(1) + '</td>' +
+      '<td class="num tb">' + (r.tieBreakerAvg != null ? Number(r.tieBreakerAvg).toFixed(2) : '—') + '</td>' +
+      '<td class="tier"><span class="tier-cell"><span class="bullet sm ' + tk + '">●</span> ' + tierLabel(total) + '</span></td>' +
+    '</tr>' +
+    (apcRows ? '<tr class="lb-mini-row"><td colspan="6"><div class="lb-mini" id="mini-' + idx + '">' + apcRows + '</div></td></tr>' : '');
+  }).join('');
+
+  // Hover-reveal mini bar chart
+  body.querySelectorAll('tr[data-idx]').forEach(function (tr) {
+    const mini = body.querySelector('#mini-' + tr.dataset.idx);
+    if (!mini) return;
+    tr.addEventListener('mouseenter', function () { mini.classList.add('show'); });
+    tr.addEventListener('mouseleave', function () { mini.classList.remove('show'); });
+  });
+}
+
+function paintLock() {
+  const t = state.track;
+  const cb = document.getElementById('lock-toggle');
+  cb.checked = !!state.locked[t];
+  const pill = document.getElementById('lock-state');
+  pill.textContent = state.locked[t] ? 'Locked' : 'Open';
+  pill.className = 'pill ' + (state.locked[t] ? 'red' : 'green');
+  const wrap = document.getElementById('lb-wrap');
+  if (wrap) wrap.classList.toggle('locked', !!state.locked[t]);
+  const host = document.getElementById('lock-banner-host');
+  if (host) {
+    if (state.locked[t]) {
+      host.innerHTML = '<div class="locked-banner"><i class="ti ti-lock"></i> Judging Locked — ' +
+        (t === 'azure' ? 'Azure / Foundry' : 'Copilot Studio') + ' track</div>';
+    } else {
+      host.innerHTML = '';
+    }
+  }
+}
+
+function flashLockOverlay(iconName) {
+  const el = document.createElement('div');
+  el.className = 'lock-flash';
+  el.innerHTML = '<i class="ti ' + iconName + '"></i>';
+  document.body.appendChild(el);
+  setTimeout(function () { el.remove(); }, 600);
+}
+
+async function onLockToggle(ev) {
+  const cb = ev.target;
+  const desired = cb.checked;
+  const t = state.track;
+  const verb = desired ? 'LOCK' : 'UNLOCK';
+  if (!window.confirm(verb + ' scoring for the ' + (t === 'azure' ? 'Azure / Foundry' : 'Copilot Studio') + ' track?')) {
+    cb.checked = !desired;
+    return;
+  }
+  try {
+    const data = await fetchJson('/api/lock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ track: t, locked: desired })
+    });
+    state.locked[t] = !!(data && data.locked);
+    paintLock();
+    flashLockOverlay(state.locked[t] ? 'ti-lock' : 'ti-lock-open');
+    window.toast('Scoring ' + (state.locked[t] ? 'locked' : 'unlocked') + '.', 'success');
+  } catch (err) {
+    console.error(err);
+    cb.checked = !desired;
+    window.toast('Could not change lock: ' + (err.message || err), 'error');
+  }
+}
+
+async function onAddTeam(ev) {
+  ev.preventDefault();
+  const name = document.getElementById('add-name').value.trim();
+  const room = document.getElementById('add-room').value.trim();
+  const slot = document.getElementById('add-slot').value.trim();
+  const members = document.getElementById('add-members').value
+    .split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+  if (!name) { window.toast('Team name is required.', 'error'); return; }
+  try {
+    await fetchJson('/api/teams', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, track: state.track, room: room, slot: slot, members: members })
+    });
+    window.toast('Team "' + name + '" added.', 'success');
+    ev.target.reset();
+    refresh();
+  } catch (err) {
+    console.error(err);
+    window.toast('Could not add team: ' + (err.message || err), 'error');
+  }
+}
+
+init();
+</script>
+</body>
+</html>

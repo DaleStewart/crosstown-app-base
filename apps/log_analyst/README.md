@@ -48,7 +48,7 @@ cited.
 
 ### `summarize_incident(incident_id)`
 Reads the incident doc from Cosmos (`AZURE_COSMOS_*`, partition key `/incidentId`)
-and asks `gpt-4o` (`AZURE_OPENAI_CHAT_DEPLOYMENT`) to produce a two-sentence
+and asks `gpt-4.1` (`AZURE_OPENAI_CHAT_DEPLOYMENT`) to produce a two-sentence
 summary plus a recommended runbook. Both the incident and the runbook are cited.
 
 ## Run locally

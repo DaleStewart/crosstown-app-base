@@ -1,0 +1,37 @@
+const { getContainer } = require('../_shared/cosmos');
+const { requireAdmin } = require('../_shared/auth');
+const { CRITERIA } = require('../_shared/criteria');
+const { logEvent } = require('../_shared/audit');
+
+module.exports = async function (context, req) {
+  const { user, res: authRes } = requireAdmin(req);
+  if (authRes) { context.res = authRes; return; }
+
+  const body = req.body || {};
+  const track = typeof body.track === 'string' ? body.track.toLowerCase() : '';
+  const locked = body.locked === true;
+
+  if (!CRITERIA[track]) {
+    context.res = { status: 400, body: { error: 'track must be one of: azure, copilot' } };
+    return;
+  }
+
+  try {
+    const events = getContainer('events');
+    const statusDoc = {
+      id: `lock-status-${track}`,
+      track,
+      action: locked ? 'lock' : 'unlock',
+      actor: user.email,
+      payload: { locked },
+      ts: new Date().toISOString()
+    };
+    await events.items.upsert(statusDoc);
+    await logEvent({ action: locked ? 'lock' : 'unlock', actor: user.email, track, payload: { locked } });
+
+    context.res = { status: 200, body: { track, locked } };
+  } catch (err) {
+    context.log.error('lock failed', err);
+    context.res = { status: 500, body: { error: 'Failed to update lock status' } };
+  }
+};
