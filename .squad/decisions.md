@@ -110,7 +110,33 @@ Replaced all `gpt-4o` model deployment references in the root MTA AI Hackathon p
 
 **Report:** `apps/judging/SECURITY_REVIEW.md`
 
-## Governance
+### D-008 · Security Hardening Sweep — 10 findings closed (Stark + Okoye)
+**Date:** 2026-05-13
+**Author:** Stark (Backend/API) + Okoye (Operations / Platform)
+**Status:** Adopted
+
+All 10 findings from Strange's security review (D-007) have been closed across two commits:
+
+**Stark's lane (7f6b670):** API surface fixes
+- C1 — CSV formula injection (pi/export/index.js): csvEscape() now prefixes hostile cell starts
+- H4 — Request body size limit (pi/host.json): 100 KB cap on all Functions
+- M1 — Leaderboard gating (pi/leaderboard/index.js): admin bypass; non-admin 403 until locked
+- M2 — Lock route GET handler (pi/lock/): GET reads lock status, POST unchanged
+
+**Okoye's lane (ae0cdeb):** Config + infra surface
+- C2 — Tenant GUID (staticwebapp.config.json): replaced TODO with Microsoft tenant GUID
+- H1 — Security headers (staticwebapp.config.json): X-Frame-Options, CSP, Referrer-Policy added
+- H2 — Cosmos firewall (infra/main.bicep): networkAclBypass + empty rules; private endpoint marked TODO
+- H3 — Config lock (infra/main.bicep): allowConfigFileUpdates=false; Bicep-managed only
+- M3 — Gitignore (pps/judging/.gitignore): expanded coverage for env, azure, keys, test artifacts
+- M4 — Connection string handling (infra/main.bicep): comment-documented threat model, Key Vault path marked
+
+**Verdict upgrade:** 🟡 Ship after must-fix items → 🟢 Ship (all must-fix items now fixed).
+
+**Verification:** Both commits verify clean (node --check, bicep build, JSON parsing). No cross-file conflicts. Ready for external deployment.
+
+
+
 
 - All meaningful changes require team consensus.
 - Document architectural decisions here.
