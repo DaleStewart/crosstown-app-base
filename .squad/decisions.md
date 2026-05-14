@@ -63,6 +63,44 @@ Ship a **self-contained `azd` project at `apps/judging/azure.yaml`** with its ow
 
 **Trade-offs:** Users must `cd apps/judging` before azd commands (documented). SWA Functions auto-discovery documented as fallback using `swa deploy --api-location ./api`.
 
+### D-005 · Test strategy — interception-first Playwright
+**Date:** 2026-05-13
+**Author:** Banner (Tester)
+**Status:** Adopted
+
+For the judging app's E2E tests, **stub `/.auth/me` and `/api/*` with `page.route()` per test**. Do **not** depend on live AAD or live Cosmos DB for the default test run. A separate, opt-in "integration" project can be added later for real Functions + Cosmos contract testing.
+
+**Rationale:** AAD is hard to script; SWA CLI auth simulator is stateful. Overriding `/.auth/me` per test gives deterministic `clientPrincipal` (anon/judge/admin) matching what `apps/judging/src/auth.js` reads. Cosmos is expensive/slow; frontend logic (picker, criterion disable, lock banner on 423, admin leaderboard, POST payloads) is observable purely from JSON shape. Tests run in seconds, hermetic, no secrets in CI, not flaky.
+
+**Coverage:**
+- `unit/criteria.test.js` — assertions on `computeTotal`, `tier`
+- `e2e/landing.spec.js` — track cards render, admin gated by role
+- `e2e/judge.spec.js` — picker loads, submit enables only when all 5 scored, posts to `/api/score`, HTTP 423 shows lock banner
+- `e2e/admin.spec.js` — non-admin gate, leaderboard rank order, lock toggle POSTs `{track, locked}` to `/api/lock`, add-team POSTs to `/api/teams`
+
+**Not covered:** Real API contract drift (integration tests later), auth-policy enforcement (SWA server-side only), Copilot-track flow (only Azure tracked; unit smoke covers both).
+
+**Open:** CI workflow (`.github/workflows/judging-tests.yml`) for PR unit + label-gated E2E? Extend to Copilot track now or wait for stabilization?
+
+### D-006 · gpt-4o → gpt-4.1 Model Version Regression Sweep
+**Date:** 2026-05-13
+**Author:** Maximoff (QA/Anomaly Detection)
+**Status:** Adopted
+
+Replaced all `gpt-4o` model deployment references in the root MTA AI Hackathon project with `gpt-4.1`. Mechanical configuration fix across 13 hits in 9 files (Bicep, env templates, Python settings, Markdown docs).
+
+**Files affected:**
+- `infra/modules/foundry.bicep` — deployment resource, model field
+- `.env.example` — AZURE_OPENAI_CHAT_DEPLOYMENT
+- `apps/log_analyst/settings.py`, `apps/orchestrator/settings.py` — chat deployment defaults
+- `apps/log_analyst/README.md`, `docs/evals.md`, `docs/voice.md`, `evals/foundry_evaluators.py`, `evals/README.md` — docstrings, examples
+
+**Why `gpt-4o-realtime-preview` was left alone:** Distinct purpose (voice/audio path). Real model name, explicitly named and immutable. Chat completions uses `gpt-4.1` (NEW); realtime uses `gpt-4o-realtime-preview` (UNTOUCHED).
+
+**Verification:** 0 remaining `gpt-4o` hits (excluding realtime); 13 `gpt-4.1` refs in place; 11 realtime refs untouched.
+
+**Risk:** Low — pure config/documentation changes, no app logic altered. Scope locked to root (apps/judging/ excluded). Deployment-ready: `azd up` to deploy new model to Azure OpenAI account.
+
 ## Governance
 
 - All meaningful changes require team consensus.
