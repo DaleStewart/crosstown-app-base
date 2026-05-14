@@ -2,8 +2,8 @@
   "universe": "Marvel Cinematic Universe",
   "cast_name": "Avengers",
   "lead": "T'Challa",
-  "cast_version": 1,
-  "hired_at": "2026-05-12",
+  "cast_version": 2,
+  "hired_at": "2026-05-12 (bootstrap); 2026-05-13 (5 agents hired from bench)",
   "agents": {
     "ralph": {
       "character": "T'Challa",
@@ -15,16 +15,50 @@
       "character": "Shuri",
       "alias": "Princess of Wakanda",
       "role": "Knowledge archivist + R&D - captures decisions, maintains the wisdom log, and prototypes new tooling for the team."
+    },
+    "stark": {
+      "character": "Tony Stark",
+      "alias": "Iron Man",
+      "role": "Architect - system design, infra patterns, hard tech calls.",
+      "legacy_named": false,
+      "status": "active",
+      "created_at": "2026-05-13"
+    },
+    "parker": {
+      "character": "Peter Parker",
+      "alias": "Spider-Man",
+      "role": "Frontend - UI/UX, design systems, component libraries.",
+      "legacy_named": false,
+      "status": "active",
+      "created_at": "2026-05-13"
+    },
+    "okoye": {
+      "character": "Okoye",
+      "role": "Operations - CI/CD, release management, deployment integrity.",
+      "legacy_named": false,
+      "status": "active",
+      "created_at": "2026-05-13"
+    },
+    "banner": {
+      "character": "Bruce Banner",
+      "alias": "Hulk",
+      "role": "Tester - QA, test automation, edge case hunting.",
+      "legacy_named": false,
+      "status": "active",
+      "created_at": "2026-05-13"
+    },
+    "maximoff": {
+      "character": "Wanda Maximoff",
+      "alias": "Scarlet Witch",
+      "role": "Anomaly detection & agent QA - drift watching, regression hunting, behavioral evals.",
+      "legacy_named": false,
+      "status": "active",
+      "created_at": "2026-05-13"
     }
   },
   "bench": [
-    {"character": "Tony Stark",       "alias": "Iron Man",       "intended_role": "Architect - system design, infra patterns, hard tech calls."},
     {"character": "Natasha Romanoff", "alias": "Black Widow",    "intended_role": "Security & red team - adversarial scenarios, threat modeling, breakglass procedures."},
-    {"character": "Bruce Banner",     "alias": "Hulk",           "intended_role": "Data science & evaluation - golden scenarios, eval gates, model quality measurement."},
     {"character": "Sam Wilson",       "alias": "Falcon",         "intended_role": "Observability & reliability - telemetry, SLOs, incident response."},
-    {"character": "Peter Parker",     "alias": "Spider-Man",     "intended_role": "Onboarding & developer advocacy - docs, tutorials, the friendly first contact."},
-    {"character": "Okoye",                                       "intended_role": "Operations & delivery - CI/CD, release management, deployment integrity."},
-    {"character": "Wanda Maximoff",   "alias": "Scarlet Witch",  "intended_role": "Anomaly detection & agent QA - drift watching, regression hunting, behavioral evals."},
     {"character": "Stephen Strange",  "alias": "Doctor Strange", "intended_role": "Architectural reviewer - counterfactuals, future-state design reviews, contingency planning."}
   ]
 }

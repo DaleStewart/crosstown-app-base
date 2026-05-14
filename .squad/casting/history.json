@@ -6,12 +6,28 @@
       "lead": "T'Challa",
       "hired_at": "2026-05-12",
       "decision": "Initial cast for the mta-ai-hackathon repo. T'Challa selected as Lead for calm authority, strategic continuity, and Wakandan institutional-memory framing aligned with the ralph (persistent memory) agent."
+    },
+    {
+      "universe": "Marvel Cinematic Universe",
+      "cast_name": "Avengers",
+      "lead": "T'Challa",
+      "hired_at": "2026-05-13",
+      "decision": "Judging app build session: hired 5 agents from bench to scaffold apps/judging/ (SWA + Functions + Cosmos). Stark (Architect) built infra/API. Parker (Frontend) built UI with MTA brand alignment. Okoye (Operations) built deployment scaffold. Banner (Tester) built Playwright suite. Maximoff (QA) performed gpt-4o → gpt-4.1 model sweep on root project. Session completed successfully with all 5 agents moving to Active status."
     }
   ],
   "assignment_cast_snapshots": {
     "v1": {
       "ralph": "T'Challa",
       "scribe": "Shuri"
+    },
+    "v2": {
+      "ralph": "T'Challa",
+      "scribe": "Shuri",
+      "stark": "Tony Stark",
+      "parker": "Peter Parker",
+      "okoye": "Okoye",
+      "banner": "Bruce Banner",
+      "maximoff": "Wanda Maximoff"
     }
   }
 }

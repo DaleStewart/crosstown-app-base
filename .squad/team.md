@@ -14,18 +14,18 @@
 |------------|-----------|-------|------|--------|
 | ralph  | **T'Challa** | Black Panther | **Lead** — strategic continuity, persistent memory, decision broker | active |
 | scribe | Shuri        | Princess of Wakanda | Knowledge archivist + R&D | active |
+| (ad-hoc) | Tony Stark | Iron Man | Architect — system design, infra patterns, hard tech calls | active |
+| (ad-hoc) | Peter Parker | Spider-Man | Frontend — UI/UX, design systems, component libraries | active |
+| (ad-hoc) | Okoye | — | Operations — CI/CD, release management, deployment | active |
+| (ad-hoc) | Bruce Banner | Hulk | Tester — QA, test automation, edge case hunting | active |
+| (ad-hoc) | Wanda Maximoff | Scarlet Witch | Anomaly detection — model sweeps, drift watching, regression testing | active |
 
 ## Bench (hire next)
 
 | Character | Alias | Intended role |
 |-----------|-------|---------------|
-| Tony Stark        | Iron Man          | Architect — system design, infra patterns, hard tech calls |
 | Natasha Romanoff  | Black Widow       | Security & red team — adversarial scenarios, threat modeling |
-| Bruce Banner      | Hulk              | Data science & evaluation — golden scenarios, eval gates |
 | Sam Wilson        | Falcon            | Observability & reliability — telemetry, SLOs, incident response |
-| Peter Parker      | Spider-Man        | Onboarding & developer advocacy — docs, tutorials |
-| Okoye             | —                 | Operations & delivery — CI/CD, release management |
-| Wanda Maximoff    | Scarlet Witch     | Anomaly detection & agent QA — drift watching, regression hunting |
 | Stephen Strange   | Doctor Strange    | Architectural reviewer — counterfactuals, design reviews |
 
 ## Lead authority
