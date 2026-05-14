@@ -25,3 +25,8 @@ Tony Stark / Iron Man — Architect. Bench-to-active for the MTA AI Hackathon ju
 - Switch Cosmos to AAD/`disableLocalAuth: true` with a managed identity once we know how SWA Functions will be granted RBAC (currently SWA managed Functions can't easily use a user-assigned MI for Cosmos data-plane).
 - Add a `judges` container if we ever need per-judge metadata beyond the principal claims.
 - Tie-breaker logic is single-criterion; if rules evolve to multi-criterion tie-breakers, generalize `tieBreakerId` → list.
+
+## 2026-05-13 — Security Review (Strange)
+
+Strange completed a security review of the judging app and authored `apps/judging/SECURITY_REVIEW.md`. Verdict: 🟡 Ship after must-fix items. 2 critical findings (CSV formula injection in export, unfilled tenant GUID placeholder) and 4 high findings. Core auth/authz model is solid. See decision D-007 and the full report for details and remediation paths.
+

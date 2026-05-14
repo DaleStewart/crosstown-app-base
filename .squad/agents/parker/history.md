@@ -71,3 +71,8 @@ Notes / follow-ups:
 - The signage panel bleeds with `margin: -2rem -1rem 0;` to overrun the body's 2rem/1rem padding. If the team ever wraps the page in a different container or changes body padding, that bleed will read as a misalignment.
 - Helvetica is system-available on macOS/iOS. Windows/Linux fall back to Arial (intentional — Arial is on-brand for MTA). If we ever want pixel-perfect parity on Linux, we'd need to license Helvetica Neue webfonts.
 - I did NOT use the actual MTA "M" logo — only a hackathon-specific `AI` roundel — to sidestep trademark risk.
+
+## 2026-05-13 — Security Review (Strange)
+
+Strange completed a security review of the judging app and authored `apps/judging/SECURITY_REVIEW.md`. Verdict: 🟡 Ship after must-fix items. 2 critical findings (CSV formula injection in export, unfilled tenant GUID placeholder) and 4 high findings. Core auth/authz model is solid. See decision D-007 and the full report for details and remediation paths.
+
