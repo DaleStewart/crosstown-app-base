@@ -135,7 +135,130 @@ All 10 findings from Strange's security review (D-007) have been closed across t
 
 **Verification:** Both commits verify clean (node --check, bicep build, JSON parsing). No cross-file conflicts. Ready for external deployment.
 
+### D-009 · Foundry Realtime Model Version Swap to gpt-realtime-1.5
+**Date:** 2026-05-15
+**Author:** Okoye (Operations)
+**Status:** Local commit ready; push blocked (remote auth)
+**Branch:** `squad/swap-realtime-to-gpt-realtime-1.5` (SHA: `d79a8d2`)
 
+Upgrade Foundry voice provider from `gpt-4o-realtime-preview` to `gpt-realtime-1.5`. Seven files modified:
+- `.env.example` — updated deployment name
+- `apps/orchestrator/settings.py` — updated chat + voice deployment references
+- `apps/orchestrator/voice/foundry_realtime.py` — new implementation
+- `infra/main.bicep`, `infra/modules/foundry.bicep` — new model in deployment
+- `docs/architecture.md`, `docs/voice.md` — updated examples and version notes
+
+**Scope:** Realtime voice path only. Chat completions (D-006: `gpt-4.1`) untouched. Citation + eval gates pass with realtime swap in place.
+
+**Blockers:** Remote repository (`git@github.com:DevPost-Test-Hackathon/crosstown-app`) not found or SSH auth failed. Commit queued locally; push and PR pending remote provisioning fix.
+
+**Next:** Fix remote origin URL or SSH credential, then `git push -u origin squad/swap-realtime-to-gpt-realtime-1.5` + `gh pr create`.
+
+### D-010 · Decision Log Supersedes Maximoff "leave realtime alone" Instruction
+**Date:** 2026-05-15
+**Author:** T'Challa (Lead) — noted retrospectively via Scribe
+**Status:** Archived (no further action)
+
+Earlier session (morning 2026-05-15) included an instruction to Maximoff: "do not modify realtime". This instruction is now superseded by D-009 (realtime swap decision adopted). The decision log is the source of truth; Maximoff's cross-agent record is stale. No reversal needed — D-009 is the active architecture.
+
+### D-011 · GitHub Spec Kit v0.8.10 Adoption + Constitution Ratified + Spec 001 Worked Example
+**Date:** 2026-05-15
+**Author:** Okoye (Operations) + Stark (Architect)
+**Status:** Local commit ready; push blocked (remote auth)
+**Branch:** `squad/add-spec-kit-v0.8.10` (SHA: `7c063c5`)
+
+**Three components in one decision:**
+
+#### Component A: Spec Kit v0.8.10 Installation
+Installed GitHub Spec Kit CLI (`specify-cli==0.8.10`) into the repo, enabling spec-driven workflows:
+- Scaffolding: Constitution → Specification → Plan → Tasks → Implementation
+- Copilot integration: slash commands (`/speckit.constitution`, `/speckit.plan`, etc.) in Copilot CLI and Chat
+- Script type: PowerShell (Windows-native, aligns with repo precedent)
+- Flags: `--here` (in-place), `--ignore-agent-tools`, `--no-git` (repo already initialized)
+
+**Artifacts created (43 files):**
+- `.specify/` — 17 files (config, scripts, templates, workflows)
+- `.github/agents/speckit.*.agent.md` — 9 agent definitions
+- `.github/prompts/speckit.*.prompt.md` — 9 prompt files
+- `specs/001-realtime-1-5-upgrade/` — 3 worked-example artifacts (spec, plan, tasks)
+- `.squad/skills/spec-kit-authoring/SKILL.md` — 1 skill bridge
+- Cross-agent history updates — 3 files
+
+#### Component B: Constitution v1.0.0 Ratified
+Six principles derived from existing repo contracts (not invented, already in `.github/copilot-instructions.md`):
+
+1. **Citations Are Load-Bearing** (NON-NEGOTIABLE)
+2. **Mock Data Only** (NON-NEGOTIABLE)
+3. **Hermetic by Default, Live on Demand**
+4. **Keyless Auth Everywhere**
+5. **One Voice Abstraction, Two Implementations**
+6. **Extensions Are Exercises, Not Features**
+
+Stored at `.specify/memory/constitution.md` v1.0.0, ratified 2026-05-15.
+
+#### Component C: Spec 001 Worked Example
+Realtime model upgrade (D-009 context) used as the reference flow:
+- **Spec:** Requirements decomposition for gpt-realtime-1.5 swap
+- **Plan:** Implementation breakdown
+- **Tasks:** 10/10 actionable items, all complete (mapped to D-009 files)
+
+All artifacts at `specs/001-realtime-1-5-upgrade/`.
+
+**Rationale:**
+- Spec-driven decomposition reduces design drift.
+- Copilot integration (slash commands) eliminates context switching.
+- PowerShell aligns with Windows environment and existing conventions.
+- Constitution anchors future features and spec workflows.
+- Worked example (Spec 001) gives team a concrete reference on this codebase.
+
+**Blockers:** Same remote auth issue as D-009. Branch + commit queued locally; push and PR pending.
+
+**Deprecation note:** Spec Kit CLI evolving — by v0.10.0, `--ai` becomes `--integration`, git extension auto-enable will be removed. Recommend pinned `v0.8.10` for reproducibility or upgrade path.
+
+**Next:** Fix remote, push, open PR. Then reconcile dual decisions files (root `.squad/decisions.md` vs. `specs/001-*/decisions.md` subfolder pattern) in a future session.
+
+### D-012 · Two Local Branches Queued — Remote Auth Blocker
+**Date:** 2026-05-15
+**Author:** Okoye (Operations)
+**Status:** Operational note; awaiting remote provisioning
+**Branches:**
+- `squad/swap-realtime-to-gpt-realtime-1.5` (SHA: `d79a8d2` — realtime model swap, D-009)
+- `squad/add-spec-kit-v0.8.10` (SHA: `7c063c5` — spec-kit adoption + constitution, D-011)
+
+Both branches committed locally but cannot push to origin. Remote repository (`git@github.com:DevPost-Test-Hackathon/crosstown-app`) is not found or SSH auth failed. No action needed from the squad until remote is provisioned or URL corrected. Once resolved, both branches can push and open PRs in parallel (no dependency).
+
+**Tracking:** Flagged here so future team knows why two productive branches sit unpushed.
+
+### D-013 · Org Import Successful — PRs #1 and #2 Open
+**Date:** 2026-05-15
+**Author:** Okoye (Operations)
+**Status:** Completed
+
+D-012 (remote auth blocker) is **RESOLVED**. Both development branches successfully pushed to `DevPost-Test-Hackathon/crosstown-app` and paired with PRs.
+
+**Resolution flow:**
+- Fresh PAT generated from account that IS an org member of `DevPost-Test-Hackathon`
+- SSO authorization completed explicitly (Authorize button clicked in GitHub)
+- Token set in-memory only via `$env:GH_TOKEN`; origin flipped to HTTPS
+- `gh auth setup-git` established credential helper
+- Smoke test passed: `gh api orgs/DevPost-Test-Hackathon` returned org JSON (no 404)
+- Both branches pushed successfully to remote
+
+**Branches & PRs:**
+- **PR #1:** `squad/swap-realtime-to-gpt-realtime-1.5` → "Swap Foundry Realtime to gpt-realtime-1.5" (D-009)  
+  https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/1
+
+- **PR #2:** `squad/add-spec-kit-v0.8.10` → "Add GitHub Spec Kit v0.8.10 + Constitution v1.0.0 + Spec 001" (D-011)  
+  https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/2
+
+**Key insight:** SSO authorization is a separate checkpoint — it's not enough to generate a PAT with the right scopes. GitHub SSO flow requires explicit "Authorize" click for each new PAT, even if the user is already an org member. This is by design (security), but easy to miss if you assume "membership + PAT scopes = ready to go."
+
+**Learnings for future ops:**
+- Always verify org reachability with `gh api orgs/<ORG-NAME>` before investing in branch-push planning
+- HTTPS + credential helper is more reliable than SSH key management for CI/CD on Windows
+- PAT + SSO is a two-factor gate; both must be confirmed explicitly
+
+**Token hygiene:** PAT set in-memory only, never to disk, never echoed in output logs. User should revoke temporary PATs used this session.
 
 
 - All meaningful changes require team consensus.

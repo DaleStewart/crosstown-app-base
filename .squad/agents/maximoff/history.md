@@ -44,3 +44,12 @@
 ## Status
 
 ✅ Complete — all edits applied, verified, documented.
+
+---
+
+## 2026-05-15 — Realtime Model Upgrade (D-009 Supersedes Earlier Instruction)
+
+The "leave gpt-4o-realtime-preview alone" instruction from D-006 has been **deliberately superseded** by a full model upgrade to `gpt-realtime-1.5` (GA endpoint). This is not a reversion of D-006 — D-006 remains accurate as an audit trail. The historical context was specific to the 2026-05-13 chat-model migration. As of 2026-05-15, D-009 and D-010 execute the deliberate next step: upgrade to the GA realtime model.
+
+**Related:** Decision D-009 (adopted 2026-05-15), Decision D-010 (adopted 2026-05-15).
+
