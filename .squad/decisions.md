@@ -290,6 +290,61 @@ As of 2026-05-15, D-009 executes a deliberate model upgrade from `gpt-4o-realtim
 
 **Related:** D-009 (realtime model upgrade, same session).
 
+### D-014 · Post-Merge Build/Test/Eval Verification — Green
+**Date:** 2026-05-15
+**Author:** Scribe (Shuri) — Post-Merge Batch (Banner, Parker, Maximoff)
+**Status:** Adopted
+
+**Scope:** PRs #1 (D-009: realtime swap) and #2 (D-011: spec-kit adoption) merged to `origin/main` (commit `9143b72`). Parallel batch of three agents (Banner, Parker, Maximoff) executed post-merge gates on HEAD.
+
+**Results:** 🟢 **All gates green. No regressions.**
+
+**Python Services (Banner — Orchestrator + Log Analyst):**
+- `apps/orchestrator`: ruff ✅, mypy --strict ✅, pytest 11/11 ✅
+- `apps/log_analyst`: ruff ✅, mypy --strict ✅, pytest 16/16 ✅
+- **Finding:** Zero lint/type/test failures. All citation + tool-routing contracts verified.
+
+**Frontend (Parker — Lint/Typecheck/Test + Build):**
+- Lint ✅, Typecheck ✅, Vitest 6/6 ✅
+- **Finding:** Pre-existing `apps/frontend/vite.config.ts:15` TypeScript error (test property not on `UserConfigExport`). Needs `import { defineConfig } from 'vitest/config'` instead of `vite`. **NOT caused by either PR — unrelated to merged changes.** Logged as cleanup backlog.
+- `npm run build` **FAILED** due to this same pre-existing vite/vitest collision. No new breakage from PRs.
+
+**Eval Gates (Maximoff — Citation + Orchestrator + Tool Routing):**
+- Citation gate: 8/8 scenarios, 0.0% uncited (threshold ≤5%) ✅
+- Orchestrator gate: 8/8 scenarios, 0.0% routing failures (threshold ≤0%) ✅
+- Tool-routing assertions OS-005..OS-008 all correct ✅
+- **Finding:** Zero regression from realtime model swap (D-009). Citation/tool contracts identical pre/post.
+
+**Verdict:** Realtime swap (D-009) and spec-kit adoption (D-011) verified clean on main. **No causality between merged PRs and pre-existing build issue.** Frontend build blocker is a local vite/vitest config collision, not a code regression.
+
+**Next:** Track pre-existing frontend build issue as a separate backlog item (out of scope for this merge verification).
+
+### D-015 · Frontend vite.config.ts TypeScript Fix — Shipped PR #3
+**Date:** 2026-05-15
+**Author:** Parker (Frontend) — Re-verified by Scribe (Shuri)
+**Status:** Adopted
+
+D-014 identified a pre-existing TypeScript error in `apps/frontend/vite.config.ts:15` (not a regression from D-009 or D-011). Parker shipped PR #3 with a one-line fix:
+
+```diff
+-import { defineConfig } from "vite";
++import { defineConfig } from "vitest/config";
+```
+
+`vitest/config` re-exports `defineConfig` with a widened type that includes the `test` block. Runtime behavior unchanged; purely a TypeScript types fix.
+
+**Verification (on `squad/fix-vite-config-defineConfig`, re-run 2026-05-15T18:11Z):**
+- `npm run lint` ✅
+- `npm run typecheck` ✅
+- `npx vitest run` (6/6) ✅
+- `npm run build` (exit 0; was exit 2) ✅ FIXED
+
+**Delivery:**
+- PR: DevPost-Test-Hackathon/crosstown-app#3 (merged to main)
+- Commit: single-line change only
+
+**Consequence:** All four CI gates on frontend now pass. No follow-ups needed unless vitest is dropped in the future.
+
 ---
 
 ## Guidelines

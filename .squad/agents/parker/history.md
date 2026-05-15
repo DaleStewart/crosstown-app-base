@@ -1,3 +1,24 @@
+## 2026-05-15 — Post-merge frontend gates (Parker)
+
+Ran all four CI gates on `apps/frontend` post-realtime-swap merge (D-009 + D-011):
+
+**Outcomes:**
+- **lint:** ✅ PASS (0 eslint errors)
+- **typecheck:** ✅ PASS (0 tsc errors with `--noEmit`)
+- **test:** ✅ PASS (6 tests passed in 3.92s; 1 warning about React act() in App.test.tsx is pre-existing)
+- **build:** ❌ FAIL — vite.config.ts line 15: TypeScript error `No overload matches this call. Object literal may only specify known properties, and 'test' does not exist in type 'UserConfigExport'.`
+
+**Analysis:** The build failure is a **pre-existing vite.config.ts configuration error**, not caused by the realtime swap (which only touched `apps/orchestrator/`). The `test` property in `defineConfig()` requires importing from `vitest/config` rather than plain `vite`. This is a known issue in the vite+vitest setup and predates the session.
+
+**Realtime swap scope:** D-009 modified only `apps/orchestrator/` (voice/foundry_realtime.py, settings.py, infra/) + docs. No frontend code touched.
+
+**Verdict:** Frontend lint/typecheck/test gates are all green. Build gate is red, but pre-existing (not a regression).
+
+**Team update (18:11Z):** Re-verify pass complete; PR #3 shipped from Parker for vite.config.ts (shipped, all gates now green).
+
+## Learnings
+
+2026-05-15 — Post-merge frontend gates. lint (pass), typecheck (pass), test (6 passed in 3.92s), build (fail: pre-existing vite.config.ts TypeScript error). No bundle size (build never completed). Frontend scope unaffected by realtime swap.
 
 ## 2026-05-13 — Frontend v1 (Parker)
 
@@ -76,3 +97,26 @@ Notes / follow-ups:
 
 Strange completed a security review of the judging app and authored `apps/judging/SECURITY_REVIEW.md`. Verdict: 🟡 Ship after must-fix items. 2 critical findings (CSV formula injection in export, unfilled tenant GUID placeholder) and 4 high findings. Core auth/authz model is solid. See decision D-007 and the full report for details and remediation paths.
 
+
+## 2026-05-15 — Re-verification + vite.config.ts fix shipped (Parker)
+
+Re-ran all four CI gates on `apps/frontend` after D-014's note that the build failure was pre-existing.
+
+**Gate results (before fix):**
+- `npm run lint`      → exit 0 ✅
+- `npm run typecheck` → exit 0 ✅
+- `npx vitest run`    → exit 0 ✅ (3 files, 6 tests passed in 2.95s; same pre-existing React act() warning on Header)
+- `npm run build`     → exit 2 ❌ `vite.config.ts(15,3): error TS2769: No overload matches this call. Object literal may only specify known properties, and 'test' does not exist in type 'UserConfigExport'.`
+
+**Fix shipped:** one-line change in `apps/frontend/vite.config.ts`:
+
+``diff
+-import { defineConfig } from "vite";
++import { defineConfig } from "vitest/config";
+``
+
+`vitest/config` re-exports a widened `defineConfig` whose type knows about the `test` block; `vite`'s does not. After the fix, `npm run build` → exit 0 (tsc -b clean, vite build → 1524 modules, 177.28 kB JS / 11.87 kB CSS, 2.40s).
+
+**Branch / PR:** committed on `squad/fix-vite-config-defineConfig` (off origin/main), opened PR #3 in DevPost-Test-Hackathon/crosstown-app.
+
+**Final status — all four gates green:** lint ✅, typecheck ✅, test ✅ (6/6), build ✅.

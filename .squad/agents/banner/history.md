@@ -7,6 +7,37 @@
 
 ## Learnings
 
+### 2026-05-15 — Re-verification pass on main (post-D-014 follow-up)
+
+- **Trigger:** Brady (segayle) requested re-run of full orchestrator verification after D-009 (realtime-1.5 swap) + D-011 (spec-kit) merges, to confirm D-014 GREEN status holds.
+- **Orchestrator (`apps/orchestrator/`):**
+  - `ruff check .` → **PASS** (exit 0, "All checks passed!")
+  - `mypy --strict .` → **PASS** (exit 0, "Success: no issues found in 19 source files")
+  - `pytest -v` → **PASS** (exit 0, **11/11 passed** in 1.00s — test_api_turn x3, test_factory x4, test_tools_dispatch x2, test_ws_text_path x2)
+  - Stale `gpt-4o-realtime-preview` scan (first-party, excluding `.venv`/`.mypy_cache`/`__pycache__`) → **clean, 0 hits**. The only matches are inside the vendored OpenAI SDK at `.venv/Lib/site-packages/openai/...` (enum type literals — upstream, not our code).
+- **Log Analyst (`apps/log_analyst/`):**
+  - `ruff check .` → **PASS** (exit 0, "All checks passed!")
+  - `mypy --strict .` → **PASS** (exit 0, "no issues found in 15 source files")
+  - `pytest -v` → **PASS** (exit 0, **16/16 passed** in 0.11s — citations x5, detect_pattern x3, search_logs x5, summarize_incident x3)
+- **Verdict:** 🟢 **GREEN — no change from D-014.** Realtime swap + spec-kit still clean; no regressions, no straggler references in source. No inbox entry needed (status unchanged).
+- **Team update (18:11Z):** Re-verify pass complete; PR #3 shipped from Parker for vite.config.ts.
+
+### 2026-05-15 — Post-merge build/test pass for orchestrator + log_analyst (D-009, D-011)
+
+- **Orchestrator:** Both PRs merged to origin/main (D-009 realtime swap + D-011 Spec Kit). Working tree at 9143b72 = main HEAD.
+- **Scope:** Python services build + tests (`apps/orchestrator/` + `apps/log_analyst/`). Parallel exec with Maximoff (eval gates) and Parker (frontend).
+- **Orchestrator gates:**
+  - `ruff check .` → **PASS** (0 issues in 19 source files)
+  - `mypy --strict .` → **PASS** (all type checks clean)
+  - `pytest -q` → **PASS** (11/11 tests passed in 1.34s)
+  - Key: realtime tests pass — `apps/orchestrator/voice/foundry_realtime.py` rewritten with new GA endpoint pattern (`/openai/v1/realtime?model=`), no regressions.
+- **Log Analyst gates:**
+  - `ruff check .` → **PASS** (0 issues in 15 source files)
+  - `mypy --strict .` → **PASS** (all type checks clean)
+  - `pytest -q` → **PASS** (16/16 tests passed in 0.11s)
+- **Verdict:** 🟢 GREEN — all gates clear post-merge. Realtime model swap (gpt-realtime-1.5) integrates cleanly; no citation or tool-routing regressions from Spec Kit addition.
+- **Note:** venvs pre-existed; no install needed.
+
 ### 2026-05-13 (session 3) — first execution run, fixes for stale tests
 
 - Ran `node unit/criteria.test.js` → **9/9 pass** on first run, no changes.

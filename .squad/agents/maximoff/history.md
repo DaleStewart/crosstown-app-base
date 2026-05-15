@@ -53,3 +53,48 @@ The "leave gpt-4o-realtime-preview alone" instruction from D-006 has been **deli
 
 **Related:** Decision D-009 (adopted 2026-05-15), Decision D-010 (adopted 2026-05-15).
 
+---
+
+## Learnings
+
+**2026-05-15** — Post-merge eval gates run. Confirmed no regression from realtime model swap (D-009).
+
+- **Citation gate** (`python -m runner --max-uncited-pct 5`): 8 turns, **0 uncited (0.0%)**, threshold 5%, **PASS**, exit code 0
+  - All 8 scenarios passed; no missing citations or tool response gaps
+  - Noise budget floor: 0 turns (5% of 8 = 0.4, floored to 0)
+
+- **Orchestrator gate** (`python -m orchestrator_runner --max-fail-pct 0`): 8 scenarios, **0 failed (0.0%)**, threshold 0%, **PASS**, exit code 0
+  - **Tool-routing assertions: ALL PASS** (critical for Spec 001)
+  - Tested vague status → search_logs (OS-005), log ID hint → detect_pattern (OS-006), incident ID → summarize_incident (OS-007), composite ask (OS-008)
+  - Realtime endpoint swap did not affect tool dispatch path or citation contract; routing identical to pre-swap baseline
+
+- **Verdict:** 🟢 **GREEN** — No regression. Both PRs merged successfully. Citation contract intact. Orchestrator routing unaffected by gpt-realtime-1.5 swap.
+
+
+---
+
+## 2026-05-15 (re-run) — Eval Gates Re-Verification (Post D-009 + D-011 Merge)
+
+**Requested by:** Brady (segayle). Second pass on same day to confirm no drift after PRs #1 (D-009 realtime-1.5 swap) and #2 (D-011 spec-kit + constitution + Spec 001) merged into `main`. D-014 baseline (earlier same day) was all GREEN.
+
+### Citation gate — `python -m runner --max-uncited-pct 5`
+- Scenarios run: **8** (SC-001..SC-008)
+- Turns: 8 - Uncited: **0 (0.0%)** - Threshold: 5.0%
+- Noise budget: floor(0.05 * 8) = 0 turns
+- Result: **PASS** (exit 0)
+
+### Orchestrator gate — `python -m orchestrator_runner --max-fail-pct 0`
+- Scenarios run: **8** (OS-001..OS-008)
+- Failed: **0 (0.0%)** - Threshold: 0.0%
+- Result: **PASS** (exit 0)
+
+### Tool-routing assertions (subset of orchestrator gate)
+- OS-005 vague status -> `search_logs`: **PASS**
+- OS-006 log ID hint -> `detect_pattern`: **PASS**
+- OS-007 incident ID -> `summarize_incident`: **PASS**
+- OS-008 composite ask -> multi-tool route: **PASS**
+
+### Overall: 🟢 GREEN
+Identical to D-014 baseline. Realtime model swap (D-009) and spec-kit adoption (D-011) confirmed regression-free on `main`. No status change since last run -> no inbox decision draft required.
+
+**Team update (18:11Z):** Re-verify pass complete; PR #3 shipped from Parker for vite.config.ts.
