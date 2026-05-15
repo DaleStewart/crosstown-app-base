@@ -74,7 +74,7 @@ resource gpt4oDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-
     model: {
       format: 'OpenAI'
       name: 'gpt-4.1'
-      version: '2024-11-20'
+      version: '2025-04-14'
     }
   }
 }
