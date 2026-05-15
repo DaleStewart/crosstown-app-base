@@ -79,18 +79,18 @@ resource gpt4oDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-
   }
 }
 
-// gpt-4o-realtime-preview — GlobalStandard, 10 K TPM; supports audio + WebSocket streaming
+// gpt-realtime-1.5 — GlobalStandard, 10 K TPM; GA speech-to-speech successor to gpt-4o-realtime-preview
 // dependsOn serialises deployments to avoid concurrent-update throttle on the same account
 resource gpt4oRealtimeDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
   parent: aoaiAccount
-  name: 'gpt-4o-realtime-preview'
+  name: 'gpt-realtime-1.5'
   dependsOn: [gpt4oDeployment]
   sku: { name: 'GlobalStandard', capacity: 10 }
   properties: {
     model: {
       format: 'OpenAI'
-      name: 'gpt-4o-realtime-preview'
-      version: '2024-10-01'
+      name: 'gpt-realtime-1.5'
+      version: '2026-02-23'
     }
   }
 }

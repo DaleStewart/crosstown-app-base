@@ -135,6 +135,12 @@ All 10 findings from Strange's security review (D-007) have been closed across t
 
 **Verification:** Both commits verify clean (node --check, bicep build, JSON parsing). No cross-file conflicts. Ready for external deployment.
 
+### D-009 · Foundry Realtime Model Upgrade — gpt-4o-realtime-preview to gpt-realtime-1.5
+**Date:** 2026-05-15
+**Author:** Okoye (Verification + PR)
+**Status:** Adopted
+
+Swapped `gpt-4o-realtime-preview` (version `2024-10-01`, api-version `2024-10-01-preview`) → `gpt-realtime-1.5` (version `2026-02-23`) using the GA `/openai/v1/realtime?model={deployment}` endpoint pattern (no api-version query param). 
 ### D-009 · Foundry Realtime Model Version Swap to gpt-realtime-1.5
 **Date:** 2026-05-15
 **Author:** Okoye (Operations)
@@ -260,6 +266,33 @@ D-012 (remote auth blocker) is **RESOLVED**. Both development branches successfu
 
 **Token hygiene:** PAT set in-memory only, never to disk, never echoed in output logs. User should revoke temporary PATs used this session.
 
+**Changes:**
+- `infra/modules/foundry.bicep` — deployment name `gpt-realtime-1.5`, model.version = `gpt-realtime-1.5-2026-02-23`
+- `.env.example` — `AZURE_OPENAI_REALTIME_DEPLOYMENT=gpt-realtime-1.5`
+- `apps/orchestrator/settings.py` — realtime deployment env var
+- `apps/orchestrator/voice/foundry_realtime.py` — WebSocket endpoint pattern for GA realtime endpoint
+- `docs/voice.md`, `docs/architecture.md` — documentation updated to reflect new deployment
+
+**Preserved:** Bicep symbol `gpt4oRealtimeDeployment`, env var `AZURE_OPENAI_REALTIME_DEPLOYMENT`, SKU `GlobalStandard`/capacity 10. Speech Services fallback path unchanged.
+
+**Out of scope:** `gpt-realtime-mini`, `gpt-realtime-translate`, `gpt-4o-transcribe-diarize`.
+
+**Verification:** Bicep build clean, ruff/mypy --strict on 19 files, pytest 11/11 passing, frame schemas valid for GA `/openai/v1/realtime`, straggler grep clean. Go.
+
+### D-010 · Maximoff "Leave gpt-4o-realtime-preview alone" Instruction Superseded
+**Date:** 2026-05-15
+**Author:** Coordinator
+**Status:** Adopted
+
+Decision D-006 (gpt-4o → gpt-4.1 sweep, 2026-05-13) explicitly left `gpt-4o-realtime-preview` untouched with the rationale "Distinct purpose (voice/audio path). Real model name, explicitly named and immutable." That instruction was contextual to the 2026-05-13 chat-model migration — not a permanent freeze.
+
+As of 2026-05-15, D-009 executes a deliberate model upgrade from `gpt-4o-realtime-preview` to `gpt-realtime-1.5` (GA endpoint). The historical Squad notes (`.squad/agents/maximoff/history.md`, `.squad/identity/resume.md`, `.squad/decisions.md` line 98) remain accurate as audit trail; they are NOT rewritten — only the current instruction supersedes.
+
+**Related:** D-009 (realtime model upgrade, same session).
+
+---
+
+## Guidelines
 
 - All meaningful changes require team consensus.
 - Document architectural decisions here.

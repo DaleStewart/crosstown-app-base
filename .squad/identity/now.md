@@ -37,4 +37,3 @@ Org import and PR batch completed successfully. User authenticated with fresh PA
 3. **Merge order:** T'Challa to decide (likely spec-kit first to unlock `/speckit.*` slash commands)
 4. **Token hygiene:** User revoke temporary PATs used this session
 5. **Decisions reconciliation:** Clarify canonical location (root `.squad/decisions.md` vs. `specs/NNN-*/decisions.md` subfolders) in quiet session
-
