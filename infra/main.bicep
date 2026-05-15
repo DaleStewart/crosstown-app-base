@@ -125,7 +125,7 @@ module caEnv 'modules/containerAppsEnv.bicep' = {
   }
 }
 
-@description('AI Foundry hub + project + Azure OpenAI account with gpt-4o and gpt-4o-realtime-preview deployments')
+@description('AI Foundry hub + project + Azure OpenAI account with gpt-4.1 and gpt-realtime-1.5 deployments')
 module foundry 'modules/foundry.bicep' = {
   name: 'foundry'
   params: {

@@ -12,7 +12,7 @@ The MTA AI Hackathon accelerator is an opt-in Track 2 scaffolding. It deploys to
 
 ## Azure resources (Bicep-provisioned)
 
-- **Azure AI Foundry** — hub + project + AOAI model deployments (`gpt-4o`, `gpt-4o-realtime-preview`)
+- **Azure AI Foundry** — hub + project + AOAI model deployments (`gpt-4.1`, `gpt-realtime-1.5`)
 - **Azure AI Search** (Basic, semantic search on) — two indexes: `mta-logs`, `mta-runbooks`
 - **Cosmos DB for NoSQL** (Serverless) — `incidents` + `conversations` containers
 - **Azure Speech Services** (S0) — voice fallback when `VOICE_PROVIDER=speech_services`
@@ -32,7 +32,7 @@ The MTA AI Hackathon accelerator is an opt-in Track 2 scaffolding. It deploys to
 ```mermaid
 flowchart LR
   FE[Frontend push-to-talk] -- WSS --> ORC[Orchestrator]
-  ORC -- realtime WS --> FRT[Foundry Realtime gpt-4o-realtime-preview]
+  ORC -- realtime WS --> FRT[Foundry Realtime gpt-realtime-1.5]
   ORC -. fallback .-> SPC[Azure Speech STT+TTS]
   ORC -- HTTP --> LA[Log Analyst]
   LA --> SRCH[(AI Search)]

@@ -9,7 +9,7 @@ VOICE_PROVIDER=speech_services    # fallback
 
 The frontend is provider-agnostic — it streams microphone audio to the orchestrator over WebSocket and receives transcripts + audio back. Switching providers is a server-side env flip + redeploy; no frontend change.
 
-## Primary: Foundry Realtime (gpt-4o-realtime-preview)
+## Primary: Foundry Realtime (gpt-realtime-1.5)
 
 **Why it's the default:** single round-trip for STT + reasoning + TTS, lowest latency, native interruption handling.
 
@@ -20,17 +20,17 @@ The frontend is provider-agnostic — it streams microphone audio to the orchest
 - When Foundry emits a tool call, the orchestrator dispatches it to the specialist (HTTP), gets a response with citations, and returns it back into the Foundry session.
 
 **Required Bicep:**
-- A `gpt-4o-realtime-preview` model deployment under the Foundry/AOAI account.
+- A `gpt-realtime-1.5` (version `gpt-realtime-1.5-2026-02-23`) model deployment under the Foundry/AOAI account.
 - `Cognitive Services User` role on the AOAI account for the UAMI.
 
 **Env vars consumed:**
 - `AZURE_AI_FOUNDRY_PROJECT_ENDPOINT`
-- `AZURE_OPENAI_REALTIME_DEPLOYMENT` (default `gpt-4o-realtime-preview`)
+- `AZURE_OPENAI_REALTIME_DEPLOYMENT` (default `gpt-realtime-1.5`)
 
 ## Fallback: Azure Speech Services (STT + TTS)
 
 **When to use:**
-- Regions or subscriptions where `gpt-4o-realtime-preview` is unavailable.
+- Regions or subscriptions where `gpt-realtime-1.5` is unavailable.
 - Audio compliance requirements that mandate the Speech-Services SLA path.
 - Demos where you want to use a custom voice or pronunciation dictionary.
 

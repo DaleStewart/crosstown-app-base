@@ -154,7 +154,7 @@ class FoundryRealtimeProvider:
         token = await self._get_token()
         url = (
             self._endpoint.rstrip("/")
-            + f"/openai/realtime?api-version=2024-10-01-preview&deployment={self._deployment}"
+            + f"/openai/v1/realtime?model={self._deployment}"
         )
         headers = [("Authorization", f"Bearer {token}")]
         ws = await websockets.connect(url, additional_headers=headers)
