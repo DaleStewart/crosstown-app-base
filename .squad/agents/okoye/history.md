@@ -17,3 +17,82 @@
 4. **Cosmos Data Explorer is the documented escape hatch** if neither cookie capture nor SWA-CLI dev mode is viable.
 5. **Don't touch root `azure.yaml`** — it's the Container Apps stack for log_analyst/orchestrator/frontend. Nested manifest at `apps/judging/azure.yaml` is the right pattern (see decision note).
 6. **CSV parser must handle quoted fields** because team names will contain commas. Used a small hand-rolled parser instead of pulling a dep — sticks to "Node 20 built-ins only" constraint.
+7. **Cosmos `ipRules` does not accept service tags** like `AzureCloud`, and SWA managed Functions use dynamic outbound IPs — so the deployable H2 mitigation for this pass was `publicNetworkAccess: 'Enabled'` + `networkAclBypass: 'AzureServices'` + empty `ipRules: []` (forces explicit-firewall posture; documented TODO to tighten with VNet integration + private endpoints). Don't waste a cycle trying to put a service tag in `ipRules` — it'll fail validation. (2026-05-13, security-fix sweep C2/H1/H2/H3/M3/M4, commit ae0cdeb.)
+
+## 2026-05-15 — Realtime model swap to gpt-realtime-1.5 (branch + commit)
+
+**Scope shipped:**
+- Branch: `squad/swap-realtime-to-gpt-realtime-1.5`
+- Commit SHA: `d79a8d2e18783dd92a0918cc52025594a56a265a`
+- 7 files staged explicitly (no globs, no broad `git add -A`):
+  - `.env.example` — deployment alias updated
+  - `apps/orchestrator/settings.py` — realtime deployment var updated
+  - `apps/orchestrator/voice/foundry_realtime.py` — endpoint + model version updated
+  - `docs/architecture.md` — GA endpoint pattern documented
+  - `docs/voice.md` — api-version removal noted
+  - `infra/main.bicep` — deployment resource updated
+  - `infra/modules/foundry.bicep` — model version pinned
+
+**Files NOT staged (as intended):**
+- `.squad/agents/okoye/history.md`, `.squad/agents/stark/history.md`, `.squad/decisions.md` (Scribe-owned; she's running in parallel)
+- `.squad/decisions/inbox/banner-test-run.md` (Scribe-owned; deleted, not staged)
+- `.github/copilot-instructions.md` (unrelated work; left untracked)
+
+**Push & PR blocked:**
+- Remote `git@github.com:DevPost-Test-Hackathon/crosstown-app` does not exist on GitHub.
+- SSH key auth failed; repo not found. Branch is ready locally (SHA d79a8d2) but cannot push to non-existent remote.
+- PR creation via `gh pr create` cannot proceed until branch is pushed.
+- Awaiting repo provisioning or remote URL correction.
+
+**Learnings:**
+1. **Explicit `git add -- <path>` pattern is critical** when squad files are in flux. Even a single `git add .` or `git add -A` risks pulling in Scribe-owned changes. Named paths + status verification are non-negotiable.
+2. **Branch naming convention `squad/swap-realtime-to-gpt-realtime-1.5`:** Descriptive (no issue number since this was not issue-driven), communicates scope (model swap), and aligns with squad routing expectations.
+3. **Commit message via `-F` file avoids quoting hell on Windows PowerShell** — best practice for CI/CD operations. Using `@'...'@` inline herestring is a solid fallback if `-F` temp file creates issues.
+4. **Remote URL mismatch / repo-not-found is a show-stopper for push + PR.** CI/CD workflows must verify remote beforehand (e.g., `git remote -v` + `gh repo view`) before committing to the push path.
+
+## 2026-05-15 — Spec Kit v0.8.10 bootstrap (ad-hoc)
+
+**Scope shipped:**
+- Spec Kit CLI `specify-cli` v0.8.10 installed via `uv tool install specify-cli --from git+https://github.com/github/spec-kit.git@v0.8.10`
+- Initialized in-place with `specify init --here --ai copilot --script ps --ignore-agent-tools --no-git`
+- Created `.specify/` directory with integrations, workflows, PowerShell scripts
+- Created `.github/agents/speckit.*.agent.md` (8 agents for /constitution /specify /plan /tasks /implement /analyze /clarify /checklist /taskstoissues)
+- Created `.github/prompts/speckit.*.prompt.md` (9 prompt files, one per agent)
+- Modified `.github/copilot-instructions.md` — appended spec-kit marker block, no destructive overwrite
+
+**Files created (all untracked, staged for review):**
+```
+.specify/
+├── init-options.json
+├── integration.json
+├── integrations/copilot.manifest.json
+├── integrations/speckit.manifest.json
+├── scripts/powershell/{check-prerequisites,common,create-new-feature,setup-plan,setup-tasks}.ps1
+└── workflows/workflow-registry.json
+
+.github/
+├── agents/speckit.{analyze,checklist,clarify,constitution,implement,plan,specify,tasks,taskstoissues}.agent.md
+└── prompts/speckit.{analyze,checklist,clarify,constitution,implement,plan,specify,tasks,taskstoissues}.prompt.md
+```
+
+**Status & collisions:**
+- No collision with `.squad/` (agents, skills, decisions remain separate).
+- `.github/copilot-instructions.md` preserved intact; spec-kit appended marker comments (lines 86–89) instead of overwriting.
+- No `.gitignore` modifications by spec-kit.
+- `.specify/` and `.github/{agents,prompts}` are new top-level collections; no path conflicts.
+
+**Flags & deprecations noted:**
+- `--ai copilot` is flagged as deprecated in v0.8.10 (to be removed in v0.10.0); replacement: `--integration copilot` (not used here per original user request).
+- `--no-git` is deprecated (to be removed in v0.10.0); spec-kit will default to git extension disabled in future versions.
+
+**Slash commands available (via Copilot CLI):**
+- `/speckit.constitution` — Establish project principles (core spec)
+- `/speckit.specify` — Create baseline specification (requirements)
+- `/speckit.plan` — Create implementation plan (breakdown)
+- `/speckit.tasks` — Generate actionable tasks (user stories)
+- `/speckit.implement` — Execute implementation (guided coding)
+- `/speckit.clarify` (optional) — Structured Q&A pre-planning
+- `/speckit.analyze` (optional) — Consistency & alignment cross-check
+- `/speckit.checklist` (optional) — Quality validation checklist
+
+**Next phase:** Content population (constitution → spec → plan → tasks). T'Challa to route to Stark. No commits yet — all files untracked pending review.
