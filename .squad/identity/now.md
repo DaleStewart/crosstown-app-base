@@ -1,49 +1,40 @@
 ---
-updated_at: 2026-05-15T15:16:32Z
-focus_area: GitHub Spec Kit v0.8.10 adoption + Foundry Realtime upgrade — both branches local, push pending
-active_issues: NONE (two local branches awaiting push: squad/swap-realtime-to-gpt-realtime-1.5 [d79a8d2], squad/add-spec-kit-v0.8.10 [7c063c5])
+updated_at: 2026-05-15T16:59:55Z
+focus_area: PRs #1 (realtime swap) and #2 (spec-kit) open on DevPost-Test-Hackathon/crosstown-app — awaiting CI + review
+active_issues: PR #1 https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/1 · PR #2 https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/2
 ---
 
-# Current State — 2026-05-15 · Spec Kit Bootstrap + Realtime Swap
+# Current State — 2026-05-15 · Org Import + PRs Open
 
-Two productive branches committed locally but blocked by remote authentication failure.
+D-012 (remote auth blocker) **RESOLVED**. Both branches pushed; both PRs open on `DevPost-Test-Hackathon/crosstown-app`.
 
 ## Overview
 
-Morning session (2026-05-15, 09:48–11:16 ET) completed Foundry Realtime model swap (D-009) and installed GitHub Spec Kit v0.8.10 infrastructure. Both branches are ready for push and PR once remote `git@github.com:DevPost-Test-Hackathon/crosstown-app` is provisioned or corrected.
+Org import and PR batch completed successfully. User authenticated with fresh PAT from org-member account + SSO authorization. Both branches pushed to remote and paired with PRs.
 
-## Branch Status
+## Branches & PRs
 
-| Branch | SHA | Content | Status |
-|---|---|---|---|
-| `squad/swap-realtime-to-gpt-realtime-1.5` | `d79a8d2` | Realtime model swap to gpt-realtime-1.5 (D-009) | Local commit; push blocked |
-| `squad/add-spec-kit-v0.8.10` | `7c063c5` | Spec Kit + Constitution v1.0.0 + Spec 001 (D-011) | Local commit; push blocked |
+| Branch | SHA | PR | Title | Status |
+|---|---|---|---|---|
+| `squad/swap-realtime-to-gpt-realtime-1.5` | `d79a8d2` | #1 | Swap Foundry Realtime to gpt-realtime-1.5 | Open; awaiting CI + review |
+| `squad/add-spec-kit-v0.8.10` | `7c063c5` | #2 | Add GitHub Spec Kit v0.8.10 + Constitution v1.0.0 + Spec 001 | Open; awaiting CI + review |
 
-## Constitution v1.0.0 Ratified
+**PR endpoints:**
+- https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/1
+- https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/2
 
-Six principles anchoring future work, now canonical:
+## Key Facts
 
-1. **Citations Are Load-Bearing** (NON-NEGOTIABLE)
-2. **Mock Data Only** (NON-NEGOTIABLE)
-3. **Hermetic by Default, Live on Demand**
-4. **Keyless Auth Everywhere**
-5. **One Voice Abstraction, Two Implementations**
-6. **Extensions Are Exercises, Not Features**
-
-Stored at `.specify/memory/constitution.md`. Squad can use `/speckit.constitution`, `/speckit.plan`, `/speckit.tasks` slash commands in Copilot CLI for future features.
-
-## Decisions Added (This Session Leg)
-
-- **D-009:** Foundry Realtime → gpt-realtime-1.5 (already logged; noted for completeness)
-- **D-010:** Retrospective — Maximoff instruction superseded by D-009
-- **D-011:** GitHub Spec Kit v0.8.10 adoption + Constitution + Spec 001 worked example
-- **D-012:** Two local branches queued; remote auth blocker (operational tracking)
-
-Full logs in `.squad/decisions.md`, `.squad/log/2026-05-15-spec-kit-bootstrap.md`, and `.squad/orchestration-log/`.
+- **No merge dependency:** PRs #1 and #2 can ship independently
+- **Decision log:** D-009 (realtime swap), D-011 (spec-kit + constitution), D-012 (tracking note), D-013 (org import + resolution)
+- **Orchestration log:** `.squad/orchestration-log/2026-05-15T165955Z-okoye-org-push.md`
+- **Inbox:** cleared (okoye-org-import-success.md merged as D-013)
 
 ## Next Steps
 
-1. **Fix origin remote.** Resolve SSH auth failure or URL mismatch for `git@github.com:DevPost-Test-Hackathon/crosstown-app`. Both branches can push in parallel once resolved.
-2. **Reconcile decisions pattern.** Clarify canonical location (root `.squad/decisions.md` vs. per-spec `specs/NNN-*/decisions.md` subfolder) in a quiet session before adopting for future specs.
-3. **Adopt slash-command workflows.** Constitution ready; use `/speckit.plan`, `/speckit.tasks` for future feature decomposition.
+1. **Monitor CI:** Both PRs should pass citation gate, orchestrator gate, Python + frontend linting, bicep build
+2. **Review:** Team to review PR bodies, architecture, and implementation
+3. **Merge order:** T'Challa to decide (likely spec-kit first to unlock `/speckit.*` slash commands)
+4. **Token hygiene:** User revoke temporary PATs used this session
+5. **Decisions reconciliation:** Clarify canonical location (root `.squad/decisions.md` vs. `specs/NNN-*/decisions.md` subfolders) in quiet session
 

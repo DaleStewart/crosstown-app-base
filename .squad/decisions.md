@@ -229,6 +229,37 @@ Both branches committed locally but cannot push to origin. Remote repository (`g
 
 **Tracking:** Flagged here so future team knows why two productive branches sit unpushed.
 
+### D-013 · Org Import Successful — PRs #1 and #2 Open
+**Date:** 2026-05-15
+**Author:** Okoye (Operations)
+**Status:** Completed
+
+D-012 (remote auth blocker) is **RESOLVED**. Both development branches successfully pushed to `DevPost-Test-Hackathon/crosstown-app` and paired with PRs.
+
+**Resolution flow:**
+- Fresh PAT generated from account that IS an org member of `DevPost-Test-Hackathon`
+- SSO authorization completed explicitly (Authorize button clicked in GitHub)
+- Token set in-memory only via `$env:GH_TOKEN`; origin flipped to HTTPS
+- `gh auth setup-git` established credential helper
+- Smoke test passed: `gh api orgs/DevPost-Test-Hackathon` returned org JSON (no 404)
+- Both branches pushed successfully to remote
+
+**Branches & PRs:**
+- **PR #1:** `squad/swap-realtime-to-gpt-realtime-1.5` → "Swap Foundry Realtime to gpt-realtime-1.5" (D-009)  
+  https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/1
+
+- **PR #2:** `squad/add-spec-kit-v0.8.10` → "Add GitHub Spec Kit v0.8.10 + Constitution v1.0.0 + Spec 001" (D-011)  
+  https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/2
+
+**Key insight:** SSO authorization is a separate checkpoint — it's not enough to generate a PAT with the right scopes. GitHub SSO flow requires explicit "Authorize" click for each new PAT, even if the user is already an org member. This is by design (security), but easy to miss if you assume "membership + PAT scopes = ready to go."
+
+**Learnings for future ops:**
+- Always verify org reachability with `gh api orgs/<ORG-NAME>` before investing in branch-push planning
+- HTTPS + credential helper is more reliable than SSH key management for CI/CD on Windows
+- PAT + SSO is a two-factor gate; both must be confirmed explicitly
+
+**Token hygiene:** PAT set in-memory only, never to disk, never echoed in output logs. User should revoke temporary PATs used this session.
+
 
 - All meaningful changes require team consensus.
 - Document architectural decisions here.
