@@ -1,42 +1,49 @@
 ---
-updated_at: 2026-05-13T22:16:00-04:00
-focus_area: MTA Hackathon judging app — apps/judging/ — SESSION COMPLETE
-active_issues:
-  - NONE (session complete)
+updated_at: 2026-05-15T15:16:32Z
+focus_area: GitHub Spec Kit v0.8.10 adoption + Foundry Realtime upgrade — both branches local, push pending
+active_issues: NONE (two local branches awaiting push: squad/swap-realtime-to-gpt-realtime-1.5 [d79a8d2], squad/add-spec-kit-v0.8.10 [7c063c5])
 ---
 
-# Session Complete — 2026-05-13 · Judging App Build
+# Current State — 2026-05-15 · Spec Kit Bootstrap + Realtime Swap
 
-**Session resumed at 22:16 UTC on 2026-05-13 after machine reboot. All tasks completed.**
+Two productive branches committed locally but blocked by remote authentication failure.
 
-Full decision and orchestration logs are in `.squad/decisions.md`, `.squad/log/2026-05-13-judging-app-build.md`, and `.squad/orchestration-log/` directory.
+## Overview
 
-## Session Outcome
+Morning session (2026-05-15, 09:48–11:16 ET) completed Foundry Realtime model swap (D-009) and installed GitHub Spec Kit v0.8.10 infrastructure. Both branches are ready for push and PR once remote `git@github.com:DevPost-Test-Hackathon/crosstown-app` is provisioned or corrected.
 
-✅ Parallel batch 1 (Stark/Parker/Okoye) delivered complete `apps/judging/` scaffold:
-- **Stark:** Infra (Bicep SWA + Cosmos serverless) + 7 Functions (all Node.js, all syntax-checked)
-- **Parker:** Frontend (3 HTML pages, 4 support modules) — v1 → v2 editorial → v3 MTA brand alignment
-- **Okoye:** Operations (azure.yaml, seed data, README, .gitignore)
+## Branch Status
 
-✅ Parallel batch 2 (Banner/Maximoff) delivered testing & model sweep:
-- **Banner:** Playwright test suite (auth, judge interface, leaderboard, admin console, edge cases, accessibility)
-- **Maximoff:** gpt-4o → gpt-4.1 model sweep across root project
+| Branch | SHA | Content | Status |
+|---|---|---|---|
+| `squad/swap-realtime-to-gpt-realtime-1.5` | `d79a8d2` | Realtime model swap to gpt-realtime-1.5 (D-009) | Local commit; push blocked |
+| `squad/add-spec-kit-v0.8.10` | `7c063c5` | Spec Kit + Constitution v1.0.0 + Spec 001 (D-011) | Local commit; push blocked |
 
-✅ Scribe (Shuri) logged session:
-- Merged 3 inbox decisions (D-002 Stark, D-003 Parker, D-004 Okoye)
-- Wrote 5 orchestration log entries
-- Wrote session log
-- Updated casting registry/history (v2, 5 new agents: stark, parker, okoye, banner, maximoff)
-- Updated team roster (moved 5 from Bench to Active)
-- Updated agent history files
+## Constitution v1.0.0 Ratified
 
-## Ready for Commit
+Six principles anchoring future work, now canonical:
 
-All `.squad/` files staged. Commit pending.
+1. **Citations Are Load-Bearing** (NON-NEGOTIABLE)
+2. **Mock Data Only** (NON-NEGOTIABLE)
+3. **Hermetic by Default, Live on Demand**
+4. **Keyless Auth Everywhere**
+5. **One Voice Abstraction, Two Implementations**
+6. **Extensions Are Exercises, Not Features**
+
+Stored at `.specify/memory/constitution.md`. Squad can use `/speckit.constitution`, `/speckit.plan`, `/speckit.tasks` slash commands in Copilot CLI for future features.
+
+## Decisions Added (This Session Leg)
+
+- **D-009:** Foundry Realtime → gpt-realtime-1.5 (already logged; noted for completeness)
+- **D-010:** Retrospective — Maximoff instruction superseded by D-009
+- **D-011:** GitHub Spec Kit v0.8.10 adoption + Constitution + Spec 001 worked example
+- **D-012:** Two local branches queued; remote auth blocker (operational tracking)
+
+Full logs in `.squad/decisions.md`, `.squad/log/2026-05-15-spec-kit-bootstrap.md`, and `.squad/orchestration-log/`.
 
 ## Next Steps
 
-1. **Stark (Infra):** Finalize azd integration vs. standalone GH Actions workflow; replace `{{TODO_TENANT_GUID}}`; document admin-role grant path
-2. **Banner (QA):** Integrate Playwright into CI/CD (`npm run test:unit` + `npm run test:e2e`)
-3. **Maximoff (QA):** Verify gpt-4.1 availability; test orchestrator/analyzer with new model
+1. **Fix origin remote.** Resolve SSH auth failure or URL mismatch for `git@github.com:DevPost-Test-Hackathon/crosstown-app`. Both branches can push in parallel once resolved.
+2. **Reconcile decisions pattern.** Clarify canonical location (root `.squad/decisions.md` vs. per-spec `specs/NNN-*/decisions.md` subfolder) in a quiet session before adopting for future specs.
+3. **Adopt slash-command workflows.** Constitution ready; use `/speckit.plan`, `/speckit.tasks` for future feature decomposition.
 
