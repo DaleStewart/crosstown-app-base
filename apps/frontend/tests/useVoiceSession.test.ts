@@ -92,4 +92,53 @@ describe("useVoiceSession", () => {
     act(() => result.current.sendText("hello"));
     expect(ws.sent.some((s) => s.includes('"text":"hello"'))).toBe(true);
   });
+
+  it("user_transcript event adds a role:user transcript line", async () => {
+    const { result, unmount } = renderHook(() =>
+      useVoiceSession({ url: "ws://test/ws/voice" })
+    );
+    await act(async () => {
+      await result.current.connect();
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    const ws = FakeWebSocket.instances[0]!;
+
+    act(() => {
+      ws.emit({ type: "user_transcript", text: "Show me door faults", item_id: "item_1" });
+    });
+
+    const userLines = result.current.state.transcripts.filter((t) => t.role === "user");
+    expect(userLines).toHaveLength(1);
+    expect(userLines[0]!.text).toBe("Show me door faults");
+    expect(userLines[0]!.final).toBe(true);
+    unmount();
+  });
+
+  it("all Wanda alias event names are normalized to user transcript lines", async () => {
+    const aliases = [
+      "user_transcript",
+      "user_transcript_completed",
+      "input_audio_transcription_completed",
+      "transcript_user_final",
+    ];
+
+    for (const alias of aliases) {
+      FakeWebSocket.instances = [];
+      const { result, unmount } = renderHook(() =>
+        useVoiceSession({ url: "ws://test/ws/voice" })
+      );
+      await act(async () => {
+        await result.current.connect();
+        await new Promise((r) => setTimeout(r, 0));
+      });
+      const ws = FakeWebSocket.instances[0]!;
+      act(() => {
+        ws.emit({ type: alias, text: `speech via ${alias}` });
+      });
+      const userLines = result.current.state.transcripts.filter((t) => t.role === "user");
+      expect(userLines).toHaveLength(1);
+      expect(userLines[0]!.text).toBe(`speech via ${alias}`);
+      unmount();
+    }
+  });
 });

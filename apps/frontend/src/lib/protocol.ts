@@ -52,13 +52,30 @@ export type ErrorFrame = {
   message: string;
 };
 
+/** Normalized user-turn transcript from the orchestrator.
+ *  Wanda may send this under several event names — all are normalized here. */
+export type UserTranscript = {
+  type: "user_transcript";
+  text: string;
+  item_id?: string;
+};
+
+/** Raw event names Wanda's server side may emit for user speech transcripts. */
+const USER_TRANSCRIPT_ALIASES = new Set([
+  "user_transcript",
+  "user_transcript_completed",
+  "input_audio_transcription_completed",
+  "transcript_user_final",
+]);
+
 export type ServerMessage =
   | TranscriptDelta
   | AudioDelta
   | ToolCall
   | ToolResult
   | Final
-  | ErrorFrame;
+  | ErrorFrame
+  | UserTranscript;
 
 export function isServerMessage(value: unknown): value is ServerMessage {
   if (typeof value !== "object" || value === null) return false;
@@ -69,13 +86,26 @@ export function isServerMessage(value: unknown): value is ServerMessage {
     t === "tool_call" ||
     t === "tool_result" ||
     t === "final" ||
-    t === "error"
+    t === "error" ||
+    t === "user_transcript" ||
+    (typeof t === "string" && USER_TRANSCRIPT_ALIASES.has(t))
   );
 }
 
 export function parseServerMessage(raw: string): ServerMessage | null {
   try {
     const value: unknown = JSON.parse(raw);
+    if (typeof value !== "object" || value === null) return null;
+    const obj = value as Record<string, unknown>;
+    // Normalize all Wanda event name aliases to the canonical "user_transcript" type.
+    if (typeof obj.type === "string" && USER_TRANSCRIPT_ALIASES.has(obj.type)) {
+      const normalized: UserTranscript = {
+        type: "user_transcript",
+        text: typeof obj.text === "string" ? obj.text : "",
+        ...(typeof obj.item_id === "string" ? { item_id: obj.item_id } : {}),
+      };
+      return normalized;
+    }
     return isServerMessage(value) ? value : null;
   } catch {
     return null;
