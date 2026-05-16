@@ -6,7 +6,7 @@ RUN pip install --prefix=/install --no-cache-dir \
     "fastapi>=0.110" "uvicorn[standard]>=0.27" "websockets>=12.0" "httpx>=0.27" \
     "pydantic>=2.5" "pydantic-settings>=2.2" "azure-identity>=1.15" \
     "azure-cosmos>=4.6" "openai>=1.30" "azure-cognitiveservices-speech>=1.37" \
-    "azure-monitor-opentelemetry>=1.2"
+    "azure-monitor-opentelemetry>=1.2" "aiohttp>=3.9"
 
 FROM python:3.11-slim
 RUN useradd --create-home --uid 10001 app
