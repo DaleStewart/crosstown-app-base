@@ -23,6 +23,11 @@ resource search 'Microsoft.Search/searchServices@2023-11-01' = {
     publicNetworkAccess: 'enabled'
     // 'free' tier semantic search is supported on Basic SKU at no extra charge
     semanticSearch: 'free'
+    // Keyless auth — RBAC only. Bearer tokens via DefaultAzureCredential.
+    // Setting disableLocalAuth=true forces Azure to flip authOptions away
+    // from the default 'apiKeyOnly' mode (which rejects AAD tokens entirely).
+    // Honors architecture mandate: "Auth is keyless ... Never add API-key auth".
+    disableLocalAuth: true
   }
 }
 
