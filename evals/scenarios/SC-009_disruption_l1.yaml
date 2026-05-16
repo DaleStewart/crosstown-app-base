@@ -1,0 +1,10 @@
+id: SC-009
+title: "L1 disruption status — must cite incident + runbook"
+prompt: "Status of L1 right now?"
+expected_tools:
+  - name: get_disruption_status
+    args_contains: {line: "L1"}
+must_cite:
+  - type: incident
+  - type: runbook
+max_turns: 1

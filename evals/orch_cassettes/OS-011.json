@@ -1,0 +1,24 @@
+{
+  "tool_calls": [
+    {
+      "name": "get_shuttle_bridging",
+      "arguments": {
+        "disruption_id": "DSR-2026-001"
+      }
+    }
+  ],
+  "citations": [
+    {
+      "type": "incident",
+      "id": "DSR-2026-001",
+      "snippet": "Fictional full-line suspension on L1"
+    },
+    {
+      "type": "runbook",
+      "id": "RB-12-shuttle-bus-bridging",
+      "snippet": "Shuttle-bus bridging procedures during a line shutdown."
+    }
+  ],
+  "warnings": [],
+  "text": "Yes \u2014 shuttle buses bridge the closed L1 segment. See RB-12-shuttle-bus-bridging for the published stops."
+}

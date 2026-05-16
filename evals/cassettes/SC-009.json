@@ -1,0 +1,33 @@
+{
+  "calls": [
+    {
+      "tool": "get_disruption_status",
+      "response": {
+        "tool": "get_disruption_status",
+        "result": {
+          "line": "L1",
+          "status": "active",
+          "disruption": {
+            "disruption_id": "DSR-2026-001"
+          }
+        },
+        "trace_id": "t-1",
+        "citations": [
+          {
+            "type": "incident",
+            "id": "DSR-2026-001",
+            "snippet": "Fictional full-line suspension on L1"
+          },
+          {
+            "type": "runbook",
+            "id": "RB-11-line-shutdown-contingency",
+            "snippet": "Rider guidance for a full-line shutdown."
+          }
+        ]
+      },
+      "args_contains": {
+        "line": "L1"
+      }
+    }
+  ]
+}

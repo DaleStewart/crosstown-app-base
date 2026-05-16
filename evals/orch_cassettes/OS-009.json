@@ -1,0 +1,24 @@
+{
+  "tool_calls": [
+    {
+      "name": "get_disruption_status",
+      "arguments": {
+        "line": "L1"
+      }
+    }
+  ],
+  "citations": [
+    {
+      "type": "incident",
+      "id": "DSR-2026-001",
+      "snippet": "Fictional full-line suspension on L1"
+    },
+    {
+      "type": "runbook",
+      "id": "RB-11-line-shutdown-contingency",
+      "snippet": "Rider guidance for a full-line shutdown."
+    }
+  ],
+  "warnings": [],
+  "text": "L1 is fully suspended \u2014 see DSR-2026-001. Estimated resume is unknown. Follow RB-11-line-shutdown-contingency for rider guidance."
+}

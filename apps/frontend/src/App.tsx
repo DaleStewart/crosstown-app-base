@@ -2,6 +2,8 @@ import { type ReactNode } from "react";
 import { Header } from "@/components/Header";
 import { PushToTalkButton } from "@/components/PushToTalkButton";
 import { Transcript } from "@/components/Transcript";
+import { DisruptionBanner } from "@/components/DisruptionBanner";
+import { AlternateRouteCard } from "@/components/AlternateRouteCard";
 import { ToolCallPanel } from "@/components/ToolCallPanel";
 import { useVoiceSession } from "@/hooks/useVoiceSession";
 
@@ -24,6 +26,8 @@ export default function App(): ReactNode {
               onStop={() => void stopTalking()}
             />
           </div>
+          <DisruptionBanner entries={state.toolCalls} />
+          <AlternateRouteCard entries={state.toolCalls} />
           <Transcript lines={state.transcripts} />
         </section>
         <aside className="lg:row-span-1">

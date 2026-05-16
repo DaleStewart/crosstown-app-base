@@ -19,7 +19,7 @@ from voice.factory import build_provider
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
-    tools = ToolRegistry(settings.log_analyst_url)
+    tools = ToolRegistry([settings.log_analyst_url, settings.service_advisor_url])
     try:
         await tools.load()
     except Exception:

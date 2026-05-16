@@ -1,0 +1,26 @@
+{
+  "tool_calls": [
+    {
+      "name": "find_alternate_route",
+      "arguments": {
+        "origin": "S-Penn",
+        "destination": "S-East",
+        "disruption_id": "DSR-2026-001"
+      }
+    }
+  ],
+  "citations": [
+    {
+      "type": "runbook",
+      "id": "RB-11-line-shutdown-contingency",
+      "snippet": "Rider guidance for a full-line shutdown."
+    },
+    {
+      "type": "incident",
+      "id": "DSR-2026-001",
+      "snippet": "Fictional full-line suspension on L1"
+    }
+  ],
+  "warnings": [],
+  "text": "Take L2 from S-Penn south to S-Jamaica, then transfer to L3 to reach S-East. Avoids L1 entirely. Source: RB-11-line-shutdown-contingency, DSR-2026-001."
+}

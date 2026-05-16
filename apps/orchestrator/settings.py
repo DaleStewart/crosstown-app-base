@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     azure_cosmos_container_conversations: str = "conversations"
 
     log_analyst_url: str = "http://localhost:8001"
+    service_advisor_url: str = "http://localhost:8002"
 
     otel_service_name: str = "mta-orchestrator"
     applicationinsights_connection_string: str = ""
