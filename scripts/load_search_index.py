@@ -133,6 +133,14 @@ def seed_incidents(endpoint: str, db: str, container: str, credential: TokenCred
     cont = database.get_container_client(container)
     count = 0
     for inc in payload["incidents"]:
+        # Cosmos SQL API requires every document to carry a non-empty `id`
+        # string. Our seed records only carry `incidentId` (the partition
+        # key per architecture contract #6 — see copilot-instructions.md).
+        # Mirror it into `id` so upsert succeeds; readers query by
+        # `incidentId` so equality is safe (see
+        # apps/log_analyst/tools/summarize_incident.py::_fetch_incident).
+        if "id" not in inc:
+            inc["id"] = str(inc["incidentId"])
         cont.upsert_item(inc)
         count += 1
     return count
