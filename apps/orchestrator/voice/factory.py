@@ -17,6 +17,6 @@ def build_provider(settings: Settings | None = None) -> Provider:
             chat_deployment=s.azure_openai_chat_deployment,
         )
     return FoundryRealtimeProvider(
-        endpoint=s.azure_ai_foundry_project_endpoint,
+        endpoint=s.azure_openai_endpoint,
         deployment=s.azure_openai_realtime_deployment,
     )

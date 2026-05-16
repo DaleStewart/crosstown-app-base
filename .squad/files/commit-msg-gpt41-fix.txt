@@ -1,0 +1,11 @@
+fix(infra): correct gpt-4.1 model version to 2025-04-14 (was 2024-11-20)
+
+Version 2024-11-20 does not exist in the Azure OpenAI model catalog;
+azd up would fail at the model deployment step. Confirmed against
+`az cognitiveservices model list -l eastus2` — only 2025-04-14 is GA
+for gpt-4.1. This is a P0 fix blocking the Tuesday 2026-05-19 customer
+handoff.
+
+Pre-flight report: .squad/files/azd-up-preflight-2026-05-15.md
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

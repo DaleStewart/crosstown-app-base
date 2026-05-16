@@ -1,0 +1,22 @@
+
+Deploying services (azd deploy)
+
+  orchestrator: Packaging
+  orchestrator: Packaging (Building Docker image)
+  orchestrator: Packaging (Tagging container image)
+  orchestrator: Publishing
+  orchestrator: Publishing (Tagging container image) [1s]
+  orchestrator: Publishing (Logging into container registry) [1s]
+  orchestrator: Publishing (Pushing container image) [3s]
+  orchestrator: Deploying [6s]
+  orchestrator: Deploying (Updating container app revision) [6s]
+  orchestrator: Deploying (Waiting for container revision (15s)) [21s]
+  orchestrator: Deploying (Fetching endpoints for service) [27s]
+  orchestrator: Done [27s]
+- Endpoint: https://orchestrator.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/ 
+
+Aspire Dashboard: https://aspire-dashboard.ext.blackriver-0ab9be19.swedencentral.azurecontainerapps.io
+
+SUCCESS: Your application was deployed to Azure in 30 seconds.
+You can view the resources created under the resource group rg-crosstown-dryrun-may15 in Azure Portal:
+https://portal.azure.com/#@/resource/subscriptions/47156f11-2e05-4362-ac86-090b4b081b27/resourceGroups/rg-crosstown-dryrun-may15/overview

@@ -1,0 +1,122 @@
+2026-05-15T21:22:43.41194  Connecting to the container 'main'...
+2026-05-15T21:22:43.46576  Successfully Connected to container: 'main' [Revision: 'orchestrator--azd-1778880086', Replica: 'orchestrator--azd-1778880086-7ff4ccb844-cqbfb']
+2026-05-15T21:22:21.558390806Z   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 421, in run_asgi
+2026-05-15T21:22:21.558394939Z     result = await app(  # type: ignore[func-returns-value]
+2026-05-15T21:22:21.558398358Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-05-15T21:22:21.558401442Z   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 56, in __call__
+2026-05-15T21:22:21.558404525Z     return await self.app(scope, receive, send)
+2026-05-15T21:22:21.558420038Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-05-15T21:22:21.558422896Z   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1159, in __call__
+2026-05-15T21:22:21.558424894Z     await super().__call__(scope, receive, send)
+2026-05-15T21:22:21.558426964Z   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+2026-05-15T21:22:21.558429898Z     await self.middleware_stack(scope, receive, send)
+2026-05-15T21:22:21.558434477Z   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+2026-05-15T21:22:21.558436873Z     raise exc
+2026-05-15T21:22:21.558439028Z   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+2026-05-15T21:22:21.558442546Z     await self.app(scope, receive, _send)
+2026-05-15T21:22:21.558444878Z   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+2026-05-15T21:22:21.558447463Z     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+2026-05-15T21:22:21.558449940Z   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+2026-05-15T21:22:21.558452069Z     raise exc
+2026-05-15T21:22:21.558454382Z   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+2026-05-15T21:22:21.558456772Z     await app(scope, receive, sender)
+2026-05-15T21:22:21.558458762Z   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+2026-05-15T21:22:21.558461093Z     await self.app(scope, receive, send)
+2026-05-15T21:22:21.558463453Z   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+2026-05-15T21:22:21.558465657Z     await self.middleware_stack(scope, receive, send)
+2026-05-15T21:22:21.558468000Z   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+2026-05-15T21:22:21.558470377Z     await route.handle(scope, receive, send)
+2026-05-15T21:22:21.558472268Z   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+2026-05-15T21:22:21.558476813Z     await self.app(scope, receive, send)
+2026-05-15T21:22:21.558479101Z   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+2026-05-15T21:22:21.558481201Z     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+2026-05-15T21:22:21.558483198Z   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+2026-05-15T21:22:21.558485217Z     raise exc
+2026-05-15T21:22:21.558487188Z   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+2026-05-15T21:22:21.558489287Z     await app(scope, receive, sender)
+2026-05-15T21:22:21.558491197Z   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+2026-05-15T21:22:21.558493464Z     response = await f(request)
+2026-05-15T21:22:21.558495517Z                ^^^^^^^^^^^^^^^^
+2026-05-15T21:22:21.558497649Z   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+2026-05-15T21:22:21.558499544Z     raw_response = await run_endpoint_function(
+2026-05-15T21:22:21.558501770Z                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-05-15T21:22:21.558503564Z   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 328, in run_endpoint_function
+2026-05-15T21:22:21.558505566Z     return await dependant.call(**values)
+2026-05-15T21:22:21.558507815Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-05-15T21:22:21.558514733Z   File "/app/main.py", line 92, in api_turn
+2026-05-15T21:22:21.558517167Z     session = await provider.open_session(SYSTEM_PROMPT, tools.specs)
+2026-05-15T21:22:21.558519411Z               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-05-15T21:22:21.558521774Z   File "/app/voice/foundry_realtime.py", line 162, in open_session
+2026-05-15T21:22:21.558523822Z     ws = await websockets.connect(url, additional_headers=headers)
+2026-05-15T21:22:21.558525830Z          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-05-15T21:22:21.558527884Z   File "/usr/local/lib/python3.11/site-packages/websockets/asyncio/client.py", line 546, in __await_impl__
+2026-05-15T21:22:21.558530005Z     await self.connection.handshake(
+2026-05-15T21:22:21.558532195Z   File "/usr/local/lib/python3.11/site-packages/websockets/asyncio/client.py", line 115, in handshake
+2026-05-15T21:22:21.558534490Z     raise self.protocol.handshake_exc
+2026-05-15T21:22:21.558536613Z   File "/usr/local/lib/python3.11/site-packages/websockets/client.py", line 327, in parse
+2026-05-15T21:22:21.558538416Z     self.process_response(response)
+2026-05-15T21:22:21.558540496Z   File "/usr/local/lib/python3.11/site-packages/websockets/client.py", line 144, in process_response
+2026-05-15T21:22:21.558542884Z     raise InvalidStatus(response)
+2026-05-15T21:22:21.558545062Z websockets.exceptions.InvalidStatus: server rejected WebSocket connection: HTTP 404
+2026-05-15T21:22:22.327288320Z INFO:     100.100.0.19:40394 - "POST /api/turn HTTP/1.1" 500 Internal Server Error
+2026-05-15T21:22:22.328793507Z ERROR:    Exception in ASGI application
+2026-05-15T21:22:22.328806941Z Traceback (most recent call last):
+2026-05-15T21:22:22.328811290Z   File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 421, in run_asgi
+2026-05-15T21:22:22.328815140Z     result = await app(  # type: ignore[func-returns-value]
+2026-05-15T21:22:22.328818011Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-05-15T21:22:22.328821718Z   File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 56, in __call__
+2026-05-15T21:22:22.328824318Z     return await self.app(scope, receive, send)
+2026-05-15T21:22:22.328827640Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-05-15T21:22:22.328831830Z   File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1159, in __call__
+2026-05-15T21:22:22.328835334Z     await super().__call__(scope, receive, send)
+2026-05-15T21:22:22.328838506Z   File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
+2026-05-15T21:22:22.328841272Z     await self.middleware_stack(scope, receive, send)
+2026-05-15T21:22:22.328844288Z   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+2026-05-15T21:22:22.328861388Z     raise exc
+2026-05-15T21:22:22.328864383Z   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+2026-05-15T21:22:22.328867114Z     await self.app(scope, receive, _send)
+2026-05-15T21:22:22.328878541Z   File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+2026-05-15T21:22:22.328882384Z     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+2026-05-15T21:22:22.328885444Z   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+2026-05-15T21:22:22.328888085Z     raise exc
+2026-05-15T21:22:22.328891399Z   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+2026-05-15T21:22:22.328894055Z     await app(scope, receive, sender)
+2026-05-15T21:22:22.328908278Z   File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+2026-05-15T21:22:22.328910229Z     await self.app(scope, receive, send)
+2026-05-15T21:22:22.328912242Z   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
+2026-05-15T21:22:22.328914357Z     await self.middleware_stack(scope, receive, send)
+2026-05-15T21:22:22.328916500Z   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
+2026-05-15T21:22:22.328918788Z     await route.handle(scope, receive, send)
+2026-05-15T21:22:22.328920616Z   File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
+2026-05-15T21:22:22.328922610Z     await self.app(scope, receive, send)
+2026-05-15T21:22:22.328924516Z   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
+2026-05-15T21:22:22.328926577Z     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+2026-05-15T21:22:22.328928841Z   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+2026-05-15T21:22:22.328935810Z     raise exc
+2026-05-15T21:22:22.328937702Z   File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+2026-05-15T21:22:22.328939602Z     await app(scope, receive, sender)
+2026-05-15T21:22:22.328941643Z   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
+2026-05-15T21:22:22.328943976Z     response = await f(request)
+2026-05-15T21:22:22.328945906Z                ^^^^^^^^^^^^^^^^
+2026-05-15T21:22:22.328947884Z   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
+2026-05-15T21:22:22.328950138Z     raw_response = await run_endpoint_function(
+2026-05-15T21:22:22.328952012Z                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-05-15T21:22:22.328953925Z   File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 328, in run_endpoint_function
+2026-05-15T21:22:22.328955866Z     return await dependant.call(**values)
+2026-05-15T21:22:22.328957786Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-05-15T21:22:22.328959660Z   File "/app/main.py", line 92, in api_turn
+2026-05-15T21:22:22.328961734Z     session = await provider.open_session(SYSTEM_PROMPT, tools.specs)
+2026-05-15T21:22:22.328963597Z               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-05-15T21:22:22.328965449Z   File "/app/voice/foundry_realtime.py", line 162, in open_session
+2026-05-15T21:22:22.328967530Z     ws = await websockets.connect(url, additional_headers=headers)
+2026-05-15T21:22:22.328969441Z          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-05-15T21:22:22.328971263Z   File "/usr/local/lib/python3.11/site-packages/websockets/asyncio/client.py", line 546, in __await_impl__
+2026-05-15T21:22:22.328973324Z     await self.connection.handshake(
+2026-05-15T21:22:22.328975523Z   File "/usr/local/lib/python3.11/site-packages/websockets/asyncio/client.py", line 115, in handshake
+2026-05-15T21:22:22.328977523Z     raise self.protocol.handshake_exc
+2026-05-15T21:22:22.328979676Z   File "/usr/local/lib/python3.11/site-packages/websockets/client.py", line 327, in parse
+2026-05-15T21:22:22.328981727Z     self.process_response(response)
+2026-05-15T21:22:22.328984245Z   File "/usr/local/lib/python3.11/site-packages/websockets/client.py", line 144, in process_response
+2026-05-15T21:22:22.328986393Z     raise InvalidStatus(response)
+2026-05-15T21:22:22.329030707Z websockets.exceptions.InvalidStatus: server rejected WebSocket connection: HTTP 404
+2026-05-15T21:22:35.184011323Z INFO:     100.100.0.19:37736 - "GET / HTTP/1.1" 404 Not Found

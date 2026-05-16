@@ -383,6 +383,26 @@ Lab dry-run executes as Phase 0–4 per runbook at `.squad/files/lab-dry-run-run
 
 ---
 
+### D-022 · Bug #7 fixed; new Bug #8 surfaces — Phase 2.5 still blocked
+**Date:** 2026-05-15
+**Author:** Maximoff (Anomaly Hunter / Eval Gate)
+**Requested by:** Brady (segayle)
+**Status:** Inbox — needs Brady decision on Bug #8
+
+**Context:** Bug #7 (Foundry Realtime URL scheme regression introduced by D-009) shipped as PR #13, stacked on PR #12 (Bug #5b Dockerfile aiohttp). Single-line surgical fix in `apps/orchestrator/voice/foundry_realtime.py:155–163`: convert `https://` → `wss://` (and `http://` → `ws://`) on the Foundry endpoint before composing the realtime URL. Bearer auth, no `api-version`, and `?model=gpt-realtime-1.5` all preserved per D-009 GA contract.
+
+**Local gates (apps/orchestrator):** ruff clean, mypy --strict clean (19 files), pytest 11/11.
+
+**Deploy:** `azd deploy orchestrator` — 30 s, new revision active (`.squad/files/azd-deploy-orchestrator-bug7-fix.log`).
+
+**Live `/api/turn` smoke (all 3 tools):** Bug #7 confirmed fixed — `InvalidURI: scheme isn't ws or wss` no longer appears. WebSocket client now reaches Foundry, but **Foundry rejects the handshake with HTTP 404** (`websockets.exceptions.InvalidStatus`). Captured trace: `.squad/files/orchestrator-500-trace-after-wss-fix.log`.
+
+**Decision (one line):** Bug #7 shipped and verified at the URI layer; Phase 2.5 still 🟡 NOT live-ready, blocked on Bug #8 (WS handshake 404). Per failure-handling protocol, **stopped and escalated** rather than chase a 4th orchestrator fix without Brady's call. Candidate causes for Brady to rule on: wrong host (`azureml.ms` vs `openai.azure.com`), wrong path, deployment-name vs alias mismatch, or bearer scope mismatch (currently `cognitiveservices.azure.com/.default`).
+
+**Files:** PR #13, `.squad/files/azd-up-result-2026-05-15.md`, `.squad/files/orchestrator-500-trace-after-wss-fix.log`, `.squad/files/azd-deploy-orchestrator-bug7-fix.log`.
+
+---
+
 ## Guidelines
 
 - All meaningful changes require team consensus.

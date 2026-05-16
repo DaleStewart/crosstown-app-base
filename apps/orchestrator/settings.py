@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     voice_provider: str = "foundry_realtime"
 
     azure_ai_foundry_project_endpoint: str = ""
+    azure_openai_endpoint: str = ""
     azure_openai_chat_deployment: str = "gpt-4.1"
     azure_openai_realtime_deployment: str = "gpt-realtime-1.5"
 
