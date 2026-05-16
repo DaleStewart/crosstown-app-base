@@ -120,3 +120,48 @@ Re-ran all four CI gates on `apps/frontend` after D-014's note that the build fa
 **Branch / PR:** committed on `squad/fix-vite-config-defineConfig` (off origin/main), opened PR #3 in DevPost-Test-Hackathon/crosstown-app.
 
 **Final status — all four gates green:** lint ✅, typecheck ✅, test ✅ (6/6), build ✅.
+
+## 2026-05-16 — Mic button P0 fixed (Bug #13) (Parker)
+
+Sean reported UAT mic button dead. Diagnosed end-to-end and shipped PR #17.
+
+**🤖 Autopilot disclosure:** acted in autopilot for this task per the system prompt directive. No human gates between diagnosis and shipping.
+
+**Symptom:** Live UAT frontend rendered fine; clicking the mic button did nothing.
+
+**Diagnostic path:**
+1. Installed `@playwright/test` + chromium in `apps/frontend`, wrote `e2e/mic-button.spec.ts` to capture WS events, console errors, network failures against the live URL with `--use-fake-ui-for-media-stream` so `getUserMedia` doesn't gate the click.
+2. Pre-fix run (`.squad/files/playwright-mic-button-2026-05-16.log`): click handler fires, browser opens `wss://frontend.../ws/voice`, gets **HTTP 502** on the WS upgrade.
+3. Verified orchestrator is healthy: direct `websockets.connect` to `wss://orchestrator.blackriver-.../ws/voice` succeeds (`.squad/files/probe_ws.py`).
+4. Frontend container nginx error logs (`az containerapp logs show --name frontend`): `peer closed connection in SSL handshake (104: Connection reset by peer) while SSL handshaking to upstream, upstream: "https://100.100.244.199:443/ws/voice", host: "frontend.blackriver-..."`.
+
+**Root cause:** nginx's `proxy_pass https://...` to ACA was missing **SNI** (`proxy_ssl_server_name on;` + `proxy_ssl_name`) and was forwarding the wrong **Host header** (inbound `frontend.blackriver-...` instead of the orchestrator's hostname). ACA front door routes by SNI/Host and resets handshakes that lack them.
+
+**Fix shipped (`squad/fix-frontend-mic-button` → PR #17, stacked on `squad/fix-log-analyst-detect-pattern-400`):**
+- `apps/frontend/docker-entrypoint.sh` — derive `ORCHESTRATOR_HOST` from `ORCHESTRATOR_URL` (sed-strip scheme/path/port); export both for envsubst.
+- `apps/frontend/nginx.conf` — on both `/api/` and `/ws/`: add `proxy_set_header Host $ORCHESTRATOR_HOST;`, `proxy_ssl_server_name on;`, `proxy_ssl_name $ORCHESTRATOR_HOST;`. Existing WS `Upgrade`/`Connection` headers preserved.
+- Did **not** touch any React/TS code. `useVoiceSession`'s same-origin `wss://` URL construction is correct by design — the nginx hop is the intended data path. Frontend was innocent.
+
+**Build/lint/test (local):** lint ✅, typecheck ✅, build ✅ (1524 modules / 177.28 kB JS — bundle unchanged, config-only fix).
+
+**Deploy:** `azd deploy frontend` aborted with "Docker service not running" on the operator box. Fell back to Okoye's ACR-push fallback per Day-5 ops pattern:
+- `az acr build --registry crcrosstowndryrunmay15yycemmso7sk7q --image mta-ai-hackathon/frontend-crosstown-dryrun-may15:mic-fix-20260516094226 -f Dockerfile .` (build ran in ACR; CLI log streaming threw a Windows `cp1252` encoding error on the build's check-mark glyph but the build itself completed — image confirmed via `az acr repository show-tags`).
+- `az containerapp update --name frontend --image ...mic-fix-20260516094226` rolled revision `frontend--0000002` to 100% traffic, `healthState: Healthy`.
+
+**Post-deploy verification (Playwright re-run, `.squad/files/playwright-mic-button-postfix-2026-05-16.log`):**
+- `[opened] wss://frontend.../ws/voice` — no more 502
+- `[sent] {"type":"start","conversationId":null,"mode":"push_to_talk"}` — start frame went out
+- 14 follow-on binary PCM frames sent (fake media stream audio)
+- **0 WS errors, 0 closes, 0 network failures** in the 7 s observation window
+- Lingering cosmetic `404` on `/api/health` (orchestrator only serves `/health`, not `/api/health`) — pre-existing, unrelated.
+
+**Verdict:** Sean can UAT the push-to-talk button — it now opens a real WebSocket session to the orchestrator. Full voice loop (audio response back from Foundry Realtime) still depends on Bug #8 (orchestrator-side WS handshake 404), which remains with Brady; that's independent of this fix.
+
+**Followups:**
+- The `/api/health` 404 on every page load — frontend should either probe `/api/health` (and orchestrator add a route) or use `/health` directly. Cosmetic but visible in console. Not in scope for this P0.
+- Playwright `test:e2e` script added but **not** wired into default CI — it points at the live UAT URL by design (diagnostic). If we want it in CI it should target a hermetic dev server.
+
+## Learnings
+
+2026-05-16 — nginx → ACA HTTPS upstream **always** needs `proxy_ssl_server_name on;` + `proxy_ssl_name $host;` + `proxy_set_header Host $host;`. The default behavior (no SNI, inbound Host forwarded) silently produces 502s with the diagnostic `peer closed connection in SSL handshake` line in error logs. Worth baking into any future ACA-fronted nginx template.
+

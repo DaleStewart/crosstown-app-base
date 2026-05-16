@@ -1,0 +1,28 @@
+
+Running 2 tests using 1 worker
+
+MIC SELECTOR HIT: button[aria-label*="talk" i]
+
+=== CONSOLE ERRORS on load (1) ===
+  Failed to load resource: the server responded with a status of 502 ()
+  Γ£ô  1 e2e\mic-button.spec.ts:4:3 ΓÇ║ UAT ΓÇö mic button push-to-talk ΓÇ║ page loads with mic button visible (8.6s)
+[browser error] Failed to load resource: the server responded with a status of 502 ()
+[browser warning] The ScriptProcessorNode is deprecated. Use AudioWorkletNode instead. (https://bit.ly/audio-worklet)
+[ws opened] wss://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/ws/voice
+[ws error] Error during WebSocket handshake: Unexpected response code: 502
+[browser error] WebSocket connection to 'wss://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/ws/voice' failed: Error during WebSocket handshake: Unexpected response code: 502
+[ws closed] wss://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/ws/voice
+
+=== CONSOLE ERRORS (2) ===
+  Failed to load resource: the server responded with a status of 502 ()
+  WebSocket connection to 'wss://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/ws/voice' failed: Error during WebSocket handshake: Unexpected response code: 502
+
+=== WS EVENTS (3) ===
+  [opened] wss://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/ws/voice 
+  [error] wss://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/ws/voice :: Error during WebSocket handshake: Unexpected response code: 502
+  [closed] wss://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/ws/voice 
+
+=== NETWORK FAILURES (0) ===
+  Γ£ô  2 e2e\mic-button.spec.ts:36:3 ΓÇ║ UAT ΓÇö mic button push-to-talk ΓÇ║ clicking mic opens WebSocket to orchestrator (10.1s)
+
+  2 passed (19.9s)

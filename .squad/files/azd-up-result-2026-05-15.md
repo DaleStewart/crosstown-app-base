@@ -17,6 +17,47 @@
 | 5b | Orchestrator `aiohttp` also missing in Dockerfile | #12 | Banner | merged |
 | 6 | (rolled into above bookkeeping) | n/a | Banner | n/a |
 | **7** | **Foundry Realtime URL scheme `https://` → `wss://`** | **#13** | **Maximoff** | **merged-pending (stacked on #12)** |
+| **11** | **Frontend + log-analyst Hello World; nginx non-root crash (CRLF shebang + pid permission)** | — | **Okoye** | **✅ fixed 2026-05-15** |
+| **13** | **Frontend mic button dead — nginx → ACA HTTPS upstream missing SNI + Host header (P0, blocked UAT)** | **#17** | **Parker** | **✅ fixed 2026-05-16** |
+
+## Bug #11 — Frontend Hello World / nginx non-root crash (2026-05-15)
+
+**Root cause chain:**
+- `azd deploy` had only been scoped to `orchestrator` in prior cycles — frontend + log-analyst never had real images pushed.
+- Frontend container **crashed on startup** (two bugs):
+  1. **CRLF shebang** — `docker-entrypoint.sh` authored on Windows with CRLF. Alpine reads shebang as `#!/bin/sh\r` → `/bin/sh\r: not found`. Fixed: converted to LF; added `*.sh text eol=lf` to `.gitattributes`.
+  2. **nginx pid permission** — `nginx:1.27-alpine` default config places `pid /run/nginx.pid;` at line 6. Non-root `app` user cannot write `/run` at runtime. Fixed: `sed -i 's|^pid .*|pid /tmp/nginx.pid;|'` in Dockerfile `RUN` layer.
+- ACA serves Hello World placeholder when the primary revision fails health checks.
+
+**Fix (commit 942b3b0 — `squad/fix-log-analyst-detect-pattern-400`):**
+- `apps/frontend/docker-entrypoint.sh` — CRLF → LF
+- `apps/frontend/Dockerfile` — `sed` pid rewrite; `/run` added to chown
+- `.gitattributes` — `*.sh text eol=lf`
+
+**Deploys completed (2026-05-15 ~22:36 UTC):**
+- `frontend` — revision `frontend--azd-1778884551` ✅ Healthy, 100% traffic
+- `log-analyst` — revision `log-analyst--azd-1778884163` ✅ Healthy, 100% traffic
+
+**Frontend verification:**
+```
+URL: https://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io
+HTTP 200 | Content-Length: 423
+Title: "MTA Hackathon — Voice Demo"
+🟢 Real Vite/React app — NOT Hello World
+```
+
+**Forensics — log-analyst "39 citations" mystery:**
+- `az containerapp revision list -n log-analyst` shows only ONE revision ever (`log-analyst--azd-1778884163`).
+- Conclusion: log-analyst was never previously deployed. The detect_pattern 400 is the pre-existing bug in log-analyst handler code (Bug #16 / PR being worked on this branch), not a startup crash.
+
+## /api/turn re-smoke after Bug #11 deploys (2026-05-15 ~22:37 UTC)
+
+```
+=== search_logs ===    Citations: 10 | Tool calls: 1 | Warnings: NONE | Text: 411 chars  ✅
+=== detect_pattern === Citations: 0  | Tool calls: 2 | Warnings: 400 Bad Request (pre-existing bug PR#16)  ⚠️
+=== summarize_incident === Citations: 2 | Tool calls: 1 | Warnings: NONE | Text: 397 chars  ✅
+```
+✅ No regression from log-analyst redeploy.
 
 ## Bug #9 — Realtime Tool Dispatch (this cycle — PR #15)
 
@@ -262,3 +303,63 @@ Eval gate cannot run live until this clears. Hermetic gates remain GREEN
 🟡 **PARTIAL** — Bug #7 shipped and verified at the websockets-client layer.
 Phase 2.5 gate is **NOT yet live-ready**; Bug #8 escalated to Brady before
 attempting a 4th orchestrator fix (per failure-handling rules).
+
+---
+
+## Bug #13 — Mic button dead on live UAT (2026-05-16, Parker)
+
+**Discovered by:** Sean, opening the live UAT URL. UI renders, mic button
+visible, click does nothing.
+
+**Diagnostic (Playwright, `apps/frontend/e2e/mic-button.spec.ts`):**
+
+- Mic button handler fires correctly. `useVoiceSession.connect()` opens
+  `wss://frontend.blackriver-.../ws/voice`.
+- Browser receives **HTTP 502** on the WS upgrade and on every `/api/*`
+  XHR (pre-fix Playwright log: `.squad/files/playwright-mic-button-2026-05-16.log`).
+- Direct WSS to `wss://orchestrator.blackriver-.../ws/voice` succeeds
+  (`.squad/files/probe_ws.py`). Orchestrator + its ACA ingress healthy.
+- Frontend container nginx logs:
+
+  ```
+  [error] peer closed connection in SSL handshake (104: Connection reset
+  by peer) while SSL handshaking to upstream, ...
+  upstream: "https://100.100.244.199:443/ws/voice",
+  host: "frontend.blackriver-0ab9be19...."
+  ```
+
+**Root cause:** the frontend container's nginx reverse-proxy was missing
+two things on its HTTPS upstream config: (1) TLS SNI (`proxy_ssl_server_name on;`
++ `proxy_ssl_name`), and (2) an upstream `Host` header. Azure Container
+Apps' front door routes by SNI and resets handshakes that lack it.
+
+**Fix (`squad/fix-frontend-mic-button` → PR #17, stacked on the #16 stack):**
+
+- `apps/frontend/docker-entrypoint.sh` — derive `ORCHESTRATOR_HOST` (bare
+  hostname) from `ORCHESTRATOR_URL`; export both for envsubst.
+- `apps/frontend/nginx.conf` — on `/api/` and `/ws/`:
+  - `proxy_set_header Host $ORCHESTRATOR_HOST;`
+  - `proxy_ssl_server_name on;` + `proxy_ssl_name $ORCHESTRATOR_HOST;`
+  - WS upgrade headers retained.
+- Diagnostic spec preserved at `apps/frontend/e2e/mic-button.spec.ts`
+  (gated on `npm run test:e2e`; not added to default CI).
+
+**Deploy:** azd flaked on missing Docker daemon → fell back to Okoye's
+ACR-push pattern. `az acr build` produced
+`crcrosstowndryrunmay15yycemmso7sk7q.azurecr.io/mta-ai-hackathon/frontend-crosstown-dryrun-may15:mic-fix-20260516094226`;
+`az containerapp update` rolled revision `frontend--0000002` to 100%
+traffic, Healthy.
+
+**Post-deploy verification (Playwright re-run, `.squad/files/playwright-mic-button-postfix-2026-05-16.log`):**
+
+- ✅ WS `opened` on `wss://frontend.../ws/voice` — no 502
+- ✅ `start` frame sent: `{"type":"start","conversationId":null,"mode":"push_to_talk"}`
+- ✅ 14 follow-on binary audio frames sent (fake media stream PCM)
+- ✅ 0 WS errors, 0 WS closes, 0 network failures during the 7 s window
+- ⚠️ One unrelated `404` on `/api/health` (cosmetic — orchestrator exposes
+  `/health` not `/api/health`; not blocking)
+
+**Verdict:** 🟢 Sean can re-open the live UAT URL and the mic button now
+opens a real WS session to the orchestrator. Full voice-loop verification
+(audio response back) still requires Bug #8 (Foundry Realtime handshake)
+to clear upstream — that escalation remains with Brady.

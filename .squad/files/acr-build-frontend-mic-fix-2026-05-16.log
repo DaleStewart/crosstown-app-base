@@ -1,0 +1,97 @@
+WARNING: Packing source code into tar to upload...
+WARNING: Excluding '.gitignore' based on default ignore rules
+WARNING: Uploading archived source code from 'C:\Users\segayle\AppData\Local\Temp\build_archive_2e0bca0ffbb74a3ca4db45c9758ca404.tar.gz'...
+WARNING: Sending context (98.111 KiB) to registry: crcrosstowndryrunmay15yycemmso7sk7q...
+WARNING: Queued a build with ID: dt1
+WARNING: Waiting for an agent...
+2026/05/16 13:42:34 Downloading source code...
+
+2026/05/16 13:42:35 Finished downloading source code
+
+2026/05/16 13:42:35 Using acb_vol_5d9d48ad-65ff-49f2-b1ba-31f3dbbeda01 as the home volume
+2026/05/16 13:42:35 Setting up Docker configuration...
+2026/05/16 13:42:36 Successfully set up Docker configuration
+2026/05/16 13:42:36 Logging in to registry: crcrosstowndryrunmay15yycemmso7sk7q.azurecr.io
+2026/05/16 13:42:36 Successfully logged into crcrosstowndryrunmay15yycemmso7sk7q.azurecr.io
+2026/05/16 13:42:36 Executing step ID: build. Timeout(sec): 28800, Working directory: '', Network: ''
+2026/05/16 13:42:36 Scanning for dependencies...
+2026/05/16 13:42:37 Successfully scanned dependencies
+2026/05/16 13:42:37 Launching container with name: build
+
+Sending build context to Docker daemon  376.3kB
+
+
+Step 1/15 : FROM node:20-alpine AS builder
+20-alpine: Pulling from library/node
+6a0ac1617861: Pulling fs layer
+4feea04c1543: Pulling fs layer
+b2cbbfe903b0: Pulling fs layer
+fff4e2c1b189: Pulling fs layer
+fff4e2c1b189: Waiting
+b2cbbfe903b0: Verifying Checksum
+b2cbbfe903b0: Download complete
+
+6a0ac1617861: Verifying Checksum
+6a0ac1617861: Download complete
+6a0ac1617861: Pull complete
+4feea04c1543: Verifying Checksum
+4feea04c1543: Download complete
+fff4e2c1b189: Verifying Checksum
+fff4e2c1b189: Download complete
+4feea04c1543: Pull complete
+b2cbbfe903b0: Pull complete
+
+fff4e2c1b189: Pull complete
+Digest: sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+Status: Downloaded newer image for node:20-alpine
+ ---> 11cedc39e663
+Step 2/15 : WORKDIR /app
+ ---> Running in d04a8cb7dd54
+Removing intermediate container d04a8cb7dd54
+ ---> 4d27620211a0
+Step 3/15 : COPY package.json package-lock.json* ./
+ ---> 6c8c0648bdc8
+Step 4/15 : RUN npm install --no-audit --no-fund
+ ---> Running in 9fae136ef0d5
+npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+
+
+added 362 packages in 7s
+
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.14.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.14.1
+npm notice To update run: npm install -g npm@11.14.1
+npm notice
+Removing intermediate container 9fae136ef0d5
+ ---> b17ae59d52ce
+Step 5/15 : COPY . .
+
+ ---> cef903cad449
+Step 6/15 : RUN npm run build
+ ---> Running in 4eb462f28ead
+
+> mta-frontend@0.1.0 build
+> tsc -b && vite build
+
+vite v5.4.21 building for production...
+
+ERROR: The command failed with an unexpected error. Here is the traceback:
+ERROR: 'charmap' codec can't encode character '\u2713' in position 17: character maps to <undefined>
+Traceback (most recent call last):
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\knack/cli.py", line 233, in invoke
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/__init__.py", line 666, in execute
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/__init__.py", line 734, in _run_jobs_serially
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/__init__.py", line 703, in _run_job
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/__init__.py", line 336, in __call__
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/core/commands/command_operation.py", line 120, in handler
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/command_modules/acr/build.py", line 149, in acr_build
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/command_modules/acr/_stream_utils.py", line 56, in stream_logs
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\azure/cli/command_modules/acr/_stream_utils.py", line 126, in _stream_logs
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\colorama/ansitowin32.py", line 47, in write
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\colorama/ansitowin32.py", line 177, in write
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\colorama/ansitowin32.py", line 205, in write_and_convert
+  File "D:\a\_work\1\s\build_scripts\windows\artifacts\cli\Lib\site-packages\colorama/ansitowin32.py", line 210, in write_plain_text
+  File "encodings\cp1252.py", line 19, in encode
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2713' in position 17: character maps to <undefined>
+To check existing issues, please visit: https://github.com/Azure/azure-cli/issues

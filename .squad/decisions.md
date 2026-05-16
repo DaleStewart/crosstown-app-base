@@ -403,6 +403,35 @@ Lab dry-run executes as Phase 0–4 per runbook at `.squad/files/lab-dry-run-run
 
 ---
 
+### D-028 · Bug #13 fixed — Mic button alive on UAT (nginx SNI + Host)
+**Date:** 2026-05-16
+**Author:** Parker (Frontend) — requested by Sean (NOT Brady)
+**Status:** Shipped (PR #17 open, deployed via ACR-push fallback)
+
+**Discovery:** Sean opened the live UAT frontend (`https://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io`), UI rendered, mic button visible — clicking it did nothing. P0 against Phase 2.5.
+
+**Diagnosis (Playwright + nginx logs):** Click handler fires; `useVoiceSession.connect()` opens `wss://frontend.blackriver-.../ws/voice`. Frontend container's nginx proxies to `https://orchestrator.blackriver-...` and returns **HTTP 502** for `/ws/voice` and `/api/*`. Container logs: `peer closed connection in SSL handshake (104: Connection reset by peer) while SSL handshaking to upstream, upstream: https://100.100.244.199:443/...`. Direct WSS to `wss://orchestrator.blackriver-.../ws/voice` works (verified via `websockets.connect`). So orchestrator + its ingress are healthy — the bug was purely in the frontend's nginx reverse-proxy config.
+
+**Root cause:** nginx was opening TLS to the upstream IP with **no SNI** and was forwarding the inbound `Host: frontend.blackriver-...` to the orchestrator. ACA's front door requires (a) SNI on the upstream TLS ClientHello and (b) a matching `Host` header to route to the right app; without either, it resets the handshake.
+
+**Fix (1 commit, ~25 LOC, config only):**
+- `apps/frontend/docker-entrypoint.sh` — derive `ORCHESTRATOR_HOST` (bare hostname, no scheme/path/port) from `ORCHESTRATOR_URL`; export both for envsubst.
+- `apps/frontend/nginx.conf` — on `/api/` and `/ws/`: `proxy_set_header Host $ORCHESTRATOR_HOST;`, `proxy_ssl_server_name on;`, `proxy_ssl_name $ORCHESTRATOR_HOST;`. Existing WS `Upgrade`/`Connection` headers preserved.
+- Diagnostic Playwright spec landed at `apps/frontend/e2e/mic-button.spec.ts` (+ `playwright.config.ts`, `@playwright/test` devDep, `test:e2e` script). Captures WS frames, console errors, network failures against the live URL. Reusable for any future "mic dead" UAT smoke.
+- No React/JS changes — `useVoiceSession`'s same-origin `wss://` URL is correct by design; nginx is the intended data-path hop.
+
+**Local gates:** `npm run lint` ✅, `npm run typecheck` ✅, `npm run build` ✅ (1524 modules / 177.28 kB JS — bundle unchanged, config-only fix).
+
+**Deploy:** `azd deploy frontend` flaked (Docker daemon not running on operator box); fell back to Okoye's ACR-push pattern: `az acr build` → image `crcrosstowndryrunmay15yycemmso7sk7q.azurecr.io/mta-ai-hackathon/frontend-crosstown-dryrun-may15:mic-fix-20260516094226`; `az containerapp update` rolled `frontend--0000002` to 100% traffic, Healthy.
+
+**Post-deploy verification (Playwright re-run, `.squad/files/playwright-mic-button-postfix-2026-05-16.log`):** WS opens, `start` frame sent, 14 binary PCM audio frames sent, **0 WS errors, 0 closes, 0 network failures** in the 7 s window. One cosmetic 404 on `/api/health` (orchestrator only exposes `/health`, not `/api/health`) — unrelated, not blocking.
+
+**Decision (one line):** Mic button is alive — Sean can UAT push-to-talk against the live frontend. Full voice loop (audio response back) is still gated on Bug #8 (Foundry Realtime WS handshake 404), which remains with Brady; that's an orchestrator-side issue independent of this fix.
+
+**Files:** PR #17 (https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/17), `apps/frontend/nginx.conf`, `apps/frontend/docker-entrypoint.sh`, `apps/frontend/e2e/mic-button.spec.ts`, `apps/frontend/playwright.config.ts`, `.squad/files/playwright-mic-button-2026-05-16.log` (pre-fix), `.squad/files/playwright-mic-button-postfix-2026-05-16.log` (post-fix), `.squad/files/azd-deploy-frontend-mic-fix-2026-05-16.log`, `.squad/files/acr-build-frontend-mic-fix-2026-05-16.log`, `.squad/files/azd-up-result-2026-05-15.md` (Bug #13 row + section).
+
+---
+
 ## Guidelines
 
 - All meaningful changes require team consensus.

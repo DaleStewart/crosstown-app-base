@@ -1,0 +1,9 @@
+
+ERROR: required external tools are missing:
+ - error checking for external tool Docker: the docker service is not running, please start it: exit code: 1, stdout: , stderr: failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; check if the path is correct and if the daemon is running: open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.
+
+
+Suggestion: Services [frontend] can build on Azure instead of locally.
+Set 'remoteBuild: true' under the 'docker:' section for each service in azure.yaml,
+or start your container runtime (Docker/Podman).
+

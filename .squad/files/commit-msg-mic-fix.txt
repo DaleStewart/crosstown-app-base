@@ -1,0 +1,66 @@
+fix(frontend): set upstream SNI + Host header so nginx can reach orchestrator over HTTPS
+
+## Root cause (P0 — blocks UAT mic button)
+
+The mic-button click handler IS firing correctly. The frontend opens a
+WebSocket to `wss://frontend.blackriver-.../ws/voice`, which nginx in
+the frontend container is supposed to reverse-proxy to the orchestrator
+ACA app at `https://orchestrator.blackriver-...`.
+
+That proxy was returning **HTTP 502** for every `/ws/voice` and `/api/*`
+request. Frontend container logs showed:
+
+    [error] peer closed connection in SSL handshake (104: Connection
+    reset by peer) while SSL handshaking to upstream, ...
+    upstream: "https://100.100.244.199:443/ws/voice",
+    host: "frontend.blackriver-0ab9be19...."
+
+Two missing pieces:
+
+1. **No SNI** — nginx was opening TLS to the upstream IP without
+   `proxy_ssl_server_name on;`, so the ClientHello had no SNI. Azure
+   Container Apps' front door routes by SNI and resets handshakes that
+   don't carry it.
+2. **Wrong Host header** — the proxied request kept the inbound Host
+   (`frontend.blackriver-...`), which would not have matched the
+   orchestrator's ingress even if the TLS handshake had succeeded.
+
+Direct WSS to `orchestrator.blackriver-...` works fine (verified with
+`websockets.connect` from the operator box), so the orchestrator and
+its ingress are healthy — the bug was purely in the frontend's nginx
+config.
+
+## Fix
+
+- `docker-entrypoint.sh` — derive `ORCHESTRATOR_HOST` (bare hostname,
+  no scheme/path/port) from `ORCHESTRATOR_URL` and export it for
+  envsubst.
+- `nginx.conf` — on both `/api/` and `/ws/` location blocks, add:
+    proxy_set_header Host        ${ORCHESTRATOR_HOST};
+    proxy_ssl_server_name on;
+    proxy_ssl_name              ${ORCHESTRATOR_HOST};
+    proxy_http_version 1.1;  (also on /api/)
+  WS upgrade headers (`Upgrade`/`Connection`) were already correct and
+  are preserved.
+
+No frontend JS / React changes — `useVoiceSession` correctly builds
+`wss://<same-origin>/ws/voice` and the nginx reverse-proxy was always
+the intended hop. The bug was server-side config, not client code.
+
+## Verification
+
+- `npm run lint` ✅
+- `npm run typecheck` ✅
+- `npm run build` ✅ (1524 modules, 177.28 kB JS, 2.77s — bundle
+  unchanged since this is config-only)
+- New Playwright spec `e2e/mic-button.spec.ts` captures WS events +
+  console errors against the live UAT URL. Pre-fix run: 502 handshake
+  failure logged. Will re-run post-deploy.
+
+## Discovered
+
+During UAT smoke today (2026-05-16). Sean opened the live frontend,
+clicked the mic button, nothing happened. Diagnostic Playwright +
+container-log review pinpointed the nginx-to-ACA SSL handshake failure.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
