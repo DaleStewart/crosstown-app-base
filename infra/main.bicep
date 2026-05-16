@@ -45,9 +45,10 @@ var caEnvName          = '${abbrs.appManagedEnvironments}-${environmentName}-${r
 var foundryStorageName = take('${abbrs.storageStorageAccounts}${replace(environmentName, '-', '')}${resourceToken}', 24)
 // AOAI Cognitive Services account: 2–64 chars
 var aoaiName           = take('${abbrs.cognitiveServicesAccounts}-oai-${environmentName}-${resourceToken}', 64)
-// ML workspace names: up to 260 chars
-var foundryHubName     = '${abbrs.machineLearningServicesWorkspaces}-hub-${environmentName}-${resourceToken}'
-var foundryProjectName = '${abbrs.machineLearningServicesWorkspaces}-proj-${environmentName}-${resourceToken}'
+// AI Foundry Hub & Project workspaces (kind=Hub|Project): regex ^[a-zA-Z0-9][a-zA-Z0-9_-]{2,32}$ (33-char max).
+// Wrap with take(..., 32) for 1-char safety margin; envName + resourceToken still combine for uniqueness.
+var foundryHubName     = take('${abbrs.machineLearningServicesWorkspaces}-hub-${environmentName}-${resourceToken}', 32)
+var foundryProjectName = take('${abbrs.machineLearningServicesWorkspaces}-proj-${environmentName}-${resourceToken}', 32)
 // Search: 2–60 chars
 var searchName         = take('${abbrs.searchSearchServices}-${environmentName}-${resourceToken}', 60)
 // Cosmos: 3–44 chars, lowercase
