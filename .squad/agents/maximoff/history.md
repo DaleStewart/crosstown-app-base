@@ -98,3 +98,5 @@ The "leave gpt-4o-realtime-preview alone" instruction from D-006 has been **deli
 Identical to D-014 baseline. Realtime model swap (D-009) and spec-kit adoption (D-011) confirmed regression-free on `main`. No status change since last run -> no inbox decision draft required.
 
 **Team update (18:11Z):** Re-verify pass complete; PR #3 shipped from Parker for vite.config.ts.
+
+## 2026-05-15 — Lab dry-run runbook delivered; P0 gpt-4.1 version pin shipped as PR #5; awaiting tenant login + PR merge for azd up

@@ -347,6 +347,42 @@ D-014 identified a pre-existing TypeScript error in `apps/frontend/vite.config.t
 
 ---
 
+### D-016 · gpt-4.1 version pin corrected; `azd up` unblocked
+**Date:** 2026-05-15
+**Author:** Okoye (Operations)
+**Status:** PR open, awaiting merge
+
+Shipped P0 one-line fix on branch `squad/fix-foundry-gpt41-version` (commit `96e42d435da1ce85864cd281b2090ea4400d7177`) correcting `infra/modules/foundry.bicep` gpt-4.1 from `version: '2024-11-20'` → `'2025-04-14'`. Opened **PR #5** (https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/5) labeled P0/blocker.
+
+**Decision (one line):** Merging this clears the only repo-state blocker between Brady and a clean `azd up` against sub `47156f11-2e05-4362-ac86-090b4b081b27` in region `eastus2` for the Tuesday 2026-05-19 customer dry-run (env `crosstown-dryrun-may15`). Bicep compiles clean (exit 0); no other model version pins in `infra/` are stale.
+
+---
+
+### D-017 · azd up Pre-Flight (2026-05-15)
+**Date:** 2026-05-15
+**Author:** Okoye (Operations)
+**Status:** NO-GO pending PR #5 merge + sub-scoped re-verify
+
+Provision in **region `eastus2`**, **azd env `crosstown-dryrun-may15`**, bound to **subscription `47156f11-2e05-4362-ac86-090b4b081b27`** in **tenant `9b7cbd77-6d6b-4879-8aba-63d7dfb18472`** — but `azd up` is **blocked until** (a) PR #5 is merged (gpt-4.1 `version` corrected from `2024-11-20` → `2025-04-14`), and (b) Monday-morning §10 quota + provider checks are re-run against the target sub (current recon was on a different sandbox and could not access `47156f11-...`).
+
+**Full report:** `.squad/files/azd-up-preflight-2026-05-15.md`
+
+**Decision (one line):** All infrastructure checks passed in pre-flight; only data-plane blockers (model version + sub quota recon) remain before Brady can execute `azd up` for the Tuesday 2026-05-19 dry-run.
+
+---
+
+### D-018 · Lab Dry-Run Plan (Customer Handoff — Tuesday 2026-05-19)
+**Date:** 2026-05-15
+**Author:** Stark (Architect)
+**Requested by:** Brady (segayle)
+**Status:** Adopted
+
+Lab dry-run executes as Phase 0–4 per runbook at `.squad/files/lab-dry-run-runbook.md`. Includes Phase 2.5 (live eval/test gates), customer-handoff acceptance checklist, and P0 rule: any exercise with unreachable failing tests is fixed before Tuesday.
+
+**Decision (one line):** Full lab dry-run runbook delivered; all 11 identified risks catalogued; customer handoff checklist ready. Brady to merge PR #5, re-login to tenant `9b7cbd77-...` with sub-scoped access, then execute `azd up` for Phase 0 deployment.
+
+---
+
 ## Guidelines
 
 - All meaningful changes require team consensus.

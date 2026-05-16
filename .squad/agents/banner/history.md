@@ -100,3 +100,5 @@
 - Add tests for the Copilot track criterion IDs (`design`, `actions`, `branding`) — currently only the Azure track is covered in `judge.spec.js`.
 - Consider parameterizing `baseURL` via env var so CI can point at a deployed SWA preview.
 - A real Cosmos integration smoke (separate project, opt-in) would catch contract drift between frontend assumptions and the Functions implementations in `apps/judging/api/`.
+
+## 2026-05-15 — Lab dry-run runbook delivered; P0 gpt-4.1 version pin shipped as PR #5; awaiting tenant login + PR merge for azd up

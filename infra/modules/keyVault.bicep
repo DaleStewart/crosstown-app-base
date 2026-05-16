@@ -27,8 +27,7 @@ resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 7
-    // Purge protection disabled for hackathon convenience (easy cleanup)
-    enablePurgeProtection: false
+    // purgeProtection: omitted to honor tenant Azure Policy (some tenants enforce purgeProtection=true; Azure defaults are safe).
     publicNetworkAccess: 'Enabled'
   }
 }

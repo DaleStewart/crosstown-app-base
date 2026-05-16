@@ -167,3 +167,90 @@ Inbox file `.squad/decisions/inbox/okoye-org-import-success.md` merged and delet
 - Token hygiene directive (user revoke PATs)
 
 Orchestration log and session log written. Identity state refreshed (focus_area → PR-pending). Cross-agent updates complete. Ready for commit + push.
+
+## 2026-05-15 — azd up pre-flight reconnaissance (no deploy)
+
+**Scope:** Read-only validation ahead of Brady's Tuesday 2026-05-19 customer dry-run. Report at `.squad/files/azd-up-preflight-2026-05-15.md`.
+
+**Findings:**
+1. **Subscription confirmed:** `ME-MngEnvMCAP651545-segayle-1` (sandbox/MCAPS) — correct target.
+2. **Bicep compiles clean** (`az bicep build` exit 0).
+3. **Region recommendation: `eastus2`.** Live model-catalog check showed gpt-4.1 (v2025-04-14) + gpt-realtime-1.5 (v2026-02-23) both GA there. swedencentral is a viable EU fallback; westus3/eastus do NOT carry gpt-realtime-1.5 yet. Cross-region split is moot — `main.bicep` exposes a single `location` param.
+4. **Quota all green in eastus2:** gpt-realtime-1.5 = 0/10 (exactly fits bicep ask of 10), gpt-4.1 Standard = 30/1000, vCPUs 0/100. No quota increase needed.
+5. **Providers:** 4 mid-registration (Search, OperationalInsights, MachineLearningServices, DBforPostgreSQL). Kicked off Postgres registration during this run. All auto-complete < 15 min.
+6. **azd env name recommendation:** `crosstown-dryrun-may15` (keeps customer Tuesday env namespace clean). `azd env list` empty — no conflicts.
+7. **Idle cost:** ~$3.40/day, dominated by AI Search Basic + Postgres B1ms. 4-day window ≈ $15-25.
+
+**🛑 P0 BLOCKER FOUND:** `infra/modules/foundry.bicep` line 77 pins gpt-4.1 to `version: '2024-11-20'` — that version does NOT exist in the catalog. The only available gpt-4.1 version is `2025-04-14`. `azd up` will fail at the model-deployment step until this is corrected. 5-minute edit; needs PR + merge before Monday.
+
+**Verdict:** NO-GO until the gpt-4.1 version pin is fixed. After fix → GO with eastus2 + `crosstown-dryrun-may15`.
+
+**Learnings:**
+1. **Always live-verify model version pins against `az cognitiveservices model list`** before declaring a Bicep "GA-ready". The gpt-realtime-1.5 version was correct (2026-02-23); the gpt-4.1 version had drifted (looks like a stale gpt-4o copy-paste). Adding this to the pre-deploy checklist.
+2. **The model-catalog API is the source of truth, not docs.** MS Learn pages lag; the live `az cognitiveservices model list -l <region>` shows real-time availability + lifecycle + deprecation dates.
+3. **Quota for gpt-realtime-1.5 = 10 is a hard ceiling at sandbox tier.** Bicep asks exactly 10; any future capacity bump will require a quota-increase ticket. Document this constraint.
+
+## 2026-05-15 — azd up pre-flight: target sub/tenant locked, auth gap flagged
+
+**Update to earlier 2026-05-15 entry.** Brady provided the actual target identity for the Tuesday dry-run:
+- **Sub:** `47156f11-2e05-4362-ac86-090b4b081b27`
+- **Tenant:** `9b7cbd77-6d6b-4879-8aba-63d7dfb18472`
+
+**Auth gap:** Current CLI session is logged in as `admin@MngEnvMCAP651545.onmicrosoft.com` on tenant `999097f4-...`. `az account set --subscription 47156f11-...` returns *"doesn't exist in cloud 'AzureCloud'"* — the target sub lives behind a different Entra tenant that this CLI session has no token for. Cannot run az commands against the target sub from this shell.
+
+**What I did instead:**
+1. Locked the target sub + tenant + region (`eastus2`) + env name (`crosstown-dryrun-may15`) into the report and inbox decision so the four bind together at provision time with zero ambiguity.
+2. Marked every recon finding as either **portable** (Bicep state, model catalog availability, P0 version-pin bug) or **sub-scoped** (quota numbers, provider registration state) so Brady knows exactly what to re-verify Monday.
+3. Wrote a §10 PowerShell re-verify block in the report — five steps Brady runs against `47156f11-...` after `az login --tenant 9b7cbd77-...`.
+
+**Findings unchanged from earlier recon:**
+- ✅ Bicep compiles clean.
+- ✅ Region: `eastus2` (catalog confirms gpt-4.1 + gpt-realtime-1.5 v2026-02-23 both GA there; westus3 + eastus do NOT carry gpt-realtime-1.5 yet).
+- 🛑 **P0 blocker still applies:** `infra/modules/foundry.bicep:77` pins gpt-4.1 to `version: '2024-11-20'` — that version does not exist. Must be `'2025-04-14'`. Repo state — sub-independent.
+- ⚠️ gpt-realtime-1.5 default quota observed at 10 on recon sandbox; Bicep asks 10. Zero headroom. **Single most important sub-scoped value to re-verify Monday AM.**
+- Idle cost: ~$3.40/day, dominated by AI Search Basic + Postgres B1ms.
+
+**Verdict: NO-GO** until (a) Bicep gpt-4.1 version fix lands and (b) §10 sub-scoped re-verify passes. After both → GO with eastus2 + `crosstown-dryrun-may15` + sub `47156f11-...`.
+
+**Learnings:**
+1. **Always confirm the auth context matches the target sub BEFORE running recon.** `az account list` + `az account show` should be step 0 of any pre-flight. Wasted ~5 min running quota commands against a sandbox that wasn't the target.
+2. **Cross-tenant subscriptions are invisible until you `az login --tenant <id>`.** `az account set --subscription <id>` silently fails (well, with a generic "doesn't exist" message) when the token isn't for that tenant. Document this footgun for the team.
+3. **Lock sub + tenant + region + env name as a tuple in the decision record.** Anyone running `azd up` tomorrow should see those four values together with no possibility of mismatch. Did this in §6 + §10 of the report and in the inbox decision.
+4. **Separate findings by portability when you can't fully verify.** Bicep + model-catalog findings are sub-agnostic; quota + provider-registration state is per-subscription. Splitting the report this way kept it useful despite the auth gap rather than throwing the whole thing out.
+
+## 2026-05-15 — P0 fix shipped: gpt-4.1 version pin → PR #5
+
+**Scope shipped:**
+- Branch: `squad/fix-foundry-gpt41-version` (off `main` @ `2946e27`)
+- Commit SHA: `96e42d435da1ce85864cd281b2090ea4400d7177`
+- File: `infra/modules/foundry.bicep` — one-line change, `version: '2024-11-20'` → `'2025-04-14'`
+- PR: **#5** https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/5
+- Title: `fix(infra): gpt-4.1 model version to 2025-04-14 (P0 — blocks azd up)`
+
+**Pre-merge verification:**
+- `az bicep build --file infra/main.bicep --stdout > $null` → exit 0 ✅
+- Diff isolated to a single line — no collateral changes
+- Explicit `git add -- infra/modules/foundry.bicep` (only)
+
+**Scope discipline (other version pins scanned, NOT touched in this PR):**
+| Location | Pin | Status |
+|---|---|---|
+| `foundry.bicep:93` gpt-realtime-1.5 | `'2026-02-23'` | ✅ Verified correct (D-009 + live catalog) |
+| `postgres.bicep:27` Postgres engine | `version: '16'` | ✅ Engine version, not a model pin |
+| All other `2024-XX` strings in `infra/` | ARM API versions (`@2024-03-01` etc.) | ✅ Not model pins |
+
+Only one model version pin in `infra/` was incorrect; this PR fixes it. No other Cognitive Services SKU/version anomalies found.
+
+**Branching mechanics gotcha (worth remembering):**
+- Started on `squad/scribe-reverify-2026-05-15` with uncommitted scribe-owned changes to `.squad/agents/okoye/history.md` + `.squad/agents/stark/history.md`.
+- First `git checkout main` failed (uncommitted changes would be overwritten), but the subsequent `git checkout -b squad/fix-foundry-gpt41-version` succeeded and branched off the WRONG base (the scribe branch, not main).
+- Fix: deleted the wrong branch, `git stash push -- <paths>` the modified history files, `git checkout main` (clean), `git pull --ff-only` to fast-forward 12 commits, then `git checkout -b squad/fix-foundry-gpt41-version` (correctly off updated main @ `2946e27`), then `git stash pop` after PR creation to restore the history WIP.
+- **Lesson:** Always verify the new branch's parent commit with `git log --oneline -3` immediately after `checkout -b`. Don't assume `-b` branches off where you expected if the prior `checkout` failed.
+
+**Token / repo hygiene:**
+- HTTPS remote + `gh` auth (per D-013 pattern). Push and `gh pr create` both clean on first attempt.
+- PR body references the pre-flight report at `.squad/files/azd-up-preflight-2026-05-15.md` for full provenance.
+
+**Status:** P0 cleared as soon as #5 merges. Next dependency for GO verdict on `azd up`: §10 sub-scoped re-verify on the target sub `47156f11-...` Monday morning (quota + provider registration). Captured as inbox decision D-016.
+
+## 2026-05-15 — Lab dry-run runbook delivered; P0 gpt-4.1 version pin shipped as PR #5; awaiting tenant login + PR merge for azd up

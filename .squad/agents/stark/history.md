@@ -30,6 +30,26 @@ Tony Stark / Iron Man — Architect. Bench-to-active for the MTA AI Hackathon ju
 
 Strange completed a security review of the judging app and authored `apps/judging/SECURITY_REVIEW.md`. Verdict: 🟡 Ship after must-fix items. 2 critical findings (CSV formula injection in export, unfilled tenant GUID placeholder) and 4 high findings. Core auth/authz model is solid. See decision D-007 and the full report for details and remediation paths.
 
+## 2026-05-15 — Lab Dry-Run Runbook
+
+**Task:** Produce a phased runbook for Brady to walk all 9 hackathon exercises end-to-end before the customer handoff on **Tuesday 2026-05-19**.
+
+**Deliverable:** `.squad/files/lab-dry-run-runbook.md` — 5-phase runbook (Pre-flight → Provision → Smoke verify → Full eval/test gates LIVE → Walk exercises) plus teardown guidance, customer-handoff acceptance checklist, and 11 identified risks.
+
+**Key decisions:**
+- Region `eastus2` (all services GA there; `gpt-realtime-1.5` uses `GlobalStandard` so region is billing anchor only).
+
+## 2026-05-15 — Lab dry-run runbook delivered; P0 gpt-4.1 version pin shipped as PR #5; awaiting tenant login + PR merge for azd up
+- EX-01 (Add Health Analyst) selected as the one exercise to fully implement — simplest standalone service, validates the create-service → register-tool → test loop.
+- EX-02–EX-09 verified in scaffolding mode only: tests should fail with clear assertion messages, not import errors or infra crashes.
+- EX-05 depends on EX-04; all others are independent.
+- **Phase 2.5 added:** Full live eval gates (citation, orchestrator, Foundry evaluators, red team) against deployed ACA stack. Any yellow blocks handoff.
+- **P0 rule:** Any exercise where failing tests aren't cleanly reachable (ERROR instead of FAILED/SKIPPED) is a P0 fix before Tuesday.
+- Idle cost ~$10–18/day; keep running through hackathon (~$75–90 total), teardown after 2026-05-20.
+- Customer-handoff acceptance checklist covers: exercise scaffolding, codebase hygiene (no stale model refs), PR state, docs accuracy, cost documentation, and live verification.
+
+**Risks flagged (11):** gpt-realtime-1.5 quota, RBAC propagation delay, ACR latency, vite.config.ts (fixed via PR #3), EX-07 vitest JSX, import path assumptions, Python path, corpus-version comment, P0 unreachable tests, pyyaml dependency for EX-06/08, and AOAI token quota for live evals.
+
 ## Learnings
 
 - 2026-05-13 — Shipped API-surface security fixes from Strange's review (C1 CSV formula injection, H4 100KB request body cap in host.json, M1 leaderboard gated to admin OR locked track, M2 lock route GET handler for status reads). No shared `isTrackLocked` helper existed — inlined the same pattern from `score-submit/index.js` into leaderboard and lock to stay surgical; worth promoting to `_shared/` next time the lock doc is touched. Tenant GUID placeholder (C2) and `staticwebapp.config.json` / `infra/main.bicep` items remain Okoye's lane. Commit `7f6b670` on `main`.
