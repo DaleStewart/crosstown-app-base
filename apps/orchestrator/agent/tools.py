@@ -38,11 +38,12 @@ class ToolRegistry:
             for t in tools_raw:
                 if not isinstance(t, dict):
                     continue
+                schema = t.get("input_schema") or t.get("parameters") or {}
                 specs.append(
                     ToolSpec(
                         name=str(t.get("name", "")),
                         description=str(t.get("description", "")),
-                        parameters=dict(t.get("parameters", {})) or {
+                        parameters=dict(schema) or {
                             "type": "object",
                             "properties": {},
                         },

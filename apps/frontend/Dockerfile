@@ -11,7 +11,8 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY docker-entrypoint.sh /docker-entrypoint.d/40-orchestrator-url.sh
 RUN chmod +x /docker-entrypoint.d/40-orchestrator-url.sh \
- && chown -R app:app /usr/share/nginx/html /var/cache/nginx /var/run /var/log/nginx /etc/nginx
+ && sed -i 's|^pid .*|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf \
+ && chown -R app:app /usr/share/nginx/html /var/cache/nginx /var/run /run /var/log/nginx /etc/nginx
 USER app
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

@@ -42,6 +42,36 @@ async def test_registry_load() -> None:
 
 
 @pytest.mark.asyncio
+async def test_registry_load_input_schema() -> None:
+    """log-analyst exposes JSON Schema as ``input_schema`` (per ToolDescriptor).
+
+    Regression for Bug #10: the loader must surface that schema to the model so
+    required fields like ``log_id`` for detect_pattern aren't hidden.
+    """
+    schema = {
+        "type": "object",
+        "properties": {"log_id": {"type": "string"}},
+        "required": ["log_id"],
+    }
+    transport = _transport_for(
+        {
+            "GET /tools": [
+                {
+                    "name": "detect_pattern",
+                    "description": "match patterns",
+                    "input_schema": schema,
+                }
+            ]
+        }
+    )
+    async with httpx.AsyncClient(transport=transport, base_url="http://x") as client:
+        reg = ToolRegistry("http://x")
+        specs = await reg.load(client=client)
+        assert [s.name for s in specs] == ["detect_pattern"]
+        assert specs[0].parameters == schema
+
+
+@pytest.mark.asyncio
 async def test_registry_dispatch() -> None:
     transport = _transport_for(
         {

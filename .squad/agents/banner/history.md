@@ -102,3 +102,37 @@
 - A real Cosmos integration smoke (separate project, opt-in) would catch contract drift between frontend assumptions and the Functions implementations in `apps/judging/api/`.
 
 ## 2026-05-15 — Lab dry-run runbook delivered; P0 gpt-4.1 version pin shipped as PR #5; awaiting tenant login + PR merge for azd up
+
+### 2026-05-15 — Bug #12 resolved as **NO BUG** (D-027, no PR)
+
+- **Trigger:** Sean reported `/api/turn` 422 during UAT after Okoye-2's log-analyst redeploy. Brief flagged it as urgent contract regression; "mystery" asked how Banner's earlier Bug #10 smoke got 39 detect_pattern citations if log-analyst was Hello World.
+- **Forensic:** The 422 body explicitly identified the cause — `loc: ["body","text"], type: "missing", input: {"message": "..."}`. The brief's test payload used `{"message":...}` but `apps/orchestrator/main.py::TurnRequest` requires `text` (pinned by 11 pytest cases, eval runner, redteam runner, README). **422 was correct Pydantic validation rejecting a malformed client payload.**
+- **Live re-test with canonical `{"text":...}` — all green:**
+  - `search_logs`: 10 citations, NONE warnings, args `{"query":"door fault Atlantic station"}`
+  - `detect_pattern`: **39 citations, NONE warnings**, args `{"log_id":"L-001234"}` — Bug #10 fix (PR #16) holds
+  - `summarize_incident`: 2 citations, NONE warnings, args `{"incident_id":"INC-1001"}`
+- **Mystery resolution (scenario d):** Log-analyst was already serving the real image at Banner's 22:18Z smoke — 10/39/2 citations cannot come from Hello World, and the orchestrator has no Cosmos/Search local fallback (verified `main.py:97-119` and `agent/tools.py::dispatch` both go strictly through HTTP to log-analyst). Okoye-2's 22:29Z `azd-1778884163` revision was a redeploy of the already-real image; ACA prunes old revisions so `revision list` only showed one. **No hidden fallback. No architectural concern.**
+- **400s in log-analyst tail explained:** Two transient 400s at 22:36:53/56 on `/tools/search_logs` are the **documented Bug #10 secondary symptom** — Realtime model occasionally tries `time_range` as a string instead of `{from,to}`; self-corrects within the same turn. Net customer impact: zero (citations: 10, warnings: NONE on the 200 that follows).
+- **Action shipped:** Diagnosis doc `.squad/files/banner-bug12-diagnosis-2026-05-15.md`, inbox D-027 `.squad/decisions/inbox/banner-d027-bug12-no-bug-2026-05-15.md`. **No code change, no PR** — the contract is correct; tests, eval runner, redteam runner all pin `text`. Adding a `message` alias would invite future divergence.
+- **Verdict:** Sean can UAT now with the canonical `{"text":"..."}` payload. The frontend uses `/ws/voice` WebSocket, not `/api/turn`, so the push-to-talk UI was never affected.
+
+### 2026-05-15 — Bug #10 diagnosed + shipped (PR #16) — orchestrator schema-passthrough
+
+- **Trigger:** After Wanda's Bug #9 fix (PR #15) deploy, live `/api/turn` smoke showed `detect_pattern` returns HTTP 400 from log-analyst (`search_logs` + `summarize_incident` green). Sean asked me to diagnose and ship if HIGH confidence.
+- **Repro (live):** POST `/api/turn` with `{"text":"Look at log L-001234 and tell me if it's part of a known pattern."}` → `tool_calls[0].arguments == {"seed_log_id": "L-001234"}` and a 400 warning. A second repro with a different prompt yielded `{"pattern":"cascading_doors_then_dwell","window_minutes":1440}` — also 400. **Model is inventing arg names.**
+- **Root cause:** `apps/orchestrator/agent/tools.py::ToolRegistry.load()` reads `t.get("parameters", {})` from log-analyst's `/tools` response. But log-analyst's `ToolDescriptor` (`apps/log_analyst/citations.py`) serializes the JSON Schema as `input_schema` (Pydantic field name). `t.get("parameters", {})` always returns `{}` → falsy → empty default schema flows to the Realtime model. Model guesses obvious arg names (`query`, `incident_id`) but invents `seed_log_id` because `detect_pattern.log_id` isn't obvious from name + description alone. Latent bug since the registry contract was first wired; only visible after Bug #9 (dispatch race) was fixed.
+- **Fix (1 file, 1 logic change):** `apps/orchestrator/agent/tools.py` — `schema = t.get("input_schema") or t.get("parameters") or {}`. Backwards-compatible with the existing test mock (which uses `parameters`).
+- **Regression test added:** `test_registry_load_input_schema` — asserts the schema flows verbatim when given as `input_schema`. Pytest now 12/12 (was 11/11).
+- **Local gates (apps/orchestrator):** `ruff check .` clean · `mypy --strict .` 19 files no issues · `pytest -q` 12/12 pass.
+- **PR:** [#16](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/16) stacked on PR #15. Title: `fix(orchestrator): surface log-analyst input_schema to Realtime model (Bug #10)`. Co-authored-by Copilot.
+- **Deploy:** `azd deploy orchestrator` failed 3× with intermittent ARM 404s (HTML errors from `management.azure.com` on `getContainerApp`/`listSecrets`/`PATCH containerApps`). Image was pushed to ACR successfully (`azd-deploy-1778883392`). Fell back to `az containerapp update -n orchestrator -g rg-crosstown-dryrun-may15 --image ...:azd-deploy-1778883392` → succeeded immediately. New revision `orchestrator--0000002`, 100% traffic, Healthy, Running.
+- **Post-deploy live smoke (all 3 tool paths):**
+  - `search_logs`: 10 citations, **one stray 400** on first attempt because the model now sees the real schema and tried `time_range` as a string `"last 24 hours"` instead of `{from, to}` object; it self-corrected on a retry call. Net: 10 citations, but 400 warning surfaces. Not a regression of the original Bug #10 fix; a minor secondary symptom of the schema now being visible.
+  - `detect_pattern`: **39 citations, NONE warnings**, `arguments: {"log_id": "L-001234"}` ✅ **— Bug #10 verified fixed.**
+  - `summarize_incident`: 2 citations, NONE warnings.
+- **Phase 2.5 status:** All 3 tool paths now produce citations. Live eval gate is unblocked from Bug #10.
+- **Diagnosis doc:** `.squad/files/banner-bug10-diagnosis-2026-05-15.md` (full trace, expected-vs-actual diff, confidence rationale).
+- **Decision file:** `.squad/decisions/inbox/banner-bug10-shipped-2026-05-15.md` (D-025).
+- **Follow-up (out of scope for Bug #10):** `search_logs` `time_range` could be made more forgiving (accept string fallback) or system-prompt example added so the model doesn't try the string form. Tracked as a secondary observation, not a blocker. Recommend Maximoff/Stark take a look before live eval gate run.
+
+## 2026-05-15 — Lab dry-run runbook delivered; P0 gpt-4.1 version pin shipped as PR #5; awaiting tenant login + PR merge for azd up

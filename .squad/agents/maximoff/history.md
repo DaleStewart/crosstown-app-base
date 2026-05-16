@@ -391,3 +391,4 @@ citations: 2  | tool: summarize_incident | warnings: NONE | text_len: 364
 - ⚠️ `detect_pattern` path returns 400 from log-analyst — separate issue (not Bug #9; escalated separately)
 - PR #15: https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/15
 - Base: `squad/fix-realtime-aoai-direct-endpoint` (PR #14)
+## 2026-05-15 — Lab dry-run runbook delivered; P0 gpt-4.1 version pin shipped as PR #5; awaiting tenant login + PR merge for azd up
