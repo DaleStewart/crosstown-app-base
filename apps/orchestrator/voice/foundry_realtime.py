@@ -152,10 +152,12 @@ class FoundryRealtimeProvider:
         import websockets
 
         token = await self._get_token()
-        url = (
-            self._endpoint.rstrip("/")
-            + f"/openai/v1/realtime?model={self._deployment}"
-        )
+        base = self._endpoint.rstrip("/")
+        if base.startswith("https://"):
+            base = "wss://" + base[len("https://") :]
+        elif base.startswith("http://"):
+            base = "ws://" + base[len("http://") :]
+        url = base + f"/openai/v1/realtime?model={self._deployment}"
         headers = [("Authorization", f"Bearer {token}")]
         ws = await websockets.connect(url, additional_headers=headers)
         session = FoundryRealtimeSession(ws)
