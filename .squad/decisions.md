@@ -432,6 +432,36 @@ Lab dry-run executes as Phase 0–4 per runbook at `.squad/files/lab-dry-run-run
 
 ---
 
+### D-032 · User-turn transcripts must be rendered in the chat window (conversation parity)
+**Date:** 2026-05-16
+**Author:** Parker (Frontend)
+**Requested by:** Sean
+**Status:** Adopted
+
+The chat window was showing only assistant responses. Sean reported the UI was not a conversation — the user's own speech was invisible.
+
+**Root cause:** The frontend had no handler for the `user_transcript` (or alias) event that Wanda's orchestrator sends when `input_audio_transcription` is enabled. The event never reached the `transcripts` state array, so nothing was rendered on the user side.
+
+**Fix (PR #21, commit c7c3a5e):**
+- `protocol.ts`: Added `UserTranscript` type. `parseServerMessage` now normalizes all 4 Wanda event-name aliases to `{ type: "user_transcript", text, item_id? }`:
+  - `user_transcript` (canonical)
+  - `user_transcript_completed`
+  - `input_audio_transcription_completed`
+  - `transcript_user_final`
+- `useVoiceSession.ts`: `applyFrame` gained a `user_transcript` case that appends a `{ role: "user", final: true }` `TranscriptLine`. Empty-text events are ignored (no-op).
+- `Transcript.tsx`: No change needed. `role: "user"` was already styled as right-aligned blue bubble (`bg-subway-blue text-white self-end`).
+- Tests: +3 new vitest cases (canonical event, all 4 aliases, protocol normalization). Total: 9/9.
+
+**Gates:** lint ✅, typecheck ✅, vitest 9/9 ✅, build ✅ (177.79 kB).
+
+**Deploy:** ACR build `user-transcript-20260516111507` → revision `frontend--0000004` (Healthy, 100% traffic).
+
+**Live verify:** Waiting on Wanda's server-side deploy (input_audio_transcription re-enable + user_transcript forwarding). Once both deploys are live, hold mic → release → confirm user bubble appears in chat alongside assistant response.
+
+**PR:** https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/21
+
+---
+
 ## Guidelines
 
 - All meaningful changes require team consensus.
