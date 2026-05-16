@@ -18,7 +18,76 @@
 | 6 | (rolled into above bookkeeping) | n/a | Banner | n/a |
 | **7** | **Foundry Realtime URL scheme `https://` → `wss://`** | **#13** | **Maximoff** | **merged-pending (stacked on #12)** |
 
-## Bug #8 — AOAI Direct Endpoint (this cycle — PR #14)
+## Bug #9 — Realtime Tool Dispatch (this cycle — PR #15)
+
+**Root cause chain (from diagnosis report `.squad/files/maximoff-bug9-diagnosis-2026-05-15.md`):**
+
+- **H2 (primary):** `open_session()` returned without awaiting `session.updated` ACK; caller fired `conversation.item.create` + `response.create` before server finished processing tool registration.
+- **H4 (secondary — confirmed by TimeoutError on first deploy):** `session.update` sent old `gpt-4o-realtime-preview` schema to `gpt-realtime-1.5` GA API. `modalities: ["text","audio"]` invalid (field renamed to `output_modalities`; combining text+audio not allowed). `input_audio_format`/`output_audio_format` not valid top-level GA fields. `type: "realtime"` missing from session object (required). Server rejected with `error` event silently swallowed by `_translate`. Session never sent `session.updated`, causing the `session_ready` Event to time out (exposed the hidden failure).
+- **H3 (discovered during fix):** `response.done` for function-call responses (output type `"function_call"`, no `content[]`) was being translated as `Final(text="")`, breaking `api_turn` loop before the model's text reply (second response) arrived. Fixed by returning `None` from `_translate` for pure function-call responses.
+
+**Fix (3 commits — PR #15, stacked on PR #14):**
+
+1. `session_ready = asyncio.Event()`, set in pump on `session.updated`, `await asyncio.wait_for(session_ready.wait(), timeout=10.0)` before returning session; `"tool_choice": "auto"` added to session.update
+2. `"type": "realtime"` in session; `"modalities": ["text","audio"]` → `"output_modalities": ["audio"]`; top-level audio format fields removed; `_translate response.done` captures both `transcript` and `text` content fields
+3. `_translate response.done` skips `"function_call"` output items and returns `None` (not `Final`) when all outputs are function calls — allows api_turn to wait for the model's post-tool-result text response
+
+**Local validation (apps/orchestrator):**
+- `ruff check .` — clean
+- `mypy --strict .` — 19 files, no issues
+- `pytest -q` — 11/11 pass
+
+**Deploy:** 3 deploys; final revision live (3rd deploy, ~28 s).
+
+**Smoke test (`/api/turn`, all three tool paths, post-Bug-9 PR #15 final deploy):**
+
+```
+=== search_logs ===
+citations: 10 | tool: search_logs | warnings: NONE | text_len: 307  ✅
+
+=== detect_pattern ===
+citations: 0  | tool: detect_pattern | warnings: uncited + 400 Bad Request from log-analyst
+(tool dispatched correctly — separate log-analyst bug, not Bug #9)  ⚠️
+
+=== summarize_incident ===
+citations: 2  | tool: summarize_incident | warnings: NONE | text_len: 364  ✅
+```
+
+✅ **Bug #9 verified fixed** — orchestrator now dispatches all tools, citations non-empty, text populated.
+
+🟡 **New issue:** `detect_pattern` log-analyst returns HTTP 400. Tool dispatch works (correct tool called). Bug is in log-analyst tool handler, not orchestrator.
+
+## Phase 2.5 status
+
+✅ **LIVE-READY (2/3 paths)** — Bug #9 fixed. `search_logs` and `summarize_incident` pass full citation contract. `detect_pattern` has a log-analyst 400 error (separate).
+
+**Bug chain summary:**
+
+| # | Bug | PR | Status |
+|---|---|---|---|
+| 1–6 | Infrastructure / aiohttp / Cosmos seed | #7–#12 | merged |
+| 7 | wss:// scheme | #13 | merged |
+| 8 | AOAI direct endpoint (azureml.ms → openai.azure.com) | #14 | open — stacked on #13 |
+| **9** | **Tool dispatch race + GA schema mismatch + response.done loop break** | **#15** | **open — stacked on #14** |
+
+## Sean UAT Instructions
+
+**Orchestrator URL:** `https://orchestrator.blackriver-0ab9be19.swedencentral.azurecontainerapps.io`
+
+Working paths:
+```bash
+curl -s -X POST https://orchestrator.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/api/turn \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Show me the most recent door-fault logs from station Atlantic"}' | jq .
+
+curl -s -X POST https://orchestrator.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/api/turn \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Summarize incident INC-1001"}' | jq .
+```
+
+Known issue: `detect_pattern` path returns 400 from log-analyst (separate bug).
+
+
 
 **Root cause (from diagnosis report `.squad/files/maximoff-bug8-diagnosis-2026-05-15.md`):**
 `factory.py` passed `azure_ai_foundry_project_endpoint` (`https://swedencentral.api.azureml.ms`)

@@ -123,13 +123,22 @@ class FoundryRealtimeSession:
             text = ""
             response = data.get("response", {})
             outputs = response.get("output", []) if isinstance(response, dict) else []
+            has_message = False
             for item in outputs:
                 if not isinstance(item, dict):
                     continue
+                if item.get("type") == "function_call":
+                    continue
+                has_message = True
                 for c in item.get("content", []):
-                    if isinstance(c, dict) and "transcript" in c:
-                        text = str(c["transcript"])
-            return Final(text=text, citations=[])
+                    if isinstance(c, dict):
+                        if "transcript" in c:
+                            text = str(c["transcript"])
+                        elif "text" in c:
+                            text = str(c["text"])
+            if has_message or not outputs:
+                return Final(text=text, citations=[])
+            return None
         return None
 
 
@@ -176,24 +185,33 @@ class FoundryRealtimeProvider:
                 {
                     "type": "session.update",
                     "session": {
+                        "type": "realtime",
                         "instructions": system_prompt,
                         "tools": tool_specs,
-                        "modalities": ["text", "audio"],
-                        "input_audio_format": "pcm16",
-                        "output_audio_format": "pcm16",
+                        "tool_choice": "auto",
+                        "output_modalities": ["audio"],
                     },
                 }
             )
         )
+
+        session_ready: asyncio.Event = asyncio.Event()
 
         async def pump() -> None:
             try:
                 async for raw in ws:
                     if isinstance(raw, bytes):
                         continue
+                    try:
+                        evt = json.loads(raw)
+                        if evt.get("type") == "session.updated":
+                            session_ready.set()
+                    except json.JSONDecodeError:
+                        pass
                     await session._ingest(raw)
             finally:
                 await session._inbound.put(None)
 
         asyncio.create_task(pump())
+        await asyncio.wait_for(session_ready.wait(), timeout=10.0)
         return session

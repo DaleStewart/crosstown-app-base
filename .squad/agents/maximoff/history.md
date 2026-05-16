@@ -200,6 +200,10 @@ Log: `.squad/files/azd-deploy-orchestrator-bug8-fix.log`
 
 Inbox: `.squad/decisions/inbox/maximoff-d023-bug8-fixed-bug9-escalated.md`
 
+---
+
+## 2026-05-15 (pre-Bug #8 fix) — Bug #8 Diagnosis (read-only)
+
 **Requested by:** Brady (segayle). Pure research + diagnosis pass. No code shipped. No PR opened.
 
 ### Scope
@@ -269,3 +273,121 @@ endpoint=s.azure_openai_endpoint,
 - Diagnosis report: `.squad/files/maximoff-bug8-diagnosis-2026-05-15.md`
 - Inbox note: `.squad/decisions/inbox/maximoff-bug8-diagnosis-2026-05-15.md`
 - Live `/api/turn` still returning 500 — blocked on Brady/Squad shipping the 2-file fix
+## 2026-05-15 — Lab dry-run runbook delivered; P0 gpt-4.1 version pin shipped as PR #5; awaiting tenant login + PR merge for azd up
+
+---
+
+## 2026-05-15 — Bug #9 Diagnosis: Tool Dispatch Failure (no code shipped)
+
+**Requested by:** Brady (segayle). Pure research + diagnosis pass. No code shipped. No PR opened.
+
+### Scope
+
+Three hypotheses from Bug #8 post-deploy smoke (HTTP 200 but tool_calls: [], warnings: uncited):
+1. `tool_choice` not set in session.update
+2. Timing race — user message sent before `session.updated` ACK received
+3. System prompt insufficient for Realtime context
+4. *(4th, discovered)* Schema mismatch — old `gpt-4o-realtime-preview` format sent to `gpt-realtime-1.5` GA API; errors silently swallowed
+
+### Current session.update Payload (verbatim from foundry_realtime.py)
+
+```json
+{
+  "type": "session.update",
+  "session": {
+    "instructions": "<SYSTEM_PROMPT>",
+    "tools": [{ "type": "function", "name": "...", "description": "...", "parameters": {} }],
+    "modalities": ["text", "audio"],
+    "input_audio_format": "pcm16",
+    "output_audio_format": "pcm16"
+  }
+}
+```
+
+MISSING: `tool_choice`. MISSING: await for `session.updated` before returning.
+
+### Container Log Evidence
+
+Clean logs — three HTTP 200 OK responses to `/api/turn`. No WS-frame logging. No errors. This does NOT prove session.update succeeded — the pump's `_translate()` silently drops all unrecognised events including `error` events from the server.
+
+### MS Learn Canonical Shape
+
+MS Learn quickstart (2026-05-14) **explicitly polls for `session.updated`** before sending any user message. GA API schema uses `output_modalities` (not `modalities`), `audio.input.format` nested object (not `input_audio_format`), and requires `type: "realtime"` in session. `RealtimeFunctionTool` flat format `{type, name, description, parameters}` is correct in our code.
+
+### Per-Hypothesis Verdicts
+
+| Hypothesis | Verdict | Confidence |
+|---|---|---|
+| H1 — `tool_choice` not set | INCONCLUSIVE / CONTRIBUTING | Low as primary; zero-risk to add `"auto"` |
+| H2 — No await for `session.updated` | **BUG — PRIMARY** | HIGH |
+| H3 — System prompt too weak | RULED OUT | — |
+| H4 — Schema mismatch + silent error swallow | **BUG — SECONDARY** | MEDIUM |
+
+### Recommended Fix
+
+**`apps/orchestrator/voice/foundry_realtime.py`** — 2 changes, ~14 lines:
+
+1. Add `"tool_choice": "auto"` to `session.update` payload
+2. In `open_session()`: create `session_ready = asyncio.Event()`, set it in pump when
+   `session.updated` arrives, then `await asyncio.wait_for(session_ready.wait(), timeout=10.0)`
+   before returning the session.
+
+Full diff in `.squad/files/maximoff-bug9-diagnosis-2026-05-15.md`.
+
+### Outcome
+
+- 🔴 **Bug #9** — root cause identified (H2 primary + H4 secondary), fix specified
+- Diagnosis report: `.squad/files/maximoff-bug9-diagnosis-2026-05-15.md`
+- Inbox note: `.squad/decisions/inbox/maximoff-bug9-diagnosis-2026-05-15.md`
+- **No code shipped** — diagnosis only per task scope
+
+---
+
+## 2026-05-15 — Bug #9 Fix Shipped (PR #15)
+
+**Requested by:** Sean (segayle). End-to-end ship authorized after diagnosis pass.
+
+### Changes shipped (branch `squad/fix-realtime-tool-dispatch-race` → PR #15)
+
+Three commits:
+
+1. **H1+H2 fix** — `"tool_choice": "auto"` added to session.update; `session_ready = asyncio.Event()` introduced, set in pump on `session.updated`, awaited with 10 s timeout in `open_session()` before returning session.
+
+2. **H4 schema fix** — GA Realtime API schema correction: `"type": "realtime"` added to session object; `"modalities": ["text", "audio"]` → `"output_modalities": ["audio"]`; top-level `input_audio_format`/`output_audio_format` removed (invalid in GA API); `_translate response.done` updated to capture both `transcript` (audio output) and `text` (text output) fields.
+
+3. **response.done text capture fix** — The first `response.done` (function-call response) was being translated as `Final(text="")`, causing `api_turn` to break before the model's actual text reply arrived. Fix: skip items with `type == "function_call"` when extracting text; if all outputs are function_call items return `None` so the pump does not surface a `Final` event and `api_turn` continues waiting for the second `response.done` (which carries the model's cited text).
+
+### Validation (each commit)
+
+- `ruff check .` — clean
+- `mypy --strict .` — 19 files, no issues
+- `pytest -q` — 11/11 pass
+
+### Deploy history
+
+| Deploy | Revision | Result |
+|---|---|---|
+| After H1+H2 commit | `orchestrator--azd-1778882093` | 🔴 HTTP 500 TimeoutError (confirmed H4 — server rejected schema, never sent session.updated) |
+| After H4 commit | `orchestrator--azd-*` | 🟡 HTTP 200; citations populated; text empty (function_call response.done broke loop early) |
+| After response.done fix | live | ✅ HTTP 200; citations populated; text populated; tool dispatched |
+
+### Live smoke test (final)
+
+```
+=== search_logs ===
+citations: 10 | tool: search_logs | warnings: NONE | text_len: 307
+
+=== detect_pattern ===
+citations: 0  | tool: detect_pattern | warnings: uncited,400 Bad Request from log-analyst
+(tool dispatched correctly; log-analyst returns 400 — separate pre-existing bug)
+
+=== summarize_incident ===
+citations: 2  | tool: summarize_incident | warnings: NONE | text_len: 364
+```
+
+### Outcome
+
+- ✅ **Bug #9 FIXED** — tool dispatch fully operational; citations non-empty; text populated
+- ⚠️ `detect_pattern` path returns 400 from log-analyst — separate issue (not Bug #9; escalated separately)
+- PR #15: https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/15
+- Base: `squad/fix-realtime-aoai-direct-endpoint` (PR #14)
