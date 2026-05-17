@@ -95,6 +95,26 @@ resource gpt4oRealtimeDeployment 'Microsoft.CognitiveServices/accounts/deploymen
   }
 }
 
+// gpt-4o-mini-transcribe — GlobalStandard speech-to-text for user-turn transcription.
+// Required by the realtime voice loop: when set as `audio.input.transcription.model` in
+// session.update, Azure OpenAI emits `conversation.item.input_audio_transcription.completed`
+// events containing the caller's spoken text. Without an existing deployment in this AOAI
+// account the realtime WS closes (see .squad/.decisions-archives/decisions-2026-05-17.md).
+// dependsOn serialises against the realtime deployment to avoid concurrent-update throttling.
+resource gpt4oMiniTranscribeDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
+  parent: aoaiAccount
+  name: 'gpt-4o-mini-transcribe'
+  dependsOn: [gpt4oRealtimeDeployment]
+  sku: { name: 'GlobalStandard', capacity: 10 }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-4o-mini-transcribe'
+      version: '2025-03-20'
+    }
+  }
+}
+
 // AI Foundry Hub (Microsoft.MachineLearningServices/workspaces kind=Hub)
 // API 2024-04-01 — first GA release with kind=Hub / kind=Project support
 resource hub 'Microsoft.MachineLearningServices/workspaces@2024-04-01' = {
@@ -140,3 +160,4 @@ output aoaiAccountName string = aoaiAccount.name
 output aoaiEndpoint string = aoaiAccount.properties.endpoint
 output gpt4oChatDeployment string = gpt4oDeployment.name
 output gpt4oRealtimeDeployment string = gpt4oRealtimeDeployment.name
+output gpt4oMiniTranscribeDeployment string = gpt4oMiniTranscribeDeployment.name

@@ -290,6 +290,7 @@ module orchestratorApp 'modules/containerApp.bicep' = {
       { name: 'AZURE_AI_FOUNDRY_PROJECT_ENDPOINT', value: foundry.outputs.projectEndpoint }
       { name: 'AZURE_AI_FOUNDRY_PROJECT_NAME',     value: foundry.outputs.projectName }
       { name: 'AZURE_OPENAI_REALTIME_DEPLOYMENT',  value: foundry.outputs.gpt4oRealtimeDeployment }
+      { name: 'AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT', value: foundry.outputs.gpt4oMiniTranscribeDeployment }
       { name: 'AZURE_SPEECH_ENDPOINT',             value: speech.outputs.endpoint }
       { name: 'AZURE_SPEECH_REGION',               value: speech.outputs.region }
       { name: 'VOICE_PROVIDER',                    value: 'foundry_realtime' }
