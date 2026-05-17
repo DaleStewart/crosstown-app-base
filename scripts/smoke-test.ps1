@@ -208,14 +208,46 @@ else {
 }
 
 # ---------- Check 4: POST /api/turn ----------
+# Retries for up to $env:SMOKE_RETRY_SECONDS (default 90) — first /api/turn after cold start is
+# LLM-bound (~14s observed). Uses -TimeoutSec 30 so Invoke-WebRequest doesn't time out early.
 Write-Host "# check 4: POST ${FrontendUrl}/api/turn — expect 200 + non-empty text"
-Invoke-HttpPostJson -Url "${FrontendUrl}/api/turn" -JsonPayload '{"text":"status of L1?"}'
-if ($script:HttpCode -ne '200') {
-    Fail 4 "POST /api/turn returned HTTP $($script:HttpCode)"
-}
-$textV = Get-JsonField -Body $script:HttpBody -Field 'text'
-if ([string]::IsNullOrEmpty($textV)) {
-    Fail 4 "'text' field missing or empty in /api/turn response"
+$c4Budget = if ($env:SMOKE_RETRY_SECONDS) { [int]$env:SMOKE_RETRY_SECONDS } else { 90 }
+$c4Deadline = (Get-Date).AddSeconds($c4Budget)
+$c4Sleep = 5
+$c4Attempt = 0
+$c4Max = [int]($c4Budget / 15) + 3
+$textV = ''
+while ($true) {
+    $c4Attempt += 1
+    $script:HttpCode = '000'
+    $script:HttpBody = ''
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes('{"text":"status of L1?"}')
+        $resp = Invoke-WebRequest -Uri "${FrontendUrl}/api/turn" -Method Post `
+                                  -ContentType 'application/json; charset=utf-8' `
+                                  -Body $bytes `
+                                  -TimeoutSec 30 -SkipHttpErrorCheck -UseBasicParsing `
+                                  -ErrorAction Stop
+        $script:HttpCode = [string][int]$resp.StatusCode
+        $script:HttpBody = [string]$resp.Content
+    }
+    catch {
+        $script:HttpCode = '000'
+        $script:HttpBody = ''
+    }
+    if ($script:HttpCode -eq '200') {
+        $textV = Get-JsonField -Body $script:HttpBody -Field 'text'
+        if (-not [string]::IsNullOrEmpty($textV)) { break }
+    }
+    if ((Get-Date) -ge $c4Deadline) {
+        if ($script:HttpCode -ne '200') {
+            Fail 4 "POST /api/turn returned HTTP $($script:HttpCode)"
+        }
+        Fail 4 "'text' field missing or empty in /api/turn response"
+    }
+    Write-Host "# retrying check 4 (cold start): attempt $($c4Attempt + 1)/${c4Max}..."
+    Start-Sleep -Seconds $c4Sleep
+    $c4Sleep = if (($c4Sleep * 2) -lt 15) { $c4Sleep * 2 } else { 15 }
 }
 Write-Host "  check 4 PASS (text length=$($textV.Length))"
 

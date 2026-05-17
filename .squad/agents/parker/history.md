@@ -37,4 +37,5 @@ Peter Parker / Spider-Man — Frontend developer. MTA AI Hackathon.
 ## Learnings
 
 - **ACA revision flips take 1–30 s to route traffic to the new revision.** Smoke gates that run immediately after `azd deploy` returns can hit the old revision and see stale JSON (e.g., `service=""`). The fix is a deadline-based retry loop (not a fixed sleep) so fast deploys stay fast and slow flips don't false-fail.
+- Smoke check 4 needed same retry envelope as check 2 — first /api/turn after cold start is LLM-bound, ~14s.
 

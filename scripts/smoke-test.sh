@@ -180,15 +180,42 @@ else
 fi
 
 # ---------- Check 4: POST /api/turn ----------
+# Retries for up to SMOKE_RETRY_SECONDS (default 90) — first /api/turn after cold start is
+# LLM-bound (~14s observed). Uses --max-time 30 so curl doesn't time out before the response.
 echo "# check 4: POST ${FRONTEND_URL}/api/turn — expect 200 + non-empty text"
-http_post_json "${FRONTEND_URL}/api/turn" '{"text":"status of L1?"}'
-if [[ "$HTTP_CODE" != "200" ]]; then
-  fail 4 "POST /api/turn returned HTTP ${HTTP_CODE}"
-fi
-text_v=$(get_field "$HTTP_BODY" "text")
-if [[ -z "$text_v" ]]; then
-  fail 4 "'text' field missing or empty in /api/turn response"
-fi
+_c4_budget="${SMOKE_RETRY_SECONDS:-90}"
+_c4_deadline=$(( $(date +%s) + _c4_budget ))
+_c4_sleep=5
+_c4_attempt=0
+_c4_max=$(( _c4_budget / 15 + 3 ))
+text_v=""
+while true; do
+  _c4_attempt=$(( _c4_attempt + 1 ))
+  _c4_tmp=$(mktemp -t smoke-XXXXXX 2>/dev/null || mktemp)
+  set +e
+  HTTP_CODE=$(curl --silent --show-error --max-time 30 \
+                   -H 'Content-Type: application/json' \
+                   -d '{"text":"status of L1?"}' \
+                   --output "$_c4_tmp" --write-out '%{http_code}' \
+                   "${FRONTEND_URL}/api/turn" 2>/dev/null)
+  _c4_rc=$?
+  set -e
+  if [[ $_c4_rc -ne 0 || -z "$HTTP_CODE" ]]; then HTTP_CODE="000"; fi
+  HTTP_BODY=$(cat "$_c4_tmp"); rm -f "$_c4_tmp"
+  if [[ "$HTTP_CODE" == "200" ]]; then
+    text_v=$(get_field "$HTTP_BODY" "text")
+    if [[ -n "$text_v" ]]; then break; fi
+  fi
+  if [[ $(date +%s) -ge $_c4_deadline ]]; then
+    if [[ "$HTTP_CODE" != "200" ]]; then
+      fail 4 "POST /api/turn returned HTTP ${HTTP_CODE}"
+    fi
+    fail 4 "'text' field missing or empty in /api/turn response"
+  fi
+  echo "# retrying check 4 (cold start): attempt $(( _c4_attempt + 1 ))/${_c4_max}..."
+  sleep "$_c4_sleep"
+  _c4_sleep=$(( _c4_sleep * 2 < 15 ? _c4_sleep * 2 : 15 ))
+done
 echo "  check 4 PASS (text length=${#text_v})"
 
 # ---------- Check 5 (--full): six rehearsed demo prompts must each return citations[] ----------
