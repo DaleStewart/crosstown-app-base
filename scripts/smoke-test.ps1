@@ -162,18 +162,35 @@ if ($script:HttpBody -notmatch '(?i)Crosstown|<div[^>]+id="root"') {
 Write-Host "  check 1 PASS"
 
 # ---------- Check 2: frontend /api/health (nginx -> orchestrator /health) ----------
+# Retries for up to $env:SMOKE_RETRY_SECONDS (default 90) to tolerate ACA revision-flip lag.
 Write-Host "# check 2: GET ${FrontendUrl}/api/health — expect 200 JSON {status, service:orchestrator}"
-Invoke-HttpGet -Url "${FrontendUrl}/api/health"
-if ($script:HttpCode -ne '200') {
-    Fail 2 "GET /api/health returned HTTP $($script:HttpCode) (nginx rewrite likely broken)"
-}
-$statusV  = Get-JsonField -Body $script:HttpBody -Field 'status'
-$serviceV = Get-JsonField -Body $script:HttpBody -Field 'service'
-if ($statusV -ne 'ok' -and $statusV -ne 'degraded') {
-    Fail 2 "status='${statusV}', expected 'ok' or 'degraded'"
-}
-if ($serviceV -ne 'orchestrator') {
-    Fail 2 "service='${serviceV}', expected 'orchestrator' (nginx rewrite hit wrong upstream)"
+$c2Budget = if ($env:SMOKE_RETRY_SECONDS) { [int]$env:SMOKE_RETRY_SECONDS } else { 90 }
+$c2Deadline = (Get-Date).AddSeconds($c2Budget)
+$c2Sleep = 5
+$c2Attempt = 0
+$c2Max = [int]($c2Budget / 15) + 3
+$statusV  = ''
+$serviceV = ''
+while ($true) {
+    $c2Attempt += 1
+    Invoke-HttpGet -Url "${FrontendUrl}/api/health"
+    if ($script:HttpCode -ne '200') {
+        Fail 2 "GET /api/health returned HTTP $($script:HttpCode) (nginx rewrite likely broken)"
+    }
+    $statusV  = Get-JsonField -Body $script:HttpBody -Field 'status'
+    $serviceV = Get-JsonField -Body $script:HttpBody -Field 'service'
+    if (($statusV -eq 'ok' -or $statusV -eq 'degraded') -and $serviceV -eq 'orchestrator') {
+        break
+    }
+    if ((Get-Date) -ge $c2Deadline) {
+        if ($statusV -ne 'ok' -and $statusV -ne 'degraded') {
+            Fail 2 "status='${statusV}', expected 'ok' or 'degraded'"
+        }
+        Fail 2 "service='${serviceV}', expected 'orchestrator' (nginx rewrite hit wrong upstream)"
+    }
+    Write-Host "# retrying check 2 (revision flip): attempt $($c2Attempt + 1)/${c2Max}..."
+    Start-Sleep -Seconds $c2Sleep
+    $c2Sleep = if (($c2Sleep * 2) -lt 15) { $c2Sleep * 2 } else { 15 }
 }
 Write-Host "  check 2 PASS (status=${statusV})"
 

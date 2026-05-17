@@ -135,19 +135,36 @@ fi
 echo "  check 1 PASS"
 
 # ---------- Check 2: frontend /api/health (nginx -> orchestrator /health) ----------
+# Retries for up to SMOKE_RETRY_SECONDS (default 90) to tolerate ACA revision-flip lag.
 echo "# check 2: GET ${FRONTEND_URL}/api/health — expect 200 JSON {status, service:orchestrator}"
-http_get_with_status "${FRONTEND_URL}/api/health"
-if [[ "$HTTP_CODE" != "200" ]]; then
-  fail 2 "GET /api/health returned HTTP ${HTTP_CODE} (nginx rewrite likely broken)"
-fi
-status_v=$(get_field "$HTTP_BODY" "status")
-service_v=$(get_field "$HTTP_BODY" "service")
-if [[ "$status_v" != "ok" && "$status_v" != "degraded" ]]; then
-  fail 2 "status='${status_v}', expected 'ok' or 'degraded'"
-fi
-if [[ "$service_v" != "orchestrator" ]]; then
-  fail 2 "service='${service_v}', expected 'orchestrator' (nginx rewrite hit wrong upstream)"
-fi
+_c2_budget="${SMOKE_RETRY_SECONDS:-90}"
+_c2_deadline=$(( $(date +%s) + _c2_budget ))
+_c2_sleep=5
+_c2_attempt=0
+_c2_max=$(( _c2_budget / 15 + 3 ))
+status_v=""
+service_v=""
+while true; do
+  _c2_attempt=$(( _c2_attempt + 1 ))
+  http_get_with_status "${FRONTEND_URL}/api/health"
+  if [[ "$HTTP_CODE" != "200" ]]; then
+    fail 2 "GET /api/health returned HTTP ${HTTP_CODE} (nginx rewrite likely broken)"
+  fi
+  status_v=$(get_field "$HTTP_BODY" "status")
+  service_v=$(get_field "$HTTP_BODY" "service")
+  if [[ "$status_v" == "ok" || "$status_v" == "degraded" ]] && [[ "$service_v" == "orchestrator" ]]; then
+    break
+  fi
+  if [[ $(date +%s) -ge $_c2_deadline ]]; then
+    if [[ "$status_v" != "ok" && "$status_v" != "degraded" ]]; then
+      fail 2 "status='${status_v}', expected 'ok' or 'degraded'"
+    fi
+    fail 2 "service='${service_v}', expected 'orchestrator' (nginx rewrite hit wrong upstream)"
+  fi
+  echo "# retrying check 2 (revision flip): attempt $(( _c2_attempt + 1 ))/${_c2_max}..."
+  sleep "$_c2_sleep"
+  _c2_sleep=$(( _c2_sleep * 2 < 15 ? _c2_sleep * 2 : 15 ))
+done
 echo "  check 2 PASS (status=${status_v})"
 
 # ---------- Check 3: direct orchestrator /health (optional) ----------
