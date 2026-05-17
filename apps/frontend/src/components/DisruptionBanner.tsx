@@ -19,7 +19,9 @@ function extractStatuses(entries: ToolCallEntry[]): LineStatus[] {
     const line = typeof args.line === "string" ? args.line.toUpperCase() : "";
     if (!line) continue;
     // Prefer the most recent / non-pending entry per line.
-    const incidentCite = e.citations.find((c) => c.type === "incident");
+    const incidentCite = (e.citations ?? []).find(
+      (c) => c?.type === "incident",
+    );
     const incId = typeof incidentCite?.id === "string" ? incidentCite.id : null;
     const incSnippet =
       typeof incidentCite?.snippet === "string" ? incidentCite.snippet : null;

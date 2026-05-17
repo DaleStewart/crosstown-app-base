@@ -48,4 +48,45 @@ describe("protocol", () => {
       expect((out as { text?: string }).text).toBe("my speech");
     }
   });
+
+  it("coerces null citations/warnings on tool_result to empty arrays (P0 UAT)", () => {
+    const out = parseServerMessage(
+      JSON.stringify({
+        type: "tool_result",
+        name: "get_disruption_status",
+        citations: null,
+        warnings: null,
+      })
+    );
+    expect(out?.type).toBe("tool_result");
+    const tr = out as { citations: unknown; warnings: unknown };
+    expect(Array.isArray(tr.citations)).toBe(true);
+    expect((tr.citations as unknown[]).length).toBe(0);
+    expect(Array.isArray(tr.warnings)).toBe(true);
+    expect((tr.warnings as unknown[]).length).toBe(0);
+  });
+
+  it("coerces null citations on final frame to empty array (P0 UAT)", () => {
+    const out = parseServerMessage(
+      JSON.stringify({ type: "final", text: "done", citations: null })
+    );
+    expect(out?.type).toBe("final");
+    const f = out as { citations: unknown };
+    expect(Array.isArray(f.citations)).toBe(true);
+    expect((f.citations as unknown[]).length).toBe(0);
+  });
+
+  it("filters non-object citation entries", () => {
+    const out = parseServerMessage(
+      JSON.stringify({
+        type: "tool_result",
+        name: "x",
+        citations: [null, "bogus", { source: "ok" }],
+        warnings: [1, "real-warning", null],
+      })
+    );
+    const tr = out as { citations: unknown[]; warnings: unknown[] };
+    expect(tr.citations).toEqual([{ source: "ok" }]);
+    expect(tr.warnings).toEqual(["real-warning"]);
+  });
 });

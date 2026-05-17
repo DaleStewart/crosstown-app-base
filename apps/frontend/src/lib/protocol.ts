@@ -92,6 +92,18 @@ export function isServerMessage(value: unknown): value is ServerMessage {
   );
 }
 
+function toCitationArray(value: unknown): Citation[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (c): c is Citation => typeof c === "object" && c !== null
+  );
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((w): w is string => typeof w === "string");
+}
+
 export function parseServerMessage(raw: string): ServerMessage | null {
   try {
     const value: unknown = JSON.parse(raw);
@@ -106,7 +118,26 @@ export function parseServerMessage(raw: string): ServerMessage | null {
       };
       return normalized;
     }
-    return isServerMessage(value) ? value : null;
+    if (!isServerMessage(value)) return null;
+    // P0 UAT guard: specialists (e.g. Service Disruption Advisor) sometimes
+    // emit tool_result / final frames with citations or warnings = null.
+    // Renderers downstream assume arrays, so coerce here once at the boundary.
+    if (obj.type === "tool_result") {
+      return {
+        type: "tool_result",
+        name: typeof obj.name === "string" ? obj.name : "",
+        citations: toCitationArray(obj.citations),
+        warnings: toStringArray(obj.warnings),
+      };
+    }
+    if (obj.type === "final") {
+      return {
+        type: "final",
+        text: typeof obj.text === "string" ? obj.text : "",
+        citations: toCitationArray(obj.citations),
+      };
+    }
+    return value as ServerMessage;
   } catch {
     return null;
   }

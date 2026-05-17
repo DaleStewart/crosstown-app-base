@@ -45,7 +45,7 @@ function ToolCallRow({ entry }: { entry: ToolCallEntry }): ReactNode {
         {entry.pending ? (
           <Badge tone="muted">running…</Badge>
         ) : (
-          <Badge tone="default">{entry.citations.length} cites</Badge>
+          <Badge tone="default">{(entry.citations ?? []).length} cites</Badge>
         )}
       </button>
       {open && (
@@ -53,21 +53,21 @@ function ToolCallRow({ entry }: { entry: ToolCallEntry }): ReactNode {
           <pre className="overflow-x-auto rounded bg-slate-50 p-2 text-[11px]">
             {JSON.stringify(entry.args, null, 2)}
           </pre>
-          {entry.citations.length > 0 && (
+          {(entry.citations ?? []).length > 0 && (
             <ul className="mt-2 space-y-1">
-              {entry.citations.map((c, i) => (
+              {(entry.citations ?? []).map((c, i) => (
                 <li key={i} className="text-slate-700">
                   <span className="font-mono text-[11px] text-subway-blue">
-                    {String(c.source ?? c.url ?? `cite-${i}`)}
+                    {String(c?.source ?? c?.url ?? `cite-${i}`)}
                   </span>
-                  {c.snippet ? `: ${c.snippet}` : null}
+                  {c?.snippet ? `: ${c.snippet}` : null}
                 </li>
               ))}
             </ul>
           )}
-          {entry.warnings.length > 0 && (
+          {(entry.warnings ?? []).length > 0 && (
             <ul className="mt-2 list-disc pl-5 text-amber-700">
-              {entry.warnings.map((w, i) => (
+              {(entry.warnings ?? []).map((w, i) => (
                 <li key={i}>{w}</li>
               ))}
             </ul>

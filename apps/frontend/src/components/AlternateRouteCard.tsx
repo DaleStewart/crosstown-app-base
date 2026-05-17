@@ -49,10 +49,10 @@ export function AlternateRouteCard({
         {disruptionId && (
           <p className="font-mono text-xs text-slate-500">{disruptionId}</p>
         )}
-        {relevant.citations.length > 0 && (
+        {relevant.citations != null && relevant.citations.length > 0 && (
           <ul className="text-xs text-slate-600">
             {relevant.citations.map((c, i) => {
-              const id = typeof c.id === "string" ? c.id : `cite-${i}`;
+              const id = typeof c?.id === "string" ? c.id : `cite-${i}`;
               return (
                 <li key={id}>
                   <span className="font-mono">{id}</span>

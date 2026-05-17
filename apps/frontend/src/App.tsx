@@ -6,6 +6,7 @@ import { DisruptionBanner } from "@/components/DisruptionBanner";
 import { AlternateRouteCard } from "@/components/AlternateRouteCard";
 import { ToolCallPanel } from "@/components/ToolCallPanel";
 import { TextInput } from "@/components/TextInput";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useVoiceSession } from "@/hooks/useVoiceSession";
 
 const MODE = (import.meta.env.VITE_VOICE_MODE === "continuous"
@@ -19,21 +20,25 @@ export default function App(): ReactNode {
     <div className="flex min-h-screen flex-col bg-slate-50">
       <Header />
       <main className="grid flex-1 grid-cols-1 gap-4 p-4 lg:grid-cols-[1fr_360px]">
-        <section className="flex flex-col gap-4">
-          <div className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white p-8">
-            <PushToTalkButton
-              recording={state.recording}
-              onStart={() => void startTalking()}
-              onStop={() => void stopTalking()}
-            />
-          </div>
-          <DisruptionBanner entries={state.toolCalls} />
-          <AlternateRouteCard entries={state.toolCalls} />
-          <Transcript lines={state.transcripts} />
-          <TextInput onUserTurn={appendUserTurn} onAssistantTurn={appendAssistantTurn} />
-        </section>
+        <ErrorBoundary>
+          <section className="flex flex-col gap-4">
+            <div className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white p-8">
+              <PushToTalkButton
+                recording={state.recording}
+                onStart={() => void startTalking()}
+                onStop={() => void stopTalking()}
+              />
+            </div>
+            <DisruptionBanner entries={state.toolCalls} />
+            <AlternateRouteCard entries={state.toolCalls} />
+            <Transcript lines={state.transcripts} />
+            <TextInput onUserTurn={appendUserTurn} onAssistantTurn={appendAssistantTurn} />
+          </section>
+        </ErrorBoundary>
         <aside className="lg:row-span-1">
-          <ToolCallPanel entries={state.toolCalls} />
+          <ErrorBoundary>
+            <ToolCallPanel entries={state.toolCalls} />
+          </ErrorBoundary>
         </aside>
       </main>
       <footer className="bg-subway-ink px-6 py-3 text-center text-xs text-slate-300">

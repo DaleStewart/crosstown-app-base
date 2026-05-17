@@ -71,16 +71,18 @@ function reducer(state: State, action: Action): State {
         ],
       };
     case "append_assistant": {
+      const citations = action.citations ?? [];
+      const warnings = action.warnings ?? [];
       const newToolCalls =
-        action.citations.length > 0 || action.warnings.length > 0
+        citations.length > 0 || warnings.length > 0
           ? [
               ...state.toolCalls,
               {
                 call_id: cryptoId(),
                 name: "api/turn",
                 args: {},
-                citations: action.citations,
-                warnings: action.warnings,
+                citations,
+                warnings,
                 pending: false,
               },
             ]
@@ -147,8 +149,8 @@ function applyFrame(state: State, frame: ServerMessage): State {
           tc.name === frame.name && tc.pending
             ? {
                 ...tc,
-                citations: frame.citations,
-                warnings: frame.warnings,
+                citations: frame.citations ?? [],
+                warnings: frame.warnings ?? [],
                 pending: false,
               }
             : tc
