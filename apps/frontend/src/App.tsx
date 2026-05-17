@@ -31,7 +31,7 @@ export default function App(): ReactNode {
             </div>
             <DisruptionBanner entries={state.toolCalls} />
             <AlternateRouteCard entries={state.toolCalls} />
-            <Transcript lines={state.transcripts} />
+            <Transcript lines={state.transcripts} thinking={state.awaitingResponse} />
             <TextInput onUserTurn={appendUserTurn} onAssistantTurn={appendAssistantTurn} />
           </section>
         </ErrorBoundary>

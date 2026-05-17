@@ -31,6 +31,7 @@ type State = {
   toolCalls: ToolCallEntry[];
   error: string | null;
   recording: boolean;
+  awaitingResponse: boolean;
 };
 
 type Action =
@@ -39,6 +40,7 @@ type Action =
   | { type: "frame"; frame: ServerMessage }
   | { type: "recording"; value: boolean }
   | { type: "reset" }
+  | { type: "awaiting"; value: boolean }
   | { type: "append_user"; text: string }
   | { type: "append_assistant"; text: string; citations: Citation[]; warnings: string[] };
 
@@ -48,6 +50,7 @@ const initial: State = {
   toolCalls: [],
   error: null,
   recording: false,
+  awaitingResponse: false,
 };
 
 function reducer(state: State, action: Action): State {
@@ -55,16 +58,19 @@ function reducer(state: State, action: Action): State {
     case "status":
       return { ...state, status: action.status };
     case "error":
-      return { ...state, status: "error", error: action.message };
+      return { ...state, status: "error", error: action.message, awaitingResponse: false };
     case "recording":
       return { ...state, recording: action.value };
     case "reset":
       return initial;
+    case "awaiting":
+      return { ...state, awaitingResponse: action.value };
     case "frame":
       return applyFrame(state, action.frame);
     case "append_user":
       return {
         ...state,
+        awaitingResponse: true,
         transcripts: [
           ...state.transcripts,
           { id: cryptoId(), role: "user", text: action.text, final: true },
@@ -89,6 +95,7 @@ function reducer(state: State, action: Action): State {
           : state.toolCalls;
       return {
         ...state,
+        awaitingResponse: false,
         transcripts: [
           ...state.transcripts,
           { id: cryptoId(), role: "assistant", text: action.text, final: true },
@@ -102,6 +109,15 @@ function reducer(state: State, action: Action): State {
 function applyFrame(state: State, frame: ServerMessage): State {
   switch (frame.type) {
     case "transcript_delta": {
+      // Assistant began streaming — clear the thinking placeholder.
+      const nextAwaiting =
+        frame.role === "assistant" ? false : state.awaitingResponse;
+      // A finalized user transcript means the user just committed a voice turn
+      // and we're now waiting on the assistant. Flip awaiting on so the
+      // thinking indicator appears even when no client-side commit happened
+      // (e.g. continuous-mode voice with server VAD).
+      const awaitingAfterUser =
+        frame.role === "user" && frame.final ? true : nextAwaiting;
       const last = state.transcripts[state.transcripts.length - 1];
       if (last && last.role === frame.role && !last.final) {
         const merged: TranscriptLine = {
@@ -111,11 +127,13 @@ function applyFrame(state: State, frame: ServerMessage): State {
         };
         return {
           ...state,
+          awaitingResponse: awaitingAfterUser,
           transcripts: [...state.transcripts.slice(0, -1), merged],
         };
       }
       return {
         ...state,
+        awaitingResponse: awaitingAfterUser,
         transcripts: [
           ...state.transcripts,
           {
@@ -161,6 +179,7 @@ function applyFrame(state: State, frame: ServerMessage): State {
       if (last && last.role === "assistant" && !last.final && frame.text) {
         return {
           ...state,
+          awaitingResponse: false,
           transcripts: [
             ...state.transcripts.slice(0, -1),
             { ...last, text: frame.text, final: true },
@@ -170,23 +189,26 @@ function applyFrame(state: State, frame: ServerMessage): State {
       if (frame.text) {
         return {
           ...state,
+          awaitingResponse: false,
           transcripts: [
             ...state.transcripts,
             { id: cryptoId(), role: "assistant", text: frame.text, final: true },
           ],
         };
       }
-      return state;
+      return { ...state, awaitingResponse: false };
     }
     case "error":
-      return { ...state, error: frame.message, status: "error" };
+      return { ...state, error: frame.message, status: "error", awaitingResponse: false };
     case "audio_delta":
-      return state;
+      // First audio chunk from the assistant also implies streaming has begun.
+      return state.awaitingResponse ? { ...state, awaitingResponse: false } : state;
     case "user_transcript": {
       // Append a finalized user-turn line from Wanda's server-side transcription.
       if (!frame.text) return state;
       return {
         ...state,
+        awaitingResponse: true,
         transcripts: [
           ...state.transcripts,
           { id: cryptoId(), role: "user", text: frame.text, final: true },
@@ -272,7 +294,10 @@ export function useVoiceSession(
   }, []);
 
   const sendText = useCallback(
-    (text: string): void => send({ type: "text", text }),
+    (text: string): void => {
+      send({ type: "text", text });
+      dispatch({ type: "awaiting", value: true });
+    },
     [send]
   );
 
@@ -293,6 +318,9 @@ export function useVoiceSession(
     }
     send({ type: "stop" });
     dispatch({ type: "recording", value: false });
+    // User just released the mic — we're now waiting on the assistant.
+    // The indicator clears as soon as the first assistant frame arrives.
+    dispatch({ type: "awaiting", value: true });
   }, [send]);
 
   const disconnect = useCallback(async (): Promise<void> => {

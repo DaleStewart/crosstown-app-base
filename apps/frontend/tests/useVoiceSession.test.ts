@@ -187,4 +187,59 @@ describe("useVoiceSession", () => {
     expect(result.current.state.transcripts).toHaveLength(1);
     expect(result.current.state.toolCalls).toHaveLength(0);
   });
+
+  it("appendUserTurn flips awaitingResponse on, appendAssistantTurn clears it", () => {
+    const { result } = renderHook(() =>
+      useVoiceSession({ url: "ws://test/ws/voice" })
+    );
+    expect(result.current.state.awaitingResponse).toBe(false);
+    act(() => result.current.appendUserTurn("any trains down?"));
+    expect(result.current.state.awaitingResponse).toBe(true);
+    act(() =>
+      result.current.appendAssistantTurn({ text: "All clear.", citations: [], warnings: [] })
+    );
+    expect(result.current.state.awaitingResponse).toBe(false);
+  });
+
+  it("final user transcript_delta sets awaitingResponse; assistant delta clears it", async () => {
+    const { result, unmount } = renderHook(() =>
+      useVoiceSession({ url: "ws://test/ws/voice" })
+    );
+    await act(async () => {
+      await result.current.connect();
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    const ws = FakeWebSocket.instances[0]!;
+
+    act(() => {
+      ws.emit({ type: "transcript_delta", role: "user", text: "doors at Atlantic?", final: true });
+    });
+    expect(result.current.state.awaitingResponse).toBe(true);
+
+    act(() => {
+      ws.emit({ type: "transcript_delta", role: "assistant", text: "Checking", final: false });
+    });
+    expect(result.current.state.awaitingResponse).toBe(false);
+    unmount();
+  });
+
+  it("user_transcript event sets awaitingResponse and final clears it", async () => {
+    const { result, unmount } = renderHook(() =>
+      useVoiceSession({ url: "ws://test/ws/voice" })
+    );
+    await act(async () => {
+      await result.current.connect();
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    const ws = FakeWebSocket.instances[0]!;
+    act(() => {
+      ws.emit({ type: "user_transcript", text: "next L train?" });
+    });
+    expect(result.current.state.awaitingResponse).toBe(true);
+    act(() => {
+      ws.emit({ type: "final", text: "Soon.", citations: [] });
+    });
+    expect(result.current.state.awaitingResponse).toBe(false);
+    unmount();
+  });
 });

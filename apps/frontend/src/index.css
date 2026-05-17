@@ -12,3 +12,17 @@ body {
   background: #f8fafc;
   color: #0b1b3f;
 }
+
+@keyframes thinking-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
+
+.thinking-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: #0b1b3f;
+  animation: thinking-bounce 1.2s ease-in-out infinite;
+}

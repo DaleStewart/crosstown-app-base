@@ -1,14 +1,21 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import type { TranscriptLine } from "@/hooks/useVoiceSession";
 import { ScrollArea } from "@/ui/scroll-area";
+import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { cn } from "@/lib/utils";
 
-export function Transcript({ lines }: { lines: TranscriptLine[] }): ReactNode {
+export function Transcript({
+  lines,
+  thinking = false,
+}: {
+  lines: TranscriptLine[];
+  thinking?: boolean;
+}): ReactNode {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView?.({ behavior: "smooth" });
-  }, [lines]);
+  }, [lines, thinking]);
 
   return (
     <ScrollArea
@@ -16,7 +23,7 @@ export function Transcript({ lines }: { lines: TranscriptLine[] }): ReactNode {
       data-testid="transcript"
     >
       <div className="flex flex-col gap-2">
-        {lines.length === 0 && (
+        {lines.length === 0 && !thinking && (
           <p className="text-sm text-slate-400 italic">No transcript yet. Hold to talk.</p>
         )}
         {lines.map((line) => (
@@ -32,6 +39,7 @@ export function Transcript({ lines }: { lines: TranscriptLine[] }): ReactNode {
             {line.text || (line.final ? "" : "…")}
           </div>
         ))}
+        {thinking && <ThinkingIndicator />}
         <div ref={endRef} />
       </div>
     </ScrollArea>

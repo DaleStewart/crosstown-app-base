@@ -16,6 +16,10 @@ export async function startMic(onPcm: PcmCallback): Promise<MicSession> {
     ctx = new AudioContext();
     await ctx.resume();
     const source = ctx.createMediaStreamSource(stream);
+    // TODO(post-hackathon): migrate to AudioWorkletNode (deprecation warning,
+    // no functional impact — ScriptProcessorNode still works in all current
+    // Chromium/Firefox/Safari builds). Worklet migration requires a separate
+    // worklet module file + MessagePort plumbing; tracked outside this PR.
     const processor = ctx.createScriptProcessor(4096, 1, 1);
     const targetRate = 16000;
 
