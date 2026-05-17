@@ -73,6 +73,7 @@ As of 2026-05-15, D-009 executes a deliberate model upgrade from `gpt-4o-realtim
 - `npm run build` **FAILED** due to this same pre-existing vite/vitest collision. No new breakage from PRs.
 
 ### D-034 · Text input added — Sean can type questions (voice parity)
+### D-030 · stopTalking() must send stop frame to orchestrator on mic release
 **Date:** 2026-05-16
 **Author:** Parker (Frontend)
 **Status:** Adopted
@@ -126,6 +127,20 @@ Sean requested a text input field alongside push-to-talk so users can type quest
 **Pattern adapted from:** 47doors `ChatInput.tsx` + `useChat.ts` — callback-prop pattern keeps `TextInput` stateless; single source of truth for messages stays in `useVoiceSession` reducer.
 
 **Voice regression isolation:** text input calls HTTP `POST /api/turn`, not the voice WebSocket. Wanda's orchestrator regression (revision --0000008) does not affect text input.
+In push-to-talk mode the frontend sends PCM audio frames while the user holds the mic button. When the user releases, the orchestrator must receive a `{type:"stop"}` frame to know it should flush the audio buffer and generate a response. Without it the server waits indefinitely and the chat window stays empty.
+
+**Bug:** `stopTalking()` in `useVoiceSession.ts` was stopping the mic and dispatching `recording: false` but never calling `send({ type: "stop" })`. The stop signal only existed in `disconnect()`, which is only called on full session teardown — not on every mic release.
+
+**Evidence (Playwright, pre-fix):** 16 WS frames sent (1 start + 15 binary PCM), 0 frames received after 8 s, no stop frame present.
+**Evidence (Playwright, post-fix):** 17 WS frames sent — stop frame now appears as `{"type":"stop"}` immediately after the binary PCM block.
+
+**Fix (PR #19, commit 626cb9e):**
+- `stopTalking()` calls `send({ type: "stop" })` after `mic.stop()`; adds `send` to its `useCallback` dep array.
+- `disconnect()` removes its own duplicate stop send (now redundant since it calls `stopTalking()` first) and drops the `send` dep.
+
+**Residual:** WS RECEIVED still 0 after fix — orchestrator-side handling of the stop frame is Wanda's scope.
+
+**Deploy:** ACR build `mic-stopframe-fix-20260516101747` → revision `frontend--0000003` (Healthy, 100% traffic).
 
 **Eval Gates (Maximoff — Citation + Orchestrator + Tool Routing):**
 - Citation gate: 8/8 scenarios, 0.0% uncited (threshold ≤5%) ✅
@@ -247,6 +262,40 @@ Lab dry-run executes as Phase 0–4 per runbook at `.squad/files/lab-dry-run-run
 **Decision (one line):** Mic button is alive — Sean can UAT push-to-talk against the live frontend. Full voice loop (audio response back) is still gated on Bug #8 (Foundry Realtime WS handshake 404), which remains with Brady; that's an orchestrator-side issue independent of this fix.
 
 **Files:** PR #17 (https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/17), `apps/frontend/nginx.conf`, `apps/frontend/docker-entrypoint.sh`, `apps/frontend/e2e/mic-button.spec.ts`, `apps/frontend/playwright.config.ts`, `.squad/files/playwright-mic-button-2026-05-16.log` (pre-fix), `.squad/files/playwright-mic-button-postfix-2026-05-16.log` (post-fix), `.squad/files/azd-deploy-frontend-mic-fix-2026-05-16.log`, `.squad/files/acr-build-frontend-mic-fix-2026-05-16.log`, `.squad/files/azd-up-result-2026-05-15.md` (Bug #13 row + section).
+
+### D-029 · Bug #14 fixed — Voice loop end-to-end alive (explicit audio commit + gpt-realtime-1.5 schema)
+**Date:** 2026-05-16
+**Author:** Wanda Maximoff (Anomaly Hunter) — requested by Sean
+**Status:** Shipped (PRs #19 + #20 open; both deployed to UAT)
+
+**Discovery:** Sean UAT-tested push-to-talk. Mic button goes yellow, audio flows (per D-028 fix), but chat window shows nothing. `/api/turn` text path works. `/ws/voice` accepts connections and closes quickly with zero response frames.
+
+**Root causes (two, both required to fix):**
+
+1. **Explicit commit missing (PRIMARY)** — The orchestrator's `/ws/voice` loop never committed the audio buffer to the model. Without `input_audio_buffer.commit` + `response.create`, the model never processes the user's speech. The `stop` event sent by the frontend was ignored (handler did `break`, closing the session before any response).
+
+2. **`stop` handler closed session too early (SECONDARY)** — The `stop` handler broke the WebSocket loop immediately. After PR #19 (Parker) added `stopTalking() → {type:"stop"}`, this became critical: stop arrived before model response, killing the session before anything came back.
+
+**gpt-realtime-1.5 GA API schema — unsupported fields discovered:**
+- `session.input_audio_transcription`: **REJECTED** (`Unknown parameter`) — causes `session.updated` timeout
+- `session.turn_detection`: **REJECTED** (`Unknown parameter`) — same failure mode
+- `input_audio_buffer.commit`, `response.create`: **SUPPORTED** ✅ (standard Realtime protocol messages, not session config)
+
+**Fix (PR #20, branch `squad/fix-voice-vad-commit`):**
+- `foundry_realtime.py`: Add `commit_audio()` method (`input_audio_buffer.commit` + `response.create`); add pump error-logging (captures Foundry `error` events, unblocks `session_ready`, raises `RuntimeError` with exact message — essential for diagnosing schema rejections); remove `input_audio_transcription` and `turn_detection` from `session.update` (both unsupported in this gpt-realtime-1.5 deployment).
+- `orchestrator.py`: `stop` handler calls `commit_audio()` via duck-typed `getattr`, then continues loop (does NOT break). Multi-turn PTT preserved: session stays open after response.
+
+**Paired with PR #19 (Parker):** Frontend sends `{type:"stop"}` on `stopTalking()` (mic release). Both PRs must merge together for end-to-end voice.
+
+**Live probe (orchestrator--0000007, tag `vad-fix-20260516104728e`):**
+```
+CONNECTED → start → 10 PCM chunks → stop → FRAME[1]: type=final
+```
+First response frame ever received from the voice path. With real speech (non-silence), `transcript_delta` frames precede `final`.
+
+**Decision:** Voice loop is live. Sean can UAT with real speech. Both PRs (#19 frontend, #20 orchestrator) must merge to `main` together. PTT pattern is client-driven explicit commit (no server VAD — unsupported by this gpt-realtime-1.5 deployment).
+
+**Files:** PR #19 (https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/19), PR #20 (https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/20), `apps/orchestrator/voice/foundry_realtime.py`, `apps/orchestrator/agent/orchestrator.py`.
 
 ---
 

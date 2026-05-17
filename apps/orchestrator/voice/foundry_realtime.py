@@ -32,6 +32,17 @@ class FoundryRealtimeSession:
         self._inbound: asyncio.Queue[VoiceEvent | None] = asyncio.Queue()
         self._closed = False
 
+    async def commit_audio(self) -> None:
+        """Flush the audio buffer and ask the model to respond.
+
+        Called when the client signals end-of-utterance (push-to-talk release).
+        With server_vad this is belt-and-suspenders; without it, it is required.
+        """
+        if self._ws is None or self._closed:
+            return
+        await self._ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
+        await self._ws.send(json.dumps({"type": "response.create"}))
+
     async def send_audio(self, pcm: bytes) -> None:
         if self._ws is None or self._closed:
             return
@@ -203,6 +214,7 @@ class FoundryRealtimeProvider:
         )
 
         session_ready: asyncio.Event = asyncio.Event()
+        session_error: list[str] = []
 
         async def pump() -> None:
             try:
@@ -211,8 +223,13 @@ class FoundryRealtimeProvider:
                         continue
                     try:
                         evt = json.loads(raw)
-                        if evt.get("type") == "session.updated":
+                        etype = evt.get("type", "")
+                        if etype == "session.updated":
                             session_ready.set()
+                        elif etype == "error":
+                            msg = evt.get("error", {}).get("message", str(evt))
+                            session_error.append(msg)
+                            session_ready.set()  # unblock wait_for so we can raise
                     except json.JSONDecodeError:
                         pass
                     await session._ingest(raw)
@@ -221,6 +238,8 @@ class FoundryRealtimeProvider:
 
         asyncio.create_task(pump())
         await asyncio.wait_for(session_ready.wait(), timeout=10.0)
+        if session_error:
+            raise RuntimeError(f"Foundry session.update rejected: {session_error[0]}")
 
         # Phase 2 (conditional): enable input audio transcription.
         # DANGER: Azure OpenAI closes the WebSocket if the deployment name is invalid —

@@ -456,3 +456,60 @@ citations: 2  | tool: summarize_incident | warnings: NONE | text_len: 364
 - PR #15: https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/15
 - Base: `squad/fix-realtime-aoai-direct-endpoint` (PR #14)
 ## 2026-05-15 — Lab dry-run runbook delivered; P0 gpt-4.1 version pin shipped as PR #5; awaiting tenant login + PR merge for azd up
+
+---
+
+## 2026-05-16 — Bug #14: Voice Loop End-to-End Fix (PR #20)
+
+**Requested by:** Sean (segayle). Live UAT failure: mic button goes yellow (audio flows), but chat window shows nothing. `/api/turn` text path works. `/ws/voice` accepts connections and closes immediately with zero response frames.
+
+### Root Cause Analysis
+
+**Live probe (pre-fix):** `CONNECTED → start → 5 PCM chunks → stop → CONNECTION CLOSED: no close frame`. Zero frames received.
+
+**Bug A (PRIMARY) — Missing explicit audio commit:**
+The orchestrator's `/ws/voice` loop never committed the audio buffer. Without `input_audio_buffer.commit` + `response.create`, the model never processes speech. The `stop` handler did `break`, closing the session before any model response.
+
+**Bug B (SECONDARY) — `stop` breaks session too early:**
+After PR #19 (Parker) added `stopTalking() → {type:"stop"}` on mic release, the `break` in the `stop` handler killed the session before the response arrived.
+
+**gpt-realtime-1.5 GA API schema discoveries (not in docs):**
+
+| Field | Behavior |
+|---|---|
+| `session.turn_detection` | REJECTED — `Unknown parameter` |
+| `session.input_audio_transcription` | REJECTED — `Unknown parameter` |
+| `input_audio_buffer.commit` (message) | SUPPORTED |
+| `response.create` (message) | SUPPORTED |
+
+The pump's `_translate()` silently dropped `error` events — these schema rejections caused `session_ready` to never fire, leading to a 10-second `asyncio.TimeoutError`. Fixed by adding explicit error capture in the pump.
+
+### Fix (branch `squad/fix-voice-vad-commit`, PR #20)
+
+**`foundry_realtime.py`:**
+- `commit_audio()` method — `input_audio_buffer.commit` + `response.create`
+- Pump error logging — captures `error` events, calls `session_ready.set()`, raises `RuntimeError` with Foundry's exact message
+- Removed `input_audio_transcription` (unsupported)
+- Removed `turn_detection` (unsupported in this gpt-realtime-1.5 deployment)
+
+**`orchestrator.py`:**
+- `stop` handler: calls `commit_audio()` via duck-typed `getattr`, continues loop (no `break`)
+- Multi-turn PTT preserved — session stays alive after response
+
+### Deployment History
+
+| Image Tag | Revision | Outcome |
+|---|---|---|
+| `vad-fix-20260516102318` | `--0000003` | session.updated timeout (create_response invalid) |
+| `vad-fix-20260516102318b` | `--0000004` | still timeout (error events silent) |
+| `vad-fix-20260516102318c` | `--0000005` | `Unknown parameter: 'session.input_audio_transcription'` |
+| `vad-fix-20260516102318d` | `--0000006` | `Unknown parameter: 'session.turn_detection'` |
+| `vad-fix-20260516104728e` | `--0000007` | ✅ `FRAME[1]: type=final` — VOICE LOOP ALIVE |
+
+### Outcome
+
+- ✅ **Bug #14 FIXED** — First ever response frame received from voice path in live UAT
+- ✅ `/api/turn` text path regression check passes (no regression)
+- ✅ D-029 decision written
+- 🔗 PR #19 (Parker frontend) + PR #20 (orchestrator) must merge together
+- PR #20: https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/20
