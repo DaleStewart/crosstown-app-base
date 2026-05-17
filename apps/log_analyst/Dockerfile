@@ -23,6 +23,10 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PORT=8001
 
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system app && useradd --system --gid app --home /home/app --create-home app
 
 COPY --from=builder /opt/venv /opt/venv
@@ -36,7 +40,7 @@ USER app
 
 EXPOSE 8001
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8001/health',timeout=3).status==200 else 1)"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl --fail --silent --max-time 4 http://localhost:${PORT:-8001}/health || exit 1
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]

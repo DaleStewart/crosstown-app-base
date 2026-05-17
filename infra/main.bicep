@@ -15,6 +15,13 @@ param location string = 'eastus2'
 @description('Principal ID of the user running azd up; receives contributor-level data-plane roles for local dev')
 param principalId string
 
+@description('Principal type of the deploying identity. "User" for local azd up (default); "ServicePrincipal" when running from CI/CD with a managed identity or service principal (set via AZURE_PRINCIPAL_TYPE env var).')
+@allowed([
+  'User'
+  'ServicePrincipal'
+])
+param principalType string = 'User'
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Variables
 // ─────────────────────────────────────────────────────────────────────────────
@@ -306,6 +313,7 @@ module roleAssignments 'modules/roleAssignments.bicep' = {
   params: {
     uamiPrincipalId: identity.outputs.principalId
     principalId: principalId
+    principalType: principalType
     acrName: acr.outputs.name
     keyVaultName: keyVault.outputs.name
     searchName: search.outputs.name

@@ -1,0 +1,124 @@
+{
+  "articles": [
+    {
+      "article_id": "kb-it-001",
+      "title": "How to Reset Your Canvas Password",
+      "url": "#",
+      "content": "If you've forgotten your Canvas password, follow these steps to reset it: 1. Go to the Canvas login page. 2. Click 'Forgot Password'. 3. Enter your university email address. 4. Check your email for reset instructions. 5. Create a new password meeting security requirements. Note: Your Canvas password is separate from your main university login.",
+      "snippet": "Go to the Canvas login page, click 'Forgot Password', enter your email, and follow the reset instructions sent to your inbox.",
+      "department": "IT",
+      "tags": ["password", "canvas", "login", "reset", "lms"],
+      "last_updated": "2026-01-15T10:00:00Z"
+    },
+    {
+      "article_id": "kb-it-002",
+      "title": "VPN Setup and Troubleshooting",
+      "url": "#",
+      "content": "To access university resources from off-campus, you need to connect to the VPN. Download the GlobalProtect client from software.university.edu. Install and launch the application. Enter 'vpn.university.edu' as the portal address. Log in with your university credentials. Common issues: If connection fails, ensure you're not already on campus network. Try disabling other VPN software. Check firewall settings.",
+      "snippet": "Download GlobalProtect VPN client, enter vpn.university.edu as the portal address, and log in with your university credentials.",
+      "department": "IT",
+      "tags": ["vpn", "remote access", "globalprotect", "off-campus"],
+      "last_updated": "2026-01-10T14:30:00Z"
+    },
+    {
+      "article_id": "kb-it-003",
+      "title": "Two-Factor Authentication (2FA) Setup",
+      "url": "#",
+      "content": "Two-factor authentication adds an extra layer of security to your account. To set up 2FA: 1. Download the Duo Mobile app on your phone. 2. Go to identity.university.edu/2fa. 3. Log in and click 'Add Device'. 4. Scan the QR code with Duo Mobile. 5. Complete the test authentication. You can add backup devices for emergencies.",
+      "snippet": "Download the Duo Mobile app, visit the university 2FA portal, scan the QR code to link your device, and complete verification.",
+      "department": "IT",
+      "tags": ["2fa", "duo", "security", "authentication", "mfa"],
+      "last_updated": "2026-01-12T09:00:00Z"
+    },
+    {
+      "article_id": "kb-reg-001",
+      "title": "How to Request an Official Transcript",
+      "url": "#",
+      "content": "To request an official transcript: 1. Log into the Student Portal. 2. Navigate to Records > Transcript Request. 3. Select delivery method (electronic or mail). 4. Enter recipient information. 5. Pay the $10 fee per copy. Processing time: Electronic transcripts are sent within 1-2 business days. Mailed transcripts take 5-7 business days. Rush processing available for additional fee.",
+      "snippet": "Log into Student Portal, go to Records > Transcript Request, select delivery method, and pay $10 per copy. Electronic delivery: 1-2 business days.",
+      "department": "REGISTRAR",
+      "tags": ["transcript", "records", "official", "academic"],
+      "last_updated": "2026-01-08T11:00:00Z"
+    },
+    {
+      "article_id": "kb-reg-002",
+      "title": "Course Add/Drop Deadlines and Procedures",
+      "url": "#",
+      "content": "Important deadlines for Spring 2026: Add deadline: January 24. Drop deadline (no record): January 31. Withdrawal deadline (W grade): March 15. To add or drop a course: Log into Student Portal, go to Registration, select the course, and click Add or Drop. Instructor signatures may be required after the first week. Full refunds only available before drop deadline.",
+      "snippet": "Spring 2026: Add by Jan 24, Drop by Jan 31, Withdraw by Mar 15. Manage courses in Student Portal > Registration section.",
+      "department": "REGISTRAR",
+      "tags": ["add", "drop", "registration", "deadline", "withdrawal"],
+      "last_updated": "2026-01-05T16:00:00Z"
+    },
+    {
+      "article_id": "kb-fin-001",
+      "title": "Financial Aid Disbursement Schedule",
+      "url": "#",
+      "content": "Financial aid is disbursed according to the following schedule: Fall semester: August 15 (2 weeks before classes). Spring semester: January 10 (2 weeks before classes). Summer sessions: One week before each session starts. Aid is first applied to tuition and fees. Remaining balance is refunded via direct deposit or check. Ensure your banking information is current in the Student Portal.",
+      "snippet": "Aid disburses 2 weeks before each semester (Spring: Jan 10). Remaining balance refunded via direct deposit. Update banking info in Student Portal.",
+      "department": "FINANCIAL_AID",
+      "tags": ["financial aid", "disbursement", "refund", "payment"],
+      "last_updated": "2026-01-03T10:00:00Z"
+    },
+    {
+      "article_id": "kb-fin-002",
+      "title": "FAFSA Application and Renewal",
+      "url": "#",
+      "content": "Complete the FAFSA at studentaid.gov by March 1 for priority consideration. You'll need: Your FSA ID, Social Security number, tax returns (or use IRS Data Retrieval), and records of untaxed income. The university's federal school code is 001234. Renewal students: Use the renewal FAFSA option to pre-fill information from last year. Check your Student Portal for missing documents.",
+      "snippet": "Complete FAFSA at studentaid.gov by March 1 for priority consideration. Use IRS Data Retrieval to import tax info automatically.",
+      "department": "FINANCIAL_AID",
+      "tags": ["fafsa", "financial aid", "application", "tax"],
+      "last_updated": "2025-12-15T09:00:00Z"
+    },
+    {
+      "article_id": "kb-fac-001",
+      "title": "Reporting Facilities Issues",
+      "url": "#",
+      "content": "To report a facilities issue: For non-emergencies, submit a work order at facilities.university.edu or call 555-FAC-HELP. Include building name, room number, and detailed description. For emergencies (flooding, gas leaks, elevator entrapment), call Campus Safety at 555-911-SAFE immediately. Average response times: Emergency: 30 minutes. Urgent: 4 hours. Standard: 2-3 business days.",
+      "snippet": "Non-emergencies: Submit work order online or call 555-FAC-HELP. Emergencies (flooding, gas, elevator): Call Campus Safety at 555-911-SAFE.",
+      "department": "FACILITIES",
+      "tags": ["facilities", "maintenance", "repair", "work order", "emergency"],
+      "last_updated": "2026-01-02T13:00:00Z"
+    },
+    {
+      "article_id": "kb-saf-001",
+      "title": "Parking Permits and Regulations",
+      "url": "#",
+      "content": "Purchase parking permits at parking.university.edu. Permit types: Student Commuter ($200/semester), Student Residential ($150/semester), Evening Only ($75/semester). Permits are valid in designated lots only. Violations: $50 for no permit, $30 for wrong lot, $100 for handicap violation. Appeals must be submitted within 14 days at parking.university.edu/appeals.",
+      "snippet": "Purchase permits online. Commuter: $200/sem, Residential: $150/sem, Evening: $75/sem. Appeal violations within 14 days.",
+      "department": "CAMPUS_SAFETY",
+      "tags": ["parking", "permit", "violation", "appeal", "commuter"],
+      "last_updated": "2026-01-06T11:00:00Z"
+    },
+    {
+      "article_id": "kb-stu-001",
+      "title": "Student ID Card Replacement",
+      "url": "#",
+      "content": "Lost or damaged ID cards can be replaced at the Card Services office in the Student Union, Room 102. Hours: Monday-Friday 8am-5pm. Replacement fee: $25. Bring a government-issued photo ID for verification. Temporary cards are available for $5 and valid for 7 days. Report lost cards immediately to prevent unauthorized use of meal plans or building access.",
+      "snippet": "Visit Card Services (Student Union Room 102), M-F 8am-5pm. Replacement fee: $25. Bring government-issued photo ID.",
+      "department": "STUDENT_AFFAIRS",
+      "tags": ["id card", "replacement", "lost", "student union"],
+      "last_updated": "2026-01-04T10:00:00Z"
+    },
+    {
+      "article_id": "kb-hr-001",
+      "title": "Student Employment: Getting Started",
+      "url": "#",
+      "content": "To work on campus: 1. Apply for positions at jobs.university.edu. 2. Once hired, complete I-9 form within 3 days (bring ID and work authorization). 3. Set up direct deposit in the HR portal. 4. Complete required training modules. International students: Ensure you have proper work authorization and visit International Services first. Work-study eligible students receive priority for federal work-study positions.",
+      "snippet": "Apply at jobs portal. After hire: Complete I-9 within 3 days (bring ID), set up direct deposit, complete training modules.",
+      "department": "HR",
+      "tags": ["employment", "job", "work study", "i-9", "student worker"],
+      "last_updated": "2026-01-07T14:00:00Z"
+    },
+    {
+      "article_id": "kb-stu-002",
+      "title": "Grade Appeal Process",
+      "url": "#",
+      "content": "If you believe a grade was assigned unfairly, follow these steps: 1. First, discuss with your instructor within 10 days of grade posting. 2. If unresolved, submit a written appeal to the department chair within 20 days. 3. If still unresolved, appeal to the Academic Appeals Committee within 30 days. Appeals must include: course name, instructor, grade received, grade expected, and detailed explanation with evidence. Final decisions are made within 45 days.",
+      "snippet": "Step 1: Discuss with instructor (10 days). Step 2: Appeal to department chair (20 days). Step 3: Academic Appeals Committee (30 days).",
+      "department": "STUDENT_AFFAIRS",
+      "tags": ["grade", "appeal", "academic", "dispute", "instructor"],
+      "last_updated": "2025-12-20T09:00:00Z"
+    }
+  ]
+}

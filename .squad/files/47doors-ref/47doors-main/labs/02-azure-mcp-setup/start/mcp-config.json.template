@@ -1,0 +1,85 @@
+{
+  "_instructions": [
+    "This is your MCP (Model Context Protocol) configuration template for Azure integration.",
+    "Follow the TODO comments below to configure each MCP server.",
+    "Environment variables use the ${env:VARIABLE_NAME} syntax to reference values from your .env file.",
+    "After completing all TODOs, rename this file to mcp-config.json"
+  ],
+
+  "mcpServers": {
+    "_TODO_1": "Configure the main Azure MCP server for general Azure resource management",
+    "azure": {
+      "_hint": "This server provides access to Azure resources like VMs, App Services, etc.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@azure/mcp@latest"
+      ],
+      "env": {
+        "_TODO_2": "Set your Azure subscription ID (found in Azure Portal > Subscriptions)",
+        "AZURE_SUBSCRIPTION_ID": "${env:AZURE_SUBSCRIPTION_ID}",
+
+        "_TODO_3": "Set your Azure tenant ID (found in Azure Portal > Microsoft Entra ID > Overview)",
+        "AZURE_TENANT_ID": "${env:AZURE_TENANT_ID}",
+
+        "_TODO_4": "Set your Azure service principal client ID (created via 'az ad sp create-for-rbac')",
+        "AZURE_CLIENT_ID": "${env:AZURE_CLIENT_ID}",
+
+        "_TODO_5": "Set your Azure service principal client secret",
+        "AZURE_CLIENT_SECRET": "${env:AZURE_CLIENT_SECRET}",
+
+        "_TODO_6": "Set your Azure resource group name",
+        "AZURE_RESOURCE_GROUP": "${env:AZURE_RESOURCE_GROUP}",
+
+        "_TODO_7": "Set your Azure OpenAI endpoint URL (e.g., https://your-resource.openai.azure.com/)",
+        "AZURE_OPENAI_ENDPOINT": "${env:AZURE_OPENAI_ENDPOINT}",
+
+        "_TODO_8": "Set your Azure OpenAI API key",
+        "AZURE_OPENAI_API_KEY": "${env:AZURE_OPENAI_API_KEY}",
+
+        "_TODO_9": "Set the Azure OpenAI API version (e.g., 2024-02-15-preview)",
+        "AZURE_OPENAI_API_VERSION": "${env:AZURE_OPENAI_API_VERSION}"
+      }
+    },
+
+    "_TODO_10": "Configure the Azure AI Search MCP server for vector search capabilities",
+    "azure-ai-search": {
+      "_hint": "This server enables semantic search and RAG patterns with Azure AI Search",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@azure/mcp-server-ai-search@latest"
+      ],
+      "env": {
+        "_TODO_11": "Set your Azure AI Search endpoint (e.g., https://your-search.search.windows.net)",
+        "AZURE_SEARCH_ENDPOINT": "${env:AZURE_SEARCH_ENDPOINT}",
+
+        "_TODO_12": "Set your Azure AI Search API key (found in Search service > Keys)",
+        "AZURE_SEARCH_API_KEY": "${env:AZURE_SEARCH_API_KEY}",
+
+        "_TODO_13": "Set your search index name",
+        "AZURE_SEARCH_INDEX_NAME": "${env:AZURE_SEARCH_INDEX_NAME}"
+      }
+    },
+
+    "_TODO_14": "Configure the Azure Storage MCP server for blob storage access",
+    "azure-storage": {
+      "_hint": "This server provides access to Azure Blob Storage for file operations",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@azure/mcp-server-storage@latest"
+      ],
+      "env": {
+        "_TODO_15": "Set your Azure Storage account name",
+        "AZURE_STORAGE_ACCOUNT_NAME": "${env:AZURE_STORAGE_ACCOUNT_NAME}",
+
+        "_TODO_16": "Set your Azure Storage account key (found in Storage account > Access keys)",
+        "AZURE_STORAGE_ACCOUNT_KEY": "${env:AZURE_STORAGE_ACCOUNT_KEY}",
+
+        "_TODO_17": "Set your full storage connection string (alternative to account name + key)",
+        "AZURE_STORAGE_CONNECTION_STRING": "${env:AZURE_STORAGE_CONNECTION_STRING}"
+      }
+    }
+  }
+}

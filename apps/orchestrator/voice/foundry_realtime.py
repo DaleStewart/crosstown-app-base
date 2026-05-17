@@ -32,6 +32,18 @@ class FoundryRealtimeSession:
         self._inbound: asyncio.Queue[VoiceEvent | None] = asyncio.Queue()
         self._closed = False
 
+    async def commit_audio(self) -> None:
+        """Flush the audio buffer and ask the model to respond.
+
+        Called when the client signals end-of-utterance (push-to-talk release).
+        With server_vad this is belt-and-suspenders; without it, it is required.
+        Without an explicit commit + response.create, the model never processes speech.
+        """
+        if self._ws is None or self._closed:
+            return
+        await self._ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
+        await self._ws.send(json.dumps({"type": "response.create"}))
+
     async def send_audio(self, pcm: bytes) -> None:
         if self._ws is None or self._closed:
             return
@@ -106,10 +118,16 @@ class FoundryRealtimeSession:
             text = data.get("transcript", "")
             if isinstance(text, str):
                 return TranscriptDelta(role="assistant", text=text, final=True)
+        if kind == "conversation.item.input_audio_transcription.delta":
+            text = data.get("delta", "")
+            if isinstance(text, str) and text:
+                return TranscriptDelta(role="user", text=text, final=False)
         if kind == "conversation.item.input_audio_transcription.completed":
             text = data.get("transcript", "")
             if isinstance(text, str):
                 return TranscriptDelta(role="user", text=text, final=True)
+        if kind == "conversation.item.input_audio_transcription.failed":
+            return None
         if kind == "response.function_call_arguments.done":
             name = str(data.get("name", ""))
             call_id = str(data.get("call_id", ""))
@@ -145,9 +163,10 @@ class FoundryRealtimeSession:
 class FoundryRealtimeProvider:
     name = "foundry_realtime"
 
-    def __init__(self, endpoint: str, deployment: str) -> None:
+    def __init__(self, endpoint: str, deployment: str, transcription_deployment: str = "") -> None:
         self._endpoint = endpoint
         self._deployment = deployment
+        self._transcription_deployment = transcription_deployment
 
     async def _get_token(self) -> str:
         async with DefaultAzureCredential() as cred:
@@ -196,6 +215,7 @@ class FoundryRealtimeProvider:
         )
 
         session_ready: asyncio.Event = asyncio.Event()
+        session_error: list[str] = []
 
         async def pump() -> None:
             try:
@@ -204,8 +224,13 @@ class FoundryRealtimeProvider:
                         continue
                     try:
                         evt = json.loads(raw)
-                        if evt.get("type") == "session.updated":
+                        etype = evt.get("type", "")
+                        if etype == "session.updated":
                             session_ready.set()
+                        elif etype == "error":
+                            msg = evt.get("error", {}).get("message", str(evt))
+                            session_error.append(msg)
+                            session_ready.set()  # unblock wait_for so we can raise
                     except json.JSONDecodeError:
                         pass
                     await session._ingest(raw)
@@ -214,4 +239,34 @@ class FoundryRealtimeProvider:
 
         asyncio.create_task(pump())
         await asyncio.wait_for(session_ready.wait(), timeout=10.0)
+        if session_error:
+            raise RuntimeError(f"Foundry session.update rejected: {session_error[0]}")
+
+        # Phase 2 (conditional): enable input audio transcription.
+        # DANGER: Azure OpenAI closes the WebSocket if the deployment name is invalid —
+        # this is NOT a soft error. Only send when AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT
+        # is explicitly configured with a real deployment name (default is "").
+        # Infra: add a whisper-1 / gpt-4o-transcribe deployment to foundry.bicep first.
+        # OpenAI (non-Azure) accepts "whisper-1" without a custom deployment.
+        #
+        # GA nested format for gpt-realtime-1.5 (audio.input.transcription.model).
+        # Ref: 47doors-ref/47doors-main/backend/app/services/azure/realtime.py
+        if self._transcription_deployment:
+            await ws.send(
+                json.dumps(
+                    {
+                        "type": "session.update",
+                        "session": {
+                            "audio": {
+                                "input": {
+                                    "transcription": {
+                                        "model": self._transcription_deployment,
+                                    },
+                                },
+                            },
+                        },
+                    }
+                )
+            )
+
         return session

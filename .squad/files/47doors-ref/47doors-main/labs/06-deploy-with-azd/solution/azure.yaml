@@ -1,0 +1,48 @@
+# Azure Developer CLI (azd) Configuration
+# Lab 06: Deploy with azd - SOLUTION
+#
+# This file defines the application structure for Azure deployment.
+# Run 'azd up' to provision infrastructure and deploy the application.
+
+name: university-front-door-agent
+
+metadata:
+  template: university-front-door-agent@0.0.1
+
+services:
+  backend:
+    project: ./backend
+    language: python
+    host: containerapp
+    docker:
+      path: Dockerfile
+
+  # Frontend service (uncomment if you have a frontend)
+  # frontend:
+  #   project: ./frontend
+  #   language: js
+  #   host: staticwebapp
+
+infra:
+  provider: bicep
+  path: ./infra
+  module: main
+
+hooks:
+  postdeploy:
+    shell: sh
+    run: |
+      echo "=========================================="
+      echo "Deployment complete!"
+      echo "=========================================="
+      echo ""
+      echo "Backend URL: ${AZURE_CONTAINERAPP_URL}"
+      echo "API Health: ${AZURE_CONTAINERAPP_URL}/api/health"
+      echo "API Docs:   ${AZURE_CONTAINERAPP_URL}/docs"
+      echo ""
+      echo "To view logs:"
+      echo "  az containerapp logs show --name ca-backend --resource-group \$AZURE_RESOURCE_GROUP --follow"
+      echo ""
+      echo "To clean up resources:"
+      echo "  azd down"
+      echo "=========================================="

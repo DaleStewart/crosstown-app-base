@@ -9,6 +9,9 @@ RUN pip install --prefix=/install --no-cache-dir \
     "azure-monitor-opentelemetry>=1.2" "aiohttp>=3.9"
 
 FROM python:3.11-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home --uid 10001 app
 WORKDIR /app
 COPY --from=builder /install /usr/local
@@ -16,4 +19,8 @@ COPY . /app
 RUN chown -R app:app /app
 USER app
 EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl --fail --silent --max-time 4 http://localhost:${PORT:-8000}/health || exit 1
+
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

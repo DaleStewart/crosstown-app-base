@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "resourcePrefix": {
+      "value": "frontdoor"
+    },
+    "location": {
+      "value": "eastus"
+    },
+    "openAiModel": {
+      "value": "gpt-4o"
+    },
+    "openAiModelVersion": {
+      "value": "2024-05-13"
+    },
+    "mockMode": {
+      "value": false
+    }
+  }
+}

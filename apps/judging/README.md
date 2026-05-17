@@ -2,6 +2,22 @@
 
 Azure Static Web App that hackathon coaches use to score teams at the NYC MTA AI Agent Hackathon (May 19–20, 2026). Two tracks (Azure / Foundry and Copilot Studio), live leaderboard, lockable judging.
 
+## Live deployment
+
+- **URL:** https://mango-hill-0ee13cb0f.7.azurestaticapps.net/
+- **Resource group:** `rg-mtahack-prod` (subscription `Devpost-1`, region `eastus2`)
+- **SWA:** `mtahack-swa-5vqz4ojvidqwi`
+- **Cosmos:** `mtahack-cosmos-5vqz4ojvidqwi` (serverless, DB `mtahack`)
+- **azd env:** `mtahack-prod`
+- **Bootstrap admin:** `segayle@microsoft.com` (configured via `ADMIN_EMAILS` app setting; additional admins can be invited from the SWA Role Management blade)
+- **Deployed:** 2026-05-17 via `azd up` (Okoye)
+
+Post-provision follow-ups before judges sign in (see sections below for full detail):
+
+1. Configure the AAD identity provider on the SWA (tenant `microsoft.com`); add `AAD_CLIENT_ID` / `AAD_CLIENT_SECRET` app settings.
+2. Replace `{{TODO_TENANT_GUID}}` in `staticwebapp.config.json` and redeploy.
+3. Seed teams from `scripts/teams.csv` (see "Seed teams" below).
+
 ## Architecture
 - Frontend: vanilla HTML/CSS/JS (no build step) served by Azure Static Web Apps
 - API: Azure Functions (Node 20, JS) bundled as SWA managed Functions

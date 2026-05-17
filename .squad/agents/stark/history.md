@@ -58,3 +58,41 @@ Strange completed a security review of the judging app and authored `apps/judgin
 
 - 2026-05-15 — **Spec Kit v0.8.10 artifacts authored.** Layout: `.specify/memory/constitution.md` (v1.0.0) + `specs/001-realtime-1-5-upgrade/{spec,plan,tasks}.md`. `create-new-feature.ps1` works but creates a git branch — scaffolded by hand to stay on `main`. Constitution has 6 principles: Citations (NON-NEG), Mock Data (NON-NEG), Hermetic Tests, Keyless Auth, Voice Abstraction, Extensions-as-Exercises. Pitfall: the `.github/prompts/speckit.*.prompt.md` files are agent frontmatter stubs, not workflow docs — the real structure is in `.specify/templates/`.
 
+## 2026-05-16 — T104 HEALTHCHECK directives shipped (Phase 1 deploy-hygiene batch)
+
+**Task:** T104 (Medium) — Add `HEALTHCHECK` directives to `apps/orchestrator/Dockerfile` and `apps/log_analyst/Dockerfile` per FR-012.
+
+**Status:** ✅ Complete. Branch: `chore/deploy-hygiene` (not committed; file-only).
+
+**Deliverable:**
+- **apps/orchestrator/Dockerfile:** curl installed in runtime stage; HEALTHCHECK probes `http://localhost:8000/health` (canonical per audit T001, not `/healthz`). Every 30s, 5s timeout, 20s start period, 3 retries.
+- **apps/log_analyst/Dockerfile:** Replaced pre-existing python-urllib HEALTHCHECK with curl-based directive; same params except start period 20s (was 10s). Port 8001; ENV PORT=8001.
+
+Both use `${PORT:-<default>}` shell expansion. curl adds ~3–5 MB to each image (acceptable for demo).
+
+**Verification:** Static syntax check passing. Docker daemon not running locally (Docker Desktop not on Windows environment), so build verification deferred to CI deploy.yml + ACA container probes at runtime.
+
+**Notes:**
+- service_advisor HEALTHCHECK: intentionally out of scope per audit T003. Will be checkpoint on PR #27.
+- No git operations performed per task constraints.
+
+**Decision:** D-030.
+
+## 2026-05-16 — Phase 1 Deploy-Hygiene Batch Cleared (PR #29)
+
+**Task:** Phase 1 scribe intake for deploy-hygiene batch (T102 Okoye, T105 Parker, T103 Okoye, T108 Anvil large review).
+
+**Status:** ✅ Anvil review complete — **PASS**.
+
+**Decisions merged:**
+- D-020: Orchestrator aiohttp dep (Banner)
+- D-021: Bug #6 fixed, Bug #7 escalated (Banner)
+- D-023: Bug #8 fixed, Bug #9 escalated (Maximoff)
+- D-024: Bug #9 fix shipped (Maximoff)
+- D-025: Bug #10 shipped (Banner)
+- D-026: Frontend + log-analyst live (Okoye)
+- D-027: Bug #12 — no-bug (Banner)
+
+**Anvil verdict:** All 6 high-value checks passed. PR #29 safe to land as step 0 of Tuesday demo merge train. Non-blocking soft concerns documented (frontend HEALTHCHECK couples locally, OS-010 cassette key reconciliation in PR #27, smoke check 3 silent skip acceptable).
+
+**Next:** Merge PR #29 to `main`, queue PR #27 (service_advisor).

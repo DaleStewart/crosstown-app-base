@@ -13,6 +13,13 @@ param uamiPrincipalId string
 @description('Principal ID of the deploying user (for local-dev role assignments)')
 param principalId string
 
+@description('Principal type of the deploying identity ("User" for local azd up; "ServicePrincipal" for CI). Defaults to "User" for backwards compatibility.')
+@allowed([
+  'User'
+  'ServicePrincipal'
+])
+param principalType string = 'User'
+
 @description('Name of the Container Registry')
 param acrName string
 
@@ -188,7 +195,7 @@ resource userAcrPush 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   properties: {
     roleDefinitionId: roles.acrPush
     principalId: principalId
-    principalType: 'User'
+    principalType: principalType
   }
 }
 
@@ -198,7 +205,7 @@ resource userCognitiveServicesUser 'Microsoft.Authorization/roleAssignments@2022
   properties: {
     roleDefinitionId: roles.cognitiveServicesUser
     principalId: principalId
-    principalType: 'User'
+    principalType: principalType
   }
 }
 
@@ -208,7 +215,7 @@ resource userSearchIndexDataContributor 'Microsoft.Authorization/roleAssignments
   properties: {
     roleDefinitionId: roles.searchIndexDataContributor
     principalId: principalId
-    principalType: 'User'
+    principalType: principalType
   }
 }
 
@@ -218,7 +225,7 @@ resource userKeyVaultSecretsOfficer 'Microsoft.Authorization/roleAssignments@202
   properties: {
     roleDefinitionId: roles.keyVaultSecretsOfficer
     principalId: principalId
-    principalType: 'User'
+    principalType: principalType
   }
 }
 

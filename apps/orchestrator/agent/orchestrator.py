@@ -90,7 +90,15 @@ async def run_voice_session(
                     turn.user_text = (turn.user_text + " " + user_text).strip()
                     await session.send_text(user_text)
                 elif kind == "stop":
-                    break
+                    # Flush the audio buffer and trigger a model response.
+                    # Do NOT break — stay in the receive loop so events pumped
+                    # back from Foundry can reach the client.  The WS close
+                    # from disconnect() will produce a websocket.disconnect
+                    # message that breaks the loop cleanly.
+                    if session is not None:
+                        commit = getattr(session, "commit_audio", None)
+                        if callable(commit):
+                            await commit()
                 else:
                     await send_json({"type": "error", "message": f"unknown type {kind}"})
             elif data is not None:

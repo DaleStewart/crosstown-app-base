@@ -1,0 +1,37 @@
+{
+  "tool_calls": [
+    {
+      "name": "get_disruption_status",
+      "arguments": {
+        "line": "L1"
+      },
+      "result": {
+        "line": "L1",
+        "status": "suspended",
+        "disruption_id": "DSR-2026-001",
+        "affected_segment": ["S-Penn", "S-Jamaica", "S-Hicksville", "S-Mineola", "S-Ronkonkoma", "S-Babylon", "S-East"],
+        "estimated_resume": "unknown",
+        "summary": "Full L1 shutdown; no through service S-Penn to S-East."
+      }
+    }
+  ],
+  "citations": [
+    {
+      "id": "INC-2001",
+      "type": "incident",
+      "snippet": "DSR-2026-001 L1 full shutdown; estimated_resume: unknown."
+    },
+    {
+      "id": "L-201001",
+      "type": "log",
+      "snippet": "service.suspended line=L1 segment=S-Penn..S-East"
+    },
+    {
+      "id": "RB-11-line-shutdown-contingency",
+      "type": "runbook",
+      "snippet": "Line shutdown contingency: rider comms + alternate-mode guidance."
+    }
+  ],
+  "warnings": [],
+  "text": "L1 is not running right now — full-line suspension under DSR-2026-001 (see INC-2001 and service.suspended log L-201001). The affected segment spans S-Penn through S-East via S-Jamaica, S-Hicksville, S-Mineola, S-Ronkonkoma, and S-Babylon. Estimated resume time is unknown. Refer to runbook RB-11-line-shutdown-contingency for the standard rider-comms playbook."
+}

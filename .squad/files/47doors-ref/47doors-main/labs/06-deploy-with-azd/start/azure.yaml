@@ -1,0 +1,47 @@
+# Azure Developer CLI (azd) Configuration
+# Lab 06: Deploy with azd
+#
+# TODO: Complete this azure.yaml to define your application for azd deployment
+# Reference: https://learn.microsoft.com/azure/developer/azure-developer-cli/azd-schema
+
+# TODO: Set the application name
+name: university-front-door-agent
+
+# Optional metadata
+metadata:
+  template: university-front-door-agent@0.0.1
+
+# TODO: Define your services
+# Each service should specify:
+#   - project: path to the service code
+#   - language: programming language (python, js, etc.)
+#   - host: Azure hosting service (containerapp, staticwebapp, etc.)
+services:
+  backend:
+    # TODO: Configure the backend service
+    # Hint:
+    #   project: ./backend
+    #   language: python
+    #   host: containerapp
+    #   docker:
+    #     path: Dockerfile
+
+  # Optional: Frontend service
+  # frontend:
+  #   project: ./frontend
+  #   language: js
+  #   host: staticwebapp
+
+# TODO: Configure infrastructure settings
+# Specify the IaC provider and path to templates
+infra:
+  # TODO: Set provider to 'bicep'
+  # TODO: Set path to './infra'
+  # TODO: Set module to 'main'
+
+# Optional: Define hooks for custom scripts
+# hooks:
+#   postdeploy:
+#     shell: sh
+#     run: |
+#       echo "Deployment complete!"

@@ -33,3 +33,22 @@ You're done when **ALL** of the following are true.
 4. Run `pytest docs/extensions/09_postgres_target/tests/ -v` and show all green.
 5. _(Optional)_ Set `ENABLE_POSTGRES_TOOL=true` and the Postgres env vars, re-run the curl,
    and show the same rows coming from the real Azure Postgres.
+
+
+## 🐘 Acceptance criteria
+
+| Metric | Status |
+|--------|--------|
+| Acceptance criteria | [██████████] 100% |
+| Edge cases listed | [██████████] 100% |
+| Pass/fail thresholds | [██████████] 100% |
+| Reviewer assigned | Stark (Architect) |
+
+| Field | Value |
+|-------|-------|
+| Last reviewed | 2026-05-17 |
+| Reviewed by | T'Challa (Lead) |
+| Doc owner | Stark (Architect) |
+| Related PRs (recent) | (none in last 7 days) |
+| Related branches in-flight | (none — exercise only) |
+| Next review trigger | When acceptance criteria are revisited or team completes extension |

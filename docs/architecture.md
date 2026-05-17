@@ -73,3 +73,23 @@ All gates run hermetically offline (cassettes) and switch to live mode against t
 - New grounding: drop a corpus under `data/<your_corpus>/`, extend `scripts/load_search_index.py`
 
 See [docs/use-case-map.md](use-case-map.md) for which extension fits which submitted use case.
+
+---
+
+## 🏛️ Health at a glance
+
+| Metric | Status |
+|--------|--------|
+| Services on main reflect docs | [██████████] 100% |
+| Bicep modules listed accurate | [██████████] 100% |
+| Voice flow mermaid current | [██████████] 100% |
+| Quality gates table current | [██████████] 100% |
+
+| Field | Value |
+|-------|-------|
+| Last reviewed | 2026-05-17 |
+| Reviewed by | T'Challa (Lead) |
+| Doc owner | Stark (Architect) |
+| Related PRs (recent) | [#15](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/15) deploy-hygiene · [#12](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/12) Realtime WS schema · [#10](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/10) AOAI endpoint |
+| Related branches in-flight | (none in last 7 days) |
+| Next review trigger | When a service is added/removed or a resource changes in Bicep |

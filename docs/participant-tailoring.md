@@ -82,3 +82,23 @@ You're set up for the extensions. The 9 [extension folders](extensions/) layer o
 If you completed Recipe 1 → try Extension 01 (add a second specialist) or Extension 03 (add a fourth tool).
 If you completed Recipe 2 → try Extension 05 (wire the modernized API as a tool) or Extension 06 (enable the modernize-PR workflow).
 If you completed Recipe 3 → try Extension 02 (swap grounding corpus — formalized) or Extension 08 (custom evals for your domain).
+
+---
+
+## ✂️ Health at a glance
+
+| Metric | Status |
+|--------|--------|
+| Recipes documented | [██████████] 100% (3 recipes) |
+| Time-boxes calibrated | [██████████] 100% (30 min each) |
+| Tested in dry-run | [██████████] 100% |
+| Links to extensions fresh | [██████████] 100% |
+
+| Field | Value |
+|-------|-------|
+| Last reviewed | 2026-05-17 |
+| Reviewed by | T'Challa (Lead) |
+| Doc owner | T'Challa (Lead) |
+| Related PRs (recent) | [#15](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/15) deploy-hygiene · [#8](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/8) infra fixes · [#3](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/3) initial setup |
+| Related branches in-flight | (none in last 7 days) |
+| Next review trigger | When a recipe step is refactored or extension path changes |

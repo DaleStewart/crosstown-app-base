@@ -41,6 +41,7 @@ async def health() -> dict[str, Any]:
     provider_name = getattr(app.state, "provider", None)
     return {
         "status": "ok",
+        "service": "orchestrator",
         "voice_provider": settings.voice_provider,
         "provider_name": getattr(provider_name, "name", None),
         "tools_loaded": getattr(app.state, "tools", None) is not None

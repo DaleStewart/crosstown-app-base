@@ -1,0 +1,140 @@
+{
+  "routing_rules": {
+    "version": "1.0",
+    "last_updated": "2026-02-02"
+  },
+  "departments": [
+    {
+      "id": "financial_aid",
+      "name": "Financial Aid Office",
+      "email": "finaid@university.edu",
+      "phone": "555-123-4001",
+      "business_hours": {
+        "monday": {"open": "08:00", "close": "17:00"},
+        "tuesday": {"open": "08:00", "close": "17:00"},
+        "wednesday": {"open": "08:00", "close": "17:00"},
+        "thursday": {"open": "08:00", "close": "17:00"},
+        "friday": {"open": "08:00", "close": "16:00"},
+        "saturday": {"open": null, "close": null},
+        "sunday": {"open": null, "close": null}
+      },
+      "timezone": "America/New_York",
+      "keywords": ["fafsa", "scholarship", "grant", "loan", "tuition", "payment plan", "work study", "aid", "financial"],
+      "priority_keywords": ["emergency fund", "financial hardship", "urgent financial"],
+      "categories": ["deadlines", "scholarships", "appeals", "payment_plans", "work_study"]
+    },
+    {
+      "id": "registration",
+      "name": "Office of the Registrar",
+      "email": "registrar@university.edu",
+      "phone": "555-123-4002",
+      "business_hours": {
+        "monday": {"open": "08:30", "close": "17:00"},
+        "tuesday": {"open": "08:30", "close": "17:00"},
+        "wednesday": {"open": "08:30", "close": "17:00"},
+        "thursday": {"open": "08:30", "close": "17:00"},
+        "friday": {"open": "08:30", "close": "16:30"},
+        "saturday": {"open": null, "close": null},
+        "sunday": {"open": null, "close": null}
+      },
+      "timezone": "America/New_York",
+      "keywords": ["register", "enroll", "transcript", "class", "course", "schedule", "add", "drop", "withdraw", "graduation", "degree", "major", "minor"],
+      "priority_keywords": ["graduation deadline", "late registration"],
+      "categories": ["enrollment", "transcripts", "add_drop", "degree_audit", "graduation"]
+    },
+    {
+      "id": "housing",
+      "name": "Housing & Residence Life",
+      "email": "housing@university.edu",
+      "phone": "555-123-4003",
+      "business_hours": {
+        "monday": {"open": "08:00", "close": "20:00"},
+        "tuesday": {"open": "08:00", "close": "20:00"},
+        "wednesday": {"open": "08:00", "close": "20:00"},
+        "thursday": {"open": "08:00", "close": "20:00"},
+        "friday": {"open": "08:00", "close": "17:00"},
+        "saturday": {"open": "10:00", "close": "14:00"},
+        "sunday": {"open": null, "close": null}
+      },
+      "timezone": "America/New_York",
+      "keywords": ["dorm", "residence", "roommate", "housing", "move-in", "move-out", "room", "maintenance", "meal plan", "dining"],
+      "priority_keywords": ["emergency housing", "safety concern", "roommate conflict"],
+      "categories": ["applications", "roommates", "move_in", "maintenance", "meal_plans"]
+    },
+    {
+      "id": "it_support",
+      "name": "IT Help Desk",
+      "email": "helpdesk@university.edu",
+      "phone": "555-123-4004",
+      "business_hours": {
+        "monday": {"open": "07:00", "close": "22:00"},
+        "tuesday": {"open": "07:00", "close": "22:00"},
+        "wednesday": {"open": "07:00", "close": "22:00"},
+        "thursday": {"open": "07:00", "close": "22:00"},
+        "friday": {"open": "07:00", "close": "20:00"},
+        "saturday": {"open": "09:00", "close": "17:00"},
+        "sunday": {"open": "12:00", "close": "20:00"}
+      },
+      "timezone": "America/New_York",
+      "keywords": ["password", "login", "email", "wifi", "internet", "canvas", "lms", "computer", "software", "vpn", "network", "account locked"],
+      "priority_keywords": ["account compromised", "security breach", "phishing"],
+      "categories": ["passwords", "email", "lms", "wifi", "software"]
+    },
+    {
+      "id": "academic_advising",
+      "name": "Academic Advising Center",
+      "email": "advising@university.edu",
+      "phone": "555-123-4005",
+      "business_hours": {
+        "monday": {"open": "08:00", "close": "17:00"},
+        "tuesday": {"open": "08:00", "close": "17:00"},
+        "wednesday": {"open": "08:00", "close": "19:00"},
+        "thursday": {"open": "08:00", "close": "17:00"},
+        "friday": {"open": "08:00", "close": "16:00"},
+        "saturday": {"open": null, "close": null},
+        "sunday": {"open": null, "close": null}
+      },
+      "timezone": "America/New_York",
+      "keywords": ["advisor", "degree", "requirements", "major", "minor", "prerequisite", "academic plan", "career", "internship"],
+      "priority_keywords": ["academic probation", "dismissal appeal"],
+      "categories": ["degree_requirements", "major_declaration", "academic_planning"]
+    },
+    {
+      "id": "student_accounts",
+      "name": "Student Financial Services",
+      "email": "studentaccounts@university.edu",
+      "phone": "555-123-4006",
+      "business_hours": {
+        "monday": {"open": "08:00", "close": "17:00"},
+        "tuesday": {"open": "08:00", "close": "17:00"},
+        "wednesday": {"open": "08:00", "close": "17:00"},
+        "thursday": {"open": "08:00", "close": "17:00"},
+        "friday": {"open": "08:00", "close": "16:00"},
+        "saturday": {"open": null, "close": null},
+        "sunday": {"open": null, "close": null}
+      },
+      "timezone": "America/New_York",
+      "keywords": ["bill", "balance", "payment", "refund", "1098", "tax", "charge", "fee", "invoice"],
+      "priority_keywords": ["late fee", "registration hold", "payment deadline"],
+      "categories": ["billing", "payments", "refunds", "tax_forms"]
+    }
+  ],
+  "escalation_triggers": {
+    "immediate": [
+      "suicide", "self-harm", "kill myself", "end my life",
+      "threat", "violence", "weapon", "harm others",
+      "lawyer", "lawsuit", "legal action",
+      "title ix", "sexual harassment", "assault"
+    ],
+    "priority": [
+      "discrimination", "ada", "disability accommodation",
+      "emergency", "urgent", "critical",
+      "complaint", "formal grievance"
+    ]
+  },
+  "default_routing": {
+    "unclassified_intent": "general",
+    "ambiguous_after_clarification": "human_escalation",
+    "outside_business_hours": "create_ticket_for_next_day"
+  }
+}

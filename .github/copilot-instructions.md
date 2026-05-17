@@ -84,6 +84,5 @@ Deploy: `azd auth login && azd up` (CI uses `.github/workflows/deploy.yml` via O
 This repo uses [Squad](`.squad/`) for multi-agent workflows. If you're picking up an issue labeled `squad:{member}`, read `.squad/team.md` and `.squad/routing.md` first. The `.squad/templates/copilot-instructions.md` has the full agent contract. Use branch names `squad/{issue-number}-{slug}` and reference the issue with `Closes #N` in PRs.
 
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+Current plan: [specs/002-tuesday-demo/plan.md](../specs/002-tuesday-demo/plan.md)
 <!-- SPECKIT END -->

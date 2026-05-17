@@ -1,0 +1,9 @@
+{
+  "name": "mta-hackathon-judging-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static frontend (vanilla HTML/CSS/JS) for the MTA hackathon judging app. No build step; this package.json exists so azd's staticwebapp packager has a project file.",
+  "scripts": {
+    "build": "echo \"static site — nothing to build\""
+  }
+}

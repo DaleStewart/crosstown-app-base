@@ -23,3 +23,22 @@ You're done when **ALL** of the following are true.
    ```
 4. Show the coach that the response references `health_analyst` in the `agent` field and that the answer body contains fictional health data for line L2.
 5. Run `pytest docs/extensions/01_add_health_analyst/tests/ -v` and show all green.
+
+
+## 🩺 Acceptance criteria
+
+| Metric | Status |
+|--------|--------|
+| Acceptance criteria | [██████████] 100% |
+| Edge cases listed | [██████████] 100% |
+| Pass/fail thresholds | [██████████] 100% |
+| Reviewer assigned | Banner (Tester) |
+
+| Field | Value |
+|-------|-------|
+| Last reviewed | 2026-05-17 |
+| Reviewed by | T'Challa (Lead) |
+| Doc owner | Banner (Tester) |
+| Related PRs (recent) | (none in last 7 days) |
+| Related branches in-flight | (none — exercise only) |
+| Next review trigger | When acceptance criteria are revisited or team completes extension |
