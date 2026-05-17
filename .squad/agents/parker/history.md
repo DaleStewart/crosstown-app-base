@@ -1,128 +1,70 @@
-## 2026-05-15 — Post-merge frontend gates (Parker)
+# Parker — Agent History (Active)
 
-Ran all four CI gates on `apps/frontend` post-realtime-swap merge (D-009 + D-011):
+Peter Parker / Spider-Man — Frontend developer. MTA AI Hackathon.
 
-**Outcomes:**
-- **lint:** ✅ PASS (0 eslint errors)
-- **typecheck:** ✅ PASS (0 tsc errors with `--noEmit`)
-- **test:** ✅ PASS (6 tests passed in 3.92s; 1 warning about React act() in App.test.tsx is pre-existing)
-- **build:** ❌ FAIL — vite.config.ts line 15: TypeScript error `No overload matches this call. Object literal may only specify known properties, and 'test' does not exist in type 'UserConfigExport'.`
+---
 
-**Analysis:** The build failure is a **pre-existing vite.config.ts configuration error**, not caused by the realtime swap (which only touched `apps/orchestrator/`). The `test` property in `defineConfig()` requires importing from `vitest/config` rather than plain `vite`. This is a known issue in the vite+vitest setup and predates the session.
+**Note:** Detailed history moved to .history-archives/parker-history-2026-05-13-to-2026-05-15.md for archival. This file tracks current work.
 
-**Realtime swap scope:** D-009 modified only `apps/orchestrator/` (voice/foundry_realtime.py, settings.py, infra/) + docs. No frontend code touched.
+---
 
-**Verdict:** Frontend lint/typecheck/test gates are all green. Build gate is red, but pre-existing (not a regression).
+## 2026-05-16 — T105 Phase 1 Batch Intake
 
-**Team update (18:11Z):** Re-verify pass complete; PR #3 shipped from Parker for vite.config.ts (shipped, all gates now green).
+**Task:** T105 (Medium) — Frontend Dockerfile HEALTHCHECK config (Phase 1 deploy-hygiene batch).
+
+**Status:** ✅ Complete. Branch: chore/deploy-hygiene.
+
+**Deliverable:**
+- **apps/frontend/Dockerfile:** curl-based HEALTHCHECK probes http://localhost:3000/api/health (proxied by nginx to orchestrator /health). Every 30s, 5s timeout, 20s start period, 3 retries. curl adds ~2–3 MB to production image (acceptable).
+
+**Verification:** Static syntax check passing. Docker daemon deferred (Windows environment).
+
+**Batch outcome:** Anvil PR #29 review — **PASS ✅**. Six high-value checks all pass. Frontend HEALTHCHECK couples locally to orchestrator (soft concern; ACA Bicep probes override).
+
+**Decision:** D-030 (merged into D-028).
+
+## 2026-05-16 — Smoke-test retry for ACA revision-flip window
+
+**Task:** Add bounded retry loop to smoke check 2 (and check 3 shape audit) in `scripts/smoke-test.sh` and `scripts/smoke-test.ps1`.
+
+**Status:** ✅ Complete. Committed to main.
+
+**Deliverable:**
+- Check 2 (`GET /api/health → service:orchestrator`) now retries with exponential backoff (5s → 10s → 15s cap) for up to `SMOKE_RETRY_SECONDS` (default 90s) before hard-failing with the original grader-compatible message.
+- Check 3 (direct orchestrator /health) only asserts HTTP 200, not the service field — no revision-flip exposure, no retry needed.
+- PowerShell parity: same envelope in `smoke-test.ps1`, same `$env:SMOKE_RETRY_SECONDS` override.
 
 ## Learnings
 
-2026-05-15 — Post-merge frontend gates. lint (pass), typecheck (pass), test (6 passed in 3.92s), build (fail: pre-existing vite.config.ts TypeScript error). No bundle size (build never completed). Frontend scope unaffected by realtime swap.
-
-## 2026-05-13 — Frontend v1 (Parker)
-
-Built the vanilla HTML/CSS/JS judging frontend at `apps/judging/src/` (index, judge, admin) plus `styles.css`, `auth.js`, `toast.js`, `criteria-ui.js`.
-
-Notable decisions:
-
-- **Did not overwrite `apps/judging/shared/criteria.js`.** Stark had already landed a spine with different criterion ids for the Azure track (`alignment / architecture / reliability / ux / demo`) instead of the reference scorecard's (`problem / agent / tech / innovation / demo`). Backend owns that spine, so I layered UI metadata (icon, desc, 1-5 anchors) in a sibling `criteria-ui.js` keyed by `track + criterion id`. `MTAHackCriteriaUI.augment(track)` merges the two for the scorecard renderer.
-- Reused the reference scorecard's exact design tokens (navy `#1A3A6B` etc., Barlow + Barlow Condensed, Tabler icons, light/dark via `prefers-color-scheme`). New components (team cards, tabs, leaderboard table, switch) were added in the same idiom.
-- `MTAAuth.getUser()` caches a single `/.auth/me` promise; `mountTopbar()` renders the user chip + sign-out everywhere.
-- `judge.html` accepts `?track=&team=`; picker shows a green check pill + total for already-scored teams. Submit is gated on all 5 criteria; handles 423 (locked) by disabling the form and showing a banner.
-- `admin.html` does an optional `GET /api/lock?track=…` to seed the toggle state. Stark — if you don't expose that, the toggle will just default to "Open" until the user flips it; `POST /api/lock` is the source of truth.
-- No build step, no npm, three self-contained HTML pages + shared CSS/JS. Tabler icons + Google Fonts loaded from CDN.
-
-Open follow-ups:
-
-- Per-criterion bar chart on the leaderboard (nice-to-have) was intentionally skipped.
-- If Stark's `/api/myscores` returns `criteria` as an array rather than an `{id: 1-5}` map, the scorecard pre-fill will be empty — wire a small adapter when the shape lands.
-
-## 2026-05-13 — Frontend v2 design upgrade (Parker)
-
-Folded in Sean's editorial / transit-system brief. Did not rewrite — surgical upgrades on top of v1.
-
-Changes:
-
-- Added Barlow Semi Condensed to the Google Fonts request (used for eyebrows, table labels, small caps metadata, kickers). Italic 700 Barlow Condensed added for ranks + track numerals.
-- Body now has a fixed `::before` atmosphere: faint 135° diagonal subway-rule pattern (~4-6% navy) + soft top radial in navy-light. `color-mix()` keeps it themed automatically.
-- Dark mode bg pushed to near-black `#0A1428` with `--bg-2` `#07101F` so the navy palette pops forward.
-- Card shadow recipe replaced with `0 1px 0 rgba(26,58,107,0.08), 0 12px 32px -16px rgba(26,58,107,0.25)` plus an `--inset-top` highlight on cards / sections / .track-card.
-- Staggered reveal animation via `.reveal` parent: 80ms increments on direct children, `cubic-bezier(0.2,0.7,0.2,1)`, respects `prefers-reduced-motion`.
-- **index.html** — asymmetric 1.15fr / 0.85fr grid with two `.track-card`s. Each has a giant italic Barlow Condensed `01` / `02` numeral clipped at the bottom-right corner (color `--navy-light`, animates on hover). Secondary card is offset `margin-top: 32px`. Admin pathway is now a narrow `.admin-strip` with a key icon — not a third equal card.
-- **judge.html team picker** — new `.picker-mast` with a 48px Barlow Condensed count (e.g. `08` + "Teams in this track" small caps caption). Team cards: 4px left rail (`--navy-mid` on hover, `--navy` when scored), top-eyebrow with `Team · 01` + status, big uppercase Barlow Condensed team name, uppercase letter-spaced metadata, and a top-right `.total-pill` showing the judge's submitted total instead of a generic checkmark.
-- **judge.html scorecard** — total score animates with a count-up (cubic ease, ~380ms). When the tier class changes, the total briefly scales (`.flash`). Score buttons get a `scale(0.96)` press + a soft same-color glow when active. Criterion card's left border rail fills via a small keyframe when scored.
-- **admin.html** — wire-service leaderboard: `Rank` in 32px italic Barlow Condensed (top-3 in navy gradient), `Team` in 20px Barlow Condensed uppercase, `Avg total` huge 28px navy tabular-num. Tabs got `01` / `02` italic numerals. Hover over a row reveals a `.lb-mini` per-criterion bar chart strip beneath. Lock toggle triggers a full-screen `.lock-flash` (96px navy/amber icon, 600ms fade) and applies `.locked` on the table wrap — a 45° amber stripe overlay across the leaderboard signals "consequence".
-
-Followed the bans: no purple gradients, no glassmorphism, no Inter, no centered-hero-with-three-columns, no welcome-wave greeting. Tabler icons stay mono in navy/amber. Tier colors stay as pills, never as flooded backgrounds.
-
-What I'd add next pass if there were time: a CSS-only `ti-train` glyph drifting horizontally across the masthead rule line as a transit easter-egg; per-row sparkline of judge-by-judge totals on the admin leaderboard.
-
-## 2026-05-13 — MTA brand rebrand (Parker)
-
-Folded Sean's MTA brand brief into the design layer. No restart.
-
-What changed:
-
-- **Typography:** dropped Google Fonts entirely. Body / display all on the Helvetica family stack `'Helvetica Neue', Helvetica, Arial, sans-serif`. Did a sed replace across the whole stylesheet so no Barlow references remain.
-- **Color tokens repointed to MTA NYCT line palette:**
-  - `--navy` is now MTA Blue `#0039A6` (A C E). `--navy-mid` `#1A4EBF` for hover, `--navy-light` `#E5EDFB` for soft tints.
-  - `--red` `#EE352E` (1 2 3), `--green` `#00933C` (4 5 6), `--amber` `#FF6319` (B D F M, used for "developing" tier).
-  - Added `--mta-yellow` `#FCCC0A` (N Q R W) for accents / caution.
-  - `--text` `#2D2D2D` MTA dark slate, `--text-3` `#A7A9AC` MTA light slate. Background white.
-  - Dark mode bg `#0A0A0A`; MTA Blue brightens to `#4D7EE8` so it still pops.
-- **Tier ladder** is now bullet-style: ≥90 green, ≥70 blue, ≥50 orange, &lt;50 red. Updated both `tierClass()` functions and added `.pill.blue` / `.pill.orange` rules.
-- **Right-angle discipline:** `--radius-lg: 0`, `--radius: 2px`. `border-radius: 0 !important` on every card / panel / button / input via a single brand-layer rule. Bullets, pills, and the switch knob stay round.
-- **Route bullet primitive:** new `.bullet` component (sm / md / lg / xl / xxl). Renders a solid circle in Helvetica Bold (`A`, `C`, `01`, `78`, …) — the building block for everything brand-relevant.
-- **Hackathon roundel:** small navy circle with white `AI` next to a `MTA AI / Hackathon · 2026` wordmark. Top-left of every page (replaces the previous `ti-train` crumb).
-- **index.html:** flat MTA-blue `.signage` panel bleeds past the body padding with massive white Helvetica Bold heading, yellow station rule beneath. Track cards lost the clipped italic numerals — now they each carry a giant `.bullet.xxl` (`A` MTA-blue for Azure, `C` MTA-red for Copilot). On hover the panel inverts to the track color; the bullet inverts to white.
-- **judge.html topbar:** roundel + a small `A` / `C` track bullet acting as the breadcrumb. Team picker cards are now a 2-col grid (`56px bullet` + content). Cards for unscored teams show the team number in the track color; scored cards show the rounded total inside a tier-colored bullet — looks like a station callout.
-- **judge.html scorecard:** criterion cards lose the `ti-` icon and gain a 32px MTA-blue numbered `.bullet` (`01..05`). Total renders 80px Helvetica Bold (kept the count-up animation + tier-change flash). Below it a new `.tier-block` reads `● STRONG` style, with the dot in tier color.
-- **admin.html:** tabs ditched the italic `01`/`02` for actual `A`/`C` route bullets. Leaderboard rank cell renders the rank in a tier-colored `.bullet.md`; tier column became `● STRONG` style. `th` cells are now solid black with white Helvetica Bold (signage band). Lock activation:
-  - Full-screen `.lock-flash` overlay is now a 45° MTA yellow / black caution stripe — out-of-service vibe.
-  - Table wrap gets `.locked` (red border + animated caution-stripe sweep).
-  - A persistent red `.locked-banner` with a yellow left accent rail mounts above the table, reading `Judging Locked — &lt;track&gt; track`.
-
-What did not change:
-- The criterion-card / 1-5 button / anchor-list / textarea structure still mirrors the reference scorecards. Same DOM, same per-criterion bar chart. The fonts/colors swap, but the scoring artifact is intact.
-- `criteria.js` (Stark's spine) and `criteria-ui.js` (anchors + icons) are unchanged. The card icons are now visually hidden via `.card-icon { display: none; }` since the numbered bullet replaces them.
-- Page-load staggered `.reveal`, `prefers-reduced-motion` guard, light/dark.
-
-Notes / follow-ups:
-- The signage panel bleeds with `margin: -2rem -1rem 0;` to overrun the body's 2rem/1rem padding. If the team ever wraps the page in a different container or changes body padding, that bleed will read as a misalignment.
-- Helvetica is system-available on macOS/iOS. Windows/Linux fall back to Arial (intentional — Arial is on-brand for MTA). If we ever want pixel-perfect parity on Linux, we'd need to license Helvetica Neue webfonts.
-- I did NOT use the actual MTA "M" logo — only a hackathon-specific `AI` roundel — to sidestep trademark risk.
-
-## 2026-05-13 — Security Review (Strange)
-
-Strange completed a security review of the judging app and authored `apps/judging/SECURITY_REVIEW.md`. Verdict: 🟡 Ship after must-fix items. 2 critical findings (CSV formula injection in export, unfilled tenant GUID placeholder) and 4 high findings. Core auth/authz model is solid. See decision D-007 and the full report for details and remediation paths.
+- **ACA revision flips take 1–30 s to route traffic to the new revision.** Smoke gates that run immediately after `azd deploy` returns can hit the old revision and see stale JSON (e.g., `service=""`). The fix is a deadline-based retry loop (not a fixed sleep) so fast deploys stay fast and slow flips don't false-fail.
+- Smoke check 4 needed same retry envelope as check 2 — first /api/turn after cold start is LLM-bound, ~14s.
 
 
-## 2026-05-15 — Re-verification + vite.config.ts fix shipped (Parker)
 
-Re-ran all four CI gates on `apps/frontend` after D-014's note that the build failure was pre-existing.
+2026-05-16 — In push-to-talk WS protocols, the `stop` frame is the commit boundary — without it the server has no idea the user finished talking. Always verify both sides of the conversation boundary (start + stop) are wired at the same call site, not split across different functions with different call semantics.
 
-**Gate results (before fix):**
-- `npm run lint`      → exit 0 ✅
-- `npm run typecheck` → exit 0 ✅
-- `npx vitest run`    → exit 0 ✅ (3 files, 6 tests passed in 2.95s; same pre-existing React act() warning on Header)
-- `npm run build`     → exit 2 ❌ `vite.config.ts(15,3): error TS2769: No overload matches this call. Object literal may only specify known properties, and 'test' does not exist in type 'UserConfigExport'.`
+## 2026-05-16 — Text input for typed questions (PR #23) (Parker)
 
-**Fix shipped:** one-line change in `apps/frontend/vite.config.ts`:
+Sean requested a text input alongside push-to-talk so users can type questions when voice is unavailable (or just prefer typing).
 
-``diff
--import { defineConfig } from "vite";
-+import { defineConfig } from "vitest/config";
-``
+**Autopilot disclosure:** acted in autopilot for this task per the system prompt directive. Requestor: Sean (AFK during execution).
 
-`vitest/config` re-exports a widened `defineConfig` whose type knows about the `test` block; `vite`'s does not. After the fix, `npm run build` → exit 0 (tsc -b clean, vite build → 1524 modules, 177.28 kB JS / 11.87 kB CSS, 2.40s).
+**Changes (4 files):**
+- `apps/frontend/src/components/TextInput.tsx` — new controlled-input component; POST /api/turn with {text} body; optimistic user bubble; appends assistant response; error turn on failure; disables + "Sending..." while in-flight
+- `apps/frontend/src/hooks/useVoiceSession.ts` — two new reducer actions (append_user, append_assistant) + appendUserTurn(text) / appendAssistantTurn({text, citations, warnings}) exposed on UseVoiceSession; append_assistant pushes a synthetic ToolCallEntry when citations/warnings present (shows in side panel)
+- `apps/frontend/src/App.tsx` — imports TextInput, destructures appendUserTurn/appendAssistantTurn from hook, renders TextInput below Transcript
+- `apps/frontend/tests/useVoiceSession.test.ts` — 3 new tests: appendUserTurn without WS, appendAssistantTurn with citations (synthetic tool entry created), appendAssistantTurn with no citations (no tool entry)
 
-**Branch / PR:** committed on `squad/fix-vite-config-defineConfig` (off origin/main), opened PR #3 in DevPost-Test-Hackathon/crosstown-app.
+**47doors pattern observed:** ChatInput.tsx uses a callback prop (onSend) — stateless component, no direct API knowledge. useChat.ts owns optimistic user message + API call + state append. Adapted: onUserTurn / onAssistantTurn prop callbacks; hook owns all state.
 
-**Final status — all four gates green:** lint ✅, typecheck ✅, test ✅ (6/6), build ✅.
+**Gates:** lint pass, typecheck pass, vitest 9/9 pass (+3 new; was 6), build pass (1525 modules, 179.81 kB)
 
-## 2026-05-16 — Mic button P0 fixed (Bug #13) (Parker)
+**Deploy:** ACR run dtg -> text-input-1778951364; az containerapp update -> revision frontend--0000005 (Healthy, 100% traffic).
 
+**D-034 filed.**
+**PR #23:** https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/23
+
+**Live verify:** Deferred to user UAT. Sean to open frontend, type "Show me door-fault logs from Atlantic station", hit Send -- expect user bubble immediately + assistant response with citations after API call returns.
 Sean reported UAT mic button dead. Diagnosed end-to-end and shipped PR #17.
 
 **🤖 Autopilot disclosure:** acted in autopilot for this task per the system prompt directive. No human gates between diagnosis and shipping.
@@ -161,7 +103,58 @@ Sean reported UAT mic button dead. Diagnosed end-to-end and shipped PR #17.
 - The `/api/health` 404 on every page load — frontend should either probe `/api/health` (and orchestrator add a route) or use `/health` directly. Cosmetic but visible in console. Not in scope for this P0.
 - Playwright `test:e2e` script added but **not** wired into default CI — it points at the live UAT URL by design (diagnostic). If we want it in CI it should target a hermetic dev server.
 
+## 2026-05-16 — Missing stop frame bug fixed (PR #19) (Parker)
+
+Sean reported hold-mic → button turns yellow → release → chat empty. Diagnosed and shipped.
+
+**🤖 Autopilot disclosure:** acted in autopilot for this task per the system prompt directive. Requestor: Sean (not Brady).
+
+**Diagnostic path:**
+1. Read `useVoiceSession.ts` and immediately spotted: `stopTalking()` never calls `send({ type: "stop" })`. The stop frame only appears in `disconnect()` (full session teardown), not on every mic release.
+2. Created `e2e/mic-hold-release.spec.ts` — simulates 2 s hold + release, captures all WS frames.
+3. Pre-fix Playwright run: 16 frames sent (1 start + 15 binary PCM), **0 received**, no stop frame. Chat DOM unchanged: "No transcript yet. Hold to talk."
+4. Post-fix Playwright run (against deployed revision): 17 frames sent — stop frame `{"type":"stop"}` now present immediately after PCM block.
+
+**Root cause:** `stopTalking()` in `useVoiceSession.ts` stopped the mic and set `recording: false` but never signaled the orchestrator. The orchestrator waits for `{type:"stop"}` to commit the audio buffer and generate a response.
+
+**Fix (2 files):**
+- `stopTalking()` now calls `send({ type: "stop" })` after `mic.stop()`. Added `send` to dep array.
+- `disconnect()` removes its own duplicate stop send (now done via `stopTalking()`). Removed `send` dep.
+
+**Validation:** lint ✅, typecheck ✅, build ✅ (1524 modules / 177.26 kB JS — bundle unchanged).
+
+**Deploy:** ACR build `mic-stopframe-fix-20260516101747` → `frontend--0000003` (Healthy, 100% traffic).
+
+**D-030 filed.** PR #19: https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/19
+
+**Residual (Wanda's scope):** WS RECEIVED still 0 after fix — orchestrator needs to handle the stop frame and return `transcript_delta`/`final` events for the full loop to close.
+
 ## Learnings
 
 2026-05-16 — nginx → ACA HTTPS upstream **always** needs `proxy_ssl_server_name on;` + `proxy_ssl_name $host;` + `proxy_set_header Host $host;`. The default behavior (no SNI, inbound Host forwarded) silently produces 502s with the diagnostic `peer closed connection in SSL handshake` line in error logs. Worth baking into any future ACA-fronted nginx template.
+
+2026-05-16 — In push-to-talk WS protocols, the `stop` frame is the commit boundary — without it the server has no idea the user finished talking. Always verify both sides of the conversation boundary (start + stop) are wired at the same call site, not split across different functions with different call semantics.
+
+## 2026-05-16 — User-turn transcripts in chat (PR #21) (Parker)
+
+Sean reported the chat only showed assistant responses — not a real conversation. Wanda (in parallel) is re-enabling `input_audio_transcription` on the orchestrator and will forward `user_transcript` events. This PR wires up the frontend to receive and render those events.
+
+**🤖 Autopilot disclosure:** acted in autopilot for this task per the system prompt directive. Requestor: Sean.
+
+**Changes (4 files):**
+- `apps/frontend/src/lib/protocol.ts` — `UserTranscript` type added; `parseServerMessage` normalizes all 4 Wanda event-name aliases to `{ type: "user_transcript", text, item_id? }`. Aliases handled: `user_transcript`, `user_transcript_completed`, `input_audio_transcription_completed`, `transcript_user_final`.
+- `apps/frontend/src/hooks/useVoiceSession.ts` — `applyFrame` case for `user_transcript` appends `{ role: "user", final: true }` to `transcripts`. Empty-text no-op.
+- `apps/frontend/tests/useVoiceSession.test.ts` — 2 new tests: canonical event and all 4 alias names.
+- `apps/frontend/tests/protocol.test.ts` — alias normalization test + `UserTranscript` recognized by `isServerMessage`.
+
+**`Transcript.tsx`:** No change needed — `role: "user"` was already styled as right-aligned blue bubble (`bg-subway-blue text-white self-end`).
+
+**Gates:** lint ✅, typecheck ✅, vitest 9/9 ✅ (was 6; +3 new), build ✅ (177.79 kB).
+
+**Deploy:** ACR build run `dta` → `user-transcript-20260516111507`; `az containerapp update` → revision `frontend--0000004` (Healthy, 100% traffic).
+
+**Live verify:** Waiting on Wanda's server-side deploy. Once both are live: hold mic → release → confirm user bubble (blue, right) + assistant bubble (grey, left) appear in chat.
+
+**D-032 filed.**
+**PR #21:** https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/21
 

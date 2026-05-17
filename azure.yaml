@@ -38,7 +38,20 @@ services:
       path: Dockerfile
       context: .
 
+# Runs the smoke gate after every `azd deploy`. Fails the deploy if the
+# frontend isn't serving the Crosstown app, /api/health is broken, or any
+# prompted /api/turn call returns empty. FR-009 enforcement: deploy-time
+# smoke must fail loud so a broken build never silently reaches the demo.
 hooks:
+  postdeploy:
+    posix:
+      shell: sh
+      run: bash scripts/smoke-test.sh "$FRONTEND_URL"
+      interactive: false
+    windows:
+      shell: pwsh
+      run: pwsh -NoProfile -File scripts/smoke-test.ps1 -FrontendUrl $env:FRONTEND_URL
+      interactive: false
   postprovision:
     windows:
       shell: pwsh

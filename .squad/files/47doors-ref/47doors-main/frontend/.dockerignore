@@ -1,0 +1,13 @@
+node_modules
+dist
+.env
+.env.*
+*.test.ts
+*.test.tsx
+**/*.test.ts
+**/*.test.tsx
+**/__tests__
+tests/
+playwright.config.ts
+vitest.config.ts
+.eslintrc.cjs

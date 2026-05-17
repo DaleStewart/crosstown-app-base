@@ -59,7 +59,7 @@ async def test_tool_emits_citations_or_uncited_warning(
 async def test_health(client: httpx.AsyncClient) -> None:
     resp = await client.get("/health")
     assert resp.status_code == 200
-    assert resp.json() == {"status": "ok"}
+    assert resp.json() == {"status": "ok", "service": "log_analyst"}
 
 
 async def test_tools_endpoint_lists_three(client: httpx.AsyncClient) -> None:

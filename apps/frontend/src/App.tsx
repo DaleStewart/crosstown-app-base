@@ -5,6 +5,7 @@ import { Transcript } from "@/components/Transcript";
 import { DisruptionBanner } from "@/components/DisruptionBanner";
 import { AlternateRouteCard } from "@/components/AlternateRouteCard";
 import { ToolCallPanel } from "@/components/ToolCallPanel";
+import { TextInput } from "@/components/TextInput";
 import { useVoiceSession } from "@/hooks/useVoiceSession";
 
 const MODE = (import.meta.env.VITE_VOICE_MODE === "continuous"
@@ -12,7 +13,7 @@ const MODE = (import.meta.env.VITE_VOICE_MODE === "continuous"
   : "push_to_talk") as "continuous" | "push_to_talk";
 
 export default function App(): ReactNode {
-  const { state, startTalking, stopTalking } = useVoiceSession({ mode: MODE });
+  const { state, startTalking, stopTalking, appendUserTurn, appendAssistantTurn } = useVoiceSession({ mode: MODE });
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
@@ -29,6 +30,7 @@ export default function App(): ReactNode {
           <DisruptionBanner entries={state.toolCalls} />
           <AlternateRouteCard entries={state.toolCalls} />
           <Transcript lines={state.transcripts} />
+          <TextInput onUserTurn={appendUserTurn} onAssistantTurn={appendAssistantTurn} />
         </section>
         <aside className="lg:row-span-1">
           <ToolCallPanel entries={state.toolCalls} />

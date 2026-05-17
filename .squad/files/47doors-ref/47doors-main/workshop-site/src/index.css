@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-neutral-gray text-dark-text;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .tab-button {
+    @apply px-4 py-3 text-sm font-medium border-b-2 border-transparent transition-colors;
+    @apply hover:text-microsoft-blue hover:border-gray-300;
+    @apply focus:outline-none focus:ring-2 focus:ring-microsoft-blue focus:ring-offset-2;
+  }
+  
+  .tab-button-active {
+    @apply border-microsoft-blue text-microsoft-blue;
+  }
+  
+  .card {
+    @apply bg-white rounded-lg shadow-sm p-6;
+  }
+  
+  .callout {
+    @apply border-l-4 border-iu-crimson bg-white p-4 rounded-r-lg shadow-sm;
+  }
+  
+  .btn-primary {
+    @apply px-4 py-2 bg-microsoft-blue text-white rounded-md font-medium;
+    @apply hover:bg-blue-600 transition-colors;
+    @apply focus:outline-none focus:ring-2 focus:ring-microsoft-blue focus:ring-offset-2;
+  }
+  
+  .diagram-text {
+    @apply text-xs fill-dark-text;
+  }
+}

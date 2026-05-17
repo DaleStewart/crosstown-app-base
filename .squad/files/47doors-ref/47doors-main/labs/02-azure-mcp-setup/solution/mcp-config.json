@@ -1,0 +1,45 @@
+{
+  "mcpServers": {
+    "azure": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@azure/mcp@latest"
+      ],
+      "env": {
+        "AZURE_SUBSCRIPTION_ID": "${env:AZURE_SUBSCRIPTION_ID}",
+        "AZURE_TENANT_ID": "${env:AZURE_TENANT_ID}",
+        "AZURE_CLIENT_ID": "${env:AZURE_CLIENT_ID}",
+        "AZURE_CLIENT_SECRET": "${env:AZURE_CLIENT_SECRET}",
+        "AZURE_RESOURCE_GROUP": "${env:AZURE_RESOURCE_GROUP}",
+        "AZURE_OPENAI_ENDPOINT": "${env:AZURE_OPENAI_ENDPOINT}",
+        "AZURE_OPENAI_API_KEY": "${env:AZURE_OPENAI_API_KEY}",
+        "AZURE_OPENAI_API_VERSION": "${env:AZURE_OPENAI_API_VERSION}"
+      }
+    },
+    "azure-ai-search": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@azure/mcp-server-ai-search@latest"
+      ],
+      "env": {
+        "AZURE_SEARCH_ENDPOINT": "${env:AZURE_SEARCH_ENDPOINT}",
+        "AZURE_SEARCH_API_KEY": "${env:AZURE_SEARCH_API_KEY}",
+        "AZURE_SEARCH_INDEX_NAME": "${env:AZURE_SEARCH_INDEX_NAME}"
+      }
+    },
+    "azure-storage": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@azure/mcp-server-storage@latest"
+      ],
+      "env": {
+        "AZURE_STORAGE_ACCOUNT_NAME": "${env:AZURE_STORAGE_ACCOUNT_NAME}",
+        "AZURE_STORAGE_ACCOUNT_KEY": "${env:AZURE_STORAGE_ACCOUNT_KEY}",
+        "AZURE_STORAGE_CONNECTION_STRING": "${env:AZURE_STORAGE_CONNECTION_STRING}"
+      }
+    }
+  }
+}

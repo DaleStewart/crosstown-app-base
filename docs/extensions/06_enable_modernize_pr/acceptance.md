@@ -16,3 +16,22 @@ You're done when **ALL** of the following are true.
 3. Run `pytest docs/extensions/06_enable_modernize_pr/tests/ -v` and show all green.
 4. _(Optional if time permits)_ Navigate to the repo's Actions tab on GitHub and trigger
    `workflow_dispatch` manually — show the workflow run appearing.
+
+
+## 🤖 Acceptance criteria
+
+| Metric | Status |
+|--------|--------|
+| Acceptance criteria | [██████████] 100% |
+| Edge cases listed | [██████████] 100% |
+| Pass/fail thresholds | [██████████] 100% |
+| Reviewer assigned | Banner (Tester) |
+
+| Field | Value |
+|-------|-------|
+| Last reviewed | 2026-05-17 |
+| Reviewed by | T'Challa (Lead) |
+| Doc owner | Banner (Tester) |
+| Related PRs (recent) | (none in last 7 days) |
+| Related branches in-flight | (none — exercise only) |
+| Next review trigger | When acceptance criteria are revisited or team completes extension |

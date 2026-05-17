@@ -1,0 +1,557 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.40.2.10011",
+      "templateHash": "767179505999262238"
+    }
+  },
+  "parameters": {
+    "resourcePrefix": {
+      "type": "string",
+      "defaultValue": "frontdoor",
+      "metadata": {
+        "description": "Name prefix for all resources"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources"
+      }
+    },
+    "cosmosLocation": {
+      "type": "string",
+      "defaultValue": "canadacentral",
+      "metadata": {
+        "description": "Dedicated location for Cosmos DB when regional capacity is constrained"
+      }
+    },
+    "openAiModel": {
+      "type": "string",
+      "defaultValue": "gpt-4.1",
+      "metadata": {
+        "description": "Azure OpenAI deployment model"
+      }
+    },
+    "openAiModelVersion": {
+      "type": "string",
+      "defaultValue": "2025-04-14",
+      "metadata": {
+        "description": "OpenAI model version"
+      }
+    },
+    "realtimeModel": {
+      "type": "string",
+      "defaultValue": "gpt-realtime",
+      "metadata": {
+        "description": "Realtime model name"
+      }
+    },
+    "realtimeModelVersion": {
+      "type": "string",
+      "defaultValue": "2025-08-28",
+      "metadata": {
+        "description": "Realtime model version"
+      }
+    },
+    "mockMode": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable mock mode (no external service connections)"
+      }
+    },
+    "deploymentDate": {
+      "type": "string",
+      "defaultValue": "[utcNow('yyyy-MM-dd')]",
+      "metadata": {
+        "description": "Deployment timestamp for tagging"
+      }
+    }
+  },
+  "variables": {
+    "resourceToken": "[toLower(uniqueString(subscription().id, resourceGroup().id, parameters('location')))]",
+    "prefix": "[format('{0}-{1}', parameters('resourcePrefix'), variables('resourceToken'))]",
+    "keyVaultName": "[take(replace(format('{0}{1}kv', parameters('resourcePrefix'), variables('resourceToken')), '-', ''), 24)]",
+    "cosmosToken": "[toLower(uniqueString(subscription().id, resourceGroup().id, parameters('cosmosLocation')))]",
+    "cosmosAccountName": "[format('{0}-{1}-cosmos', parameters('resourcePrefix'), variables('cosmosToken'))]",
+    "tags": {
+      "azd-env-name": "[parameters('resourcePrefix')]",
+      "solution-accelerator": "university-front-door-agent",
+      "deployment-date": "[parameters('deploymentDate')]"
+    },
+    "cognitiveServicesOpenAIUserRoleId": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "2023-10-01-preview",
+      "name": "[format('{0}-openai', variables('prefix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]",
+      "kind": "OpenAI",
+      "sku": {
+        "name": "S0"
+      },
+      "properties": {
+        "customSubDomainName": "[format('{0}-openai', variables('prefix'))]",
+        "publicNetworkAccess": "Enabled",
+        "disableLocalAuth": true
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts/deployments",
+      "apiVersion": "2023-10-01-preview",
+      "name": "[format('{0}/{1}', format('{0}-openai', variables('prefix')), parameters('openAiModel'))]",
+      "properties": {
+        "model": {
+          "format": "OpenAI",
+          "name": "[parameters('openAiModel')]",
+          "version": "[parameters('openAiModelVersion')]"
+        }
+      },
+      "sku": {
+        "name": "Standard",
+        "capacity": 30
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-openai', variables('prefix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts/deployments",
+      "apiVersion": "2023-10-01-preview",
+      "name": "[format('{0}/{1}', format('{0}-openai', variables('prefix')), parameters('realtimeModel'))]",
+      "properties": {
+        "model": {
+          "format": "OpenAI",
+          "name": "[parameters('realtimeModel')]",
+          "version": "[parameters('realtimeModelVersion')]"
+        }
+      },
+      "sku": {
+        "name": "GlobalStandard",
+        "capacity": 1
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-openai', variables('prefix')))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts/deployments', format('{0}-openai', variables('prefix')), parameters('openAiModel'))]"
+      ]
+    },
+    {
+      "condition": "[not(parameters('mockMode'))]",
+      "type": "Microsoft.DocumentDB/databaseAccounts",
+      "apiVersion": "2023-11-15",
+      "name": "[variables('cosmosAccountName')]",
+      "location": "[parameters('cosmosLocation')]",
+      "tags": "[variables('tags')]",
+      "kind": "GlobalDocumentDB",
+      "properties": {
+        "databaseAccountOfferType": "Standard",
+        "enableFreeTier": false,
+        "capabilities": [
+          {
+            "name": "EnableServerless"
+          }
+        ],
+        "locations": [
+          {
+            "locationName": "[parameters('cosmosLocation')]",
+            "failoverPriority": 0
+          }
+        ]
+      }
+    },
+    {
+      "condition": "[not(parameters('mockMode'))]",
+      "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
+      "apiVersion": "2023-11-15",
+      "name": "[format('{0}/{1}', variables('cosmosAccountName'), 'frontdoor')]",
+      "properties": {
+        "resource": {
+          "id": "frontdoor"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName'))]"
+      ]
+    },
+    {
+      "condition": "[not(parameters('mockMode'))]",
+      "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
+      "apiVersion": "2023-11-15",
+      "name": "[format('{0}/{1}/{2}', variables('cosmosAccountName'), 'frontdoor', 'sessions')]",
+      "properties": {
+        "resource": {
+          "id": "sessions",
+          "partitionKey": {
+            "paths": [
+              "/student_id_hash"
+            ],
+            "kind": "Hash"
+          },
+          "defaultTtl": 7776000
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', variables('cosmosAccountName'), 'frontdoor')]"
+      ]
+    },
+    {
+      "condition": "[not(parameters('mockMode'))]",
+      "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
+      "apiVersion": "2023-11-15",
+      "name": "[format('{0}/{1}/{2}', variables('cosmosAccountName'), 'frontdoor', 'audit_logs')]",
+      "properties": {
+        "resource": {
+          "id": "audit_logs",
+          "partitionKey": {
+            "paths": [
+              "/timestamp"
+            ],
+            "kind": "Hash"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', variables('cosmosAccountName'), 'frontdoor')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Search/searchServices",
+      "apiVersion": "2023-11-01",
+      "name": "[format('{0}-search', variables('prefix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]",
+      "sku": {
+        "name": "basic"
+      },
+      "properties": {
+        "replicaCount": 1,
+        "partitionCount": 1,
+        "hostingMode": "default"
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2022-10-01",
+      "name": "[format('{0}-logs', variables('prefix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 30
+      }
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[format('{0}-env', variables('prefix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]",
+      "properties": {
+        "appLogsConfiguration": {
+          "destination": "log-analytics",
+          "logAnalyticsConfiguration": {
+            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', variables('prefix'))), '2022-10-01').customerId]",
+            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', variables('prefix'))), '2022-10-01').primarySharedKey]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', variables('prefix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2023-07-01",
+      "name": "[variables('keyVaultName')]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]",
+      "properties": {
+        "tenantId": "[subscription().tenantId]",
+        "sku": {
+          "family": "A",
+          "name": "standard"
+        },
+        "accessPolicies": [],
+        "enableRbacAuthorization": true
+      }
+    },
+    {
+      "condition": "[not(parameters('mockMode'))]",
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'cosmos-db-key')]",
+      "properties": {
+        "value": "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName')), '2023-11-15').primaryMasterKey]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName'))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'search-api-key')]",
+      "properties": {
+        "value": "[listAdminKeys(resourceId('Microsoft.Search/searchServices', format('{0}-search', variables('prefix'))), '2023-11-01').primaryKey]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[resourceId('Microsoft.Search/searchServices', format('{0}-search', variables('prefix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "apiVersion": "2023-07-01",
+      "name": "[replace(format('{0}acr', variables('prefix')), '-', '')]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]",
+      "sku": {
+        "name": "Basic"
+      },
+      "properties": {
+        "adminUserEnabled": true
+      }
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[format('{0}-backend', variables('prefix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[union(variables('tags'), createObject('azd-service-name', 'backend'))]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', variables('prefix')))]",
+        "configuration": {
+          "ingress": {
+            "external": true,
+            "targetPort": 8000,
+            "transport": "auto"
+          },
+          "secrets": [
+            {
+              "name": "acr-password",
+              "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', replace(format('{0}acr', variables('prefix')), '-', '')), '2023-07-01').passwords[0].value]"
+            },
+            {
+              "name": "cosmos-db-key",
+              "value": "[if(parameters('mockMode'), 'mock', listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName')), '2023-11-15').primaryMasterKey)]"
+            },
+            {
+              "name": "search-api-key",
+              "value": "[listAdminKeys(resourceId('Microsoft.Search/searchServices', format('{0}-search', variables('prefix'))), '2023-11-01').primaryKey]"
+            }
+          ],
+          "registries": [
+            {
+              "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', replace(format('{0}acr', variables('prefix')), '-', '')), '2023-07-01').loginServer]",
+              "username": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', replace(format('{0}acr', variables('prefix')), '-', '')), '2023-07-01').username]",
+              "passwordSecretRef": "acr-password"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "backend",
+              "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
+              "env": [
+                {
+                  "name": "MOCK_MODE",
+                  "value": "[string(parameters('mockMode'))]"
+                },
+                {
+                  "name": "AZURE_OPENAI_ENDPOINT",
+                  "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-openai', variables('prefix'))), '2023-10-01-preview').endpoint]"
+                },
+                {
+                  "name": "AZURE_OPENAI_DEPLOYMENT",
+                  "value": "[parameters('openAiModel')]"
+                },
+                {
+                  "name": "AZURE_OPENAI_REALTIME_DEPLOYMENT",
+                  "value": "[parameters('realtimeModel')]"
+                },
+                {
+                  "name": "AZURE_COSMOS_ENDPOINT",
+                  "value": "[if(parameters('mockMode'), '', reference(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName')), '2023-11-15').documentEndpoint)]"
+                },
+                {
+                  "name": "AZURE_COSMOS_KEY",
+                  "secretRef": "cosmos-db-key"
+                },
+                {
+                  "name": "AZURE_COSMOS_DATABASE",
+                  "value": "[if(parameters('mockMode'), 'frontdoor', 'frontdoor')]"
+                },
+                {
+                  "name": "AZURE_SEARCH_ENDPOINT",
+                  "value": "[format('https://{0}.search.windows.net', format('{0}-search', variables('prefix')))]"
+                },
+                {
+                  "name": "AZURE_SEARCH_KEY",
+                  "secretRef": "search-api-key"
+                }
+              ],
+              "resources": {
+                "cpu": "[json('0.5')]",
+                "memory": "1Gi"
+              }
+            }
+          ],
+          "scale": {
+            "minReplicas": 1,
+            "maxReplicas": 2
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', variables('prefix')))]",
+        "[resourceId('Microsoft.ContainerRegistry/registries', replace(format('{0}acr', variables('prefix')), '-', ''))]",
+        "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName'))]",
+        "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', variables('cosmosAccountName'), 'frontdoor')]",
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-openai', variables('prefix')))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts/deployments', format('{0}-openai', variables('prefix')), parameters('openAiModel'))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts/deployments', format('{0}-openai', variables('prefix')), parameters('realtimeModel'))]",
+        "[resourceId('Microsoft.Search/searchServices', format('{0}-search', variables('prefix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-openai', variables('prefix')))]",
+      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-openai', variables('prefix'))), resourceId('Microsoft.App/containerApps', format('{0}-backend', variables('prefix'))), variables('cognitiveServicesOpenAIUserRoleId'))]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('cognitiveServicesOpenAIUserRoleId'))]",
+        "principalId": "[reference(resourceId('Microsoft.App/containerApps', format('{0}-backend', variables('prefix'))), '2023-08-01-preview', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/containerApps', format('{0}-backend', variables('prefix')))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-openai', variables('prefix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2023-08-01-preview",
+      "name": "[format('{0}-frontend', variables('prefix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[union(variables('tags'), createObject('azd-service-name', 'frontend'))]",
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', variables('prefix')))]",
+        "configuration": {
+          "ingress": {
+            "external": true,
+            "targetPort": 80,
+            "transport": "auto"
+          },
+          "secrets": [
+            {
+              "name": "acr-password",
+              "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', replace(format('{0}acr', variables('prefix')), '-', '')), '2023-07-01').passwords[0].value]"
+            }
+          ],
+          "registries": [
+            {
+              "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', replace(format('{0}acr', variables('prefix')), '-', '')), '2023-07-01').loginServer]",
+              "username": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', replace(format('{0}acr', variables('prefix')), '-', '')), '2023-07-01').username]",
+              "passwordSecretRef": "acr-password"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "frontend",
+              "image": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
+              "env": [
+                {
+                  "name": "BACKEND_URL",
+                  "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', format('{0}-backend', variables('prefix'))), '2023-08-01-preview').configuration.ingress.fqdn)]"
+                }
+              ],
+              "resources": {
+                "cpu": "[json('0.25')]",
+                "memory": "0.5Gi"
+              }
+            }
+          ],
+          "scale": {
+            "minReplicas": 1,
+            "maxReplicas": 2
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/containerApps', format('{0}-backend', variables('prefix')))]",
+        "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', variables('prefix')))]",
+        "[resourceId('Microsoft.ContainerRegistry/registries', replace(format('{0}acr', variables('prefix')), '-', ''))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "AZURE_OPENAI_ENDPOINT": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-openai', variables('prefix'))), '2023-10-01-preview').endpoint]"
+    },
+    "AZURE_OPENAI_DEPLOYMENT": {
+      "type": "string",
+      "value": "[parameters('openAiModel')]"
+    },
+    "AZURE_OPENAI_REALTIME_DEPLOYMENT": {
+      "type": "string",
+      "value": "[parameters('realtimeModel')]"
+    },
+    "AZURE_COSMOS_ENDPOINT": {
+      "type": "string",
+      "value": "[if(parameters('mockMode'), '', reference(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosAccountName')), '2023-11-15').documentEndpoint)]"
+    },
+    "AZURE_COSMOS_DATABASE": {
+      "type": "string",
+      "value": "[if(parameters('mockMode'), 'frontdoor', 'frontdoor')]"
+    },
+    "AZURE_SEARCH_ENDPOINT": {
+      "type": "string",
+      "value": "[format('https://{0}.search.windows.net', format('{0}-search', variables('prefix')))]"
+    },
+    "AZURE_CONTAINER_REGISTRY_ENDPOINT": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', replace(format('{0}acr', variables('prefix')), '-', '')), '2023-07-01').loginServer]"
+    },
+    "AZURE_CONTAINER_ENV_ID": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', variables('prefix')))]"
+    },
+    "AZURE_CONTAINERAPP_URL": {
+      "type": "string",
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', format('{0}-backend', variables('prefix'))), '2023-08-01-preview').configuration.ingress.fqdn)]"
+    },
+    "AZURE_FRONTEND_URL": {
+      "type": "string",
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', format('{0}-frontend', variables('prefix'))), '2023-08-01-preview').configuration.ingress.fqdn)]"
+    },
+    "AZURE_RESOURCE_GROUP": {
+      "type": "string",
+      "value": "[resourceGroup().name]"
+    },
+    "AZURE_KEY_VAULT_NAME": {
+      "type": "string",
+      "value": "[variables('keyVaultName')]"
+    },
+    "MOCK_MODE": {
+      "type": "bool",
+      "value": "[parameters('mockMode')]"
+    }
+  }
+}

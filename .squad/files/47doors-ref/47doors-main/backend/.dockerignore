@@ -1,0 +1,21 @@
+# Don't copy local dev config or secrets into container images
+.env
+.env.*
+!.env.example
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/

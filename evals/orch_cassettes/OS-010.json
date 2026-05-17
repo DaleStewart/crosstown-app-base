@@ -3,24 +3,37 @@
     {
       "name": "find_alternate_route",
       "arguments": {
-        "origin": "S-Penn",
-        "destination": "S-East",
-        "disruption_id": "DSR-2026-001"
+        "from": "S-Penn",
+        "to": "S-East",
+        "avoid_disruption": "DSR-2026-001"
+      },
+      "result": {
+        "from": "S-Penn",
+        "to": "S-East",
+        "avoid_disruption": "DSR-2026-001",
+        "path": [
+          { "from": "S-Penn",    "to": "S-Atlas",   "line": "L2", "minutes": 14 },
+          { "from": "S-Atlas",   "to": "S-Jamaica", "line": "L2", "minutes": 16 },
+          { "from": "S-Jamaica", "to": "S-East",    "line": "L3", "minutes": 24 }
+        ],
+        "stations": ["S-Penn", "S-Atlas", "S-Jamaica", "S-East"],
+        "total_minutes": 54,
+        "lines_used": ["L2", "L3"]
       }
     }
   ],
   "citations": [
     {
-      "type": "runbook",
-      "id": "RB-11-line-shutdown-contingency",
-      "snippet": "Rider guidance for a full-line shutdown."
+      "id": "INC-2001",
+      "type": "incident",
+      "snippet": "DSR-2026-001 L1 full shutdown; alternate routing required."
     },
     {
-      "type": "incident",
-      "id": "DSR-2026-001",
-      "snippet": "Fictional full-line suspension on L1"
+      "id": "RB-11-line-shutdown-contingency",
+      "type": "runbook",
+      "snippet": "Line shutdown contingency: prefer L2/L3 transfers through S-Jamaica."
     }
   ],
   "warnings": [],
-  "text": "Take L2 from S-Penn south to S-Jamaica, then transfer to L3 to reach S-East. Avoids L1 entirely. Source: RB-11-line-shutdown-contingency, DSR-2026-001."
+  "text": "With the L1 disruption (DSR-2026-001 / INC-2001) in effect, the best S-Penn to S-East alternate uses L2 then L3: board L2 at S-Penn to S-Atlas (14 min), continue L2 to S-Jamaica (16 min), then transfer to L3 to S-East (24 min) — about 54 minutes total. See runbook RB-11-line-shutdown-contingency for transfer guidance at S-Jamaica."
 }

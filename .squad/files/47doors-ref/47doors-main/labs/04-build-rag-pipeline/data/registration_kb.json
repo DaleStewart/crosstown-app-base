@@ -1,0 +1,136 @@
+{
+  "articles": [
+    {
+      "article_id": "kb-registration-001",
+      "title": "Course Registration Dates and Deadlines",
+      "url": "https://registrar.university.edu/registration/dates",
+      "content": "Course registration at State University follows a structured timeline each semester. Priority registration begins approximately six weeks before the start of classes, with registration windows assigned based on class standing and total earned credits. Seniors (90+ credits) register first, followed by juniors (60-89 credits), sophomores (30-59 credits), and freshmen (0-29 credits). Graduate students have a separate registration period that typically opens one week before undergraduate priority registration.\n\nFor Fall 2026, priority registration runs from April 1-15, with open registration continuing through the first week of classes. Spring 2027 priority registration is scheduled for November 1-15. Summer session registration opens March 1 for all students regardless of class standing.\n\nStudents can view their specific registration appointment time in the Student Portal under 'Registration Status.' You must clear any registration holds before your appointment time to ensure access. Common holds include advising holds (requiring a meeting with your academic advisor), financial holds (outstanding balances over $500), and immunization holds (missing health documentation).\n\nLate registration is permitted during the first week of classes with instructor approval and requires a Late Add form. A $50 late registration fee applies after the first day of classes. Students who fail to register by the census date (typically the 10th day of classes) will not be enrolled for that semester.",
+      "snippet": "Priority registration begins six weeks before classes. Registration windows are assigned by class standing, with seniors registering first.",
+      "department": "registration",
+      "category": "enrollment",
+      "tags": ["registration", "deadlines", "priority registration", "enrollment dates", "schedule"],
+      "last_updated": "2026-01-15T10:00:00Z"
+    },
+    {
+      "article_id": "kb-registration-002",
+      "title": "How to Add a Class to Your Schedule",
+      "url": "https://registrar.university.edu/registration/add-class",
+      "content": "Adding a class to your schedule is straightforward during your registration window. Log into the Student Portal, navigate to 'Registration,' and select 'Add/Drop Classes.' Enter the five-digit Course Reference Number (CRN) found in the course catalog or class schedule, then click 'Submit Changes.' The system will immediately confirm successful enrollment or display any error messages.\n\nCommon reasons for add failures include: prerequisite requirements not met, time conflicts with existing courses, course capacity reached, or instructor consent required. For courses requiring department consent, you must obtain a permission number from the instructor or department office, which you then enter in the permit field during registration.\n\nDuring the first week of classes (add/drop period), you may add courses freely with available seats. From the second week until the census date, adding requires instructor signature on an Add/Drop form, which must be submitted to the Registrar's Office in person or via the online form portal. A $25 late add fee applies during this period.\n\nWaitlisted courses automatically enroll you if space becomes available. You will receive an email notification with a 24-hour window to confirm enrollment. If you don't confirm within that window, you lose your waitlist position. Students may waitlist up to 6 credit hours total across all courses.\n\nNote: Financial aid may be affected by credit hour changes. Contact Financial Aid before adding courses if you have concerns about your award package.",
+      "snippet": "Add classes through the Student Portal during your registration window. Enter the CRN and submit. Late adds require instructor approval.",
+      "department": "registration",
+      "category": "add_drop",
+      "tags": ["add class", "CRN", "enrollment", "permission number", "waitlist"],
+      "last_updated": "2026-01-20T14:30:00Z"
+    },
+    {
+      "article_id": "kb-registration-003",
+      "title": "How to Drop a Class",
+      "url": "https://registrar.university.edu/registration/drop-class",
+      "content": "Dropping a class removes it from your schedule without academic penalty when done within specified deadlines. The process and consequences vary based on when you drop during the semester.\n\nDuring the add/drop period (first week of classes): Drop courses freely through the Student Portal with no record on your transcript. Navigate to 'Registration,' select 'Add/Drop Classes,' choose the course, select 'Drop' from the action menu, and submit changes. Full tuition refund applies for dropped courses during this period.\n\nWeeks 2-10 (varies by semester): Dropping during this window results in a 'W' (Withdrawal) grade on your transcript. W grades do not affect your GPA but do appear on your academic record. A 50% tuition refund applies through week 4; no refund after week 4. You must submit a Course Drop Form through the Student Portal or Registrar's Office.\n\nAfter week 10: Drops are not permitted except in documented emergency circumstances (medical emergency, military deployment, death in immediate family). Emergency withdrawals require documentation and approval from the Dean of Students office.\n\nImportant considerations before dropping: Check that you will maintain at least 12 credits (full-time status) if required by financial aid, housing, or visa status. Dropping below full-time may affect scholarships, loans, or F-1/J-1 student status. Athletic eligibility requires 12 credits of enrollment. Contact relevant offices before dropping if any of these apply to your situation.",
+      "snippet": "Drop classes through the Student Portal. During week 1: full refund, no record. Weeks 2-10: 'W' grade appears. After week 10: emergencies only.",
+      "department": "registration",
+      "category": "add_drop",
+      "tags": ["drop class", "withdrawal", "refund", "W grade", "deadlines"],
+      "last_updated": "2026-01-18T09:15:00Z"
+    },
+    {
+      "article_id": "kb-registration-004",
+      "title": "Requesting Official Transcripts",
+      "url": "https://registrar.university.edu/transcripts/official-request",
+      "content": "Official transcripts are certified academic records bearing the University seal and Registrar's signature. They are required for graduate school applications, professional licensing, employer verification, and transfer to other institutions.\n\nTo order official transcripts, visit the Student Portal and select 'Transcript Request' or use our partner vendor, National Student Clearinghouse, at studentclearinghouse.org. Processing time is 3-5 business days for electronic delivery and 7-10 business days for mailed copies. Rush processing (24-hour) is available for an additional $15 fee.\n\nCosts: Electronic transcripts are $10 each; paper transcripts mailed domestically are $12; international mailing is $25. Payment is required at the time of order via credit card, debit card, or student account charge.\n\nTranscript requests cannot be processed if you have a financial hold on your account. Holds for balances under $100 may be temporarily lifted for transcript release at the Registrar's discretion for employment or graduate school deadlines—contact our office for assistance.\n\nUnofficial transcripts showing your complete academic record are available free of charge through the Student Portal. While not suitable for official purposes, they are useful for personal records, preliminary application review, or advising appointments.\n\nCurrent students and recent graduates (within 5 years) can order through the Student Portal. Alumni who graduated more than 5 years ago should use the Clearinghouse website or submit a paper request form available on our website.",
+      "snippet": "Order official transcripts through the Student Portal or National Student Clearinghouse. Cost: $10-25 depending on delivery method. 3-5 days processing.",
+      "department": "registration",
+      "category": "transcripts",
+      "tags": ["transcript", "official transcript", "clearinghouse", "academic record", "verification"],
+      "last_updated": "2026-01-10T11:00:00Z"
+    },
+    {
+      "article_id": "kb-registration-005",
+      "title": "Graduation Application Process",
+      "url": "https://registrar.university.edu/graduation/apply",
+      "content": "Applying for graduation is a required step for all degree candidates. The application triggers a final degree audit, reserves your place in the commencement ceremony, and initiates diploma ordering. You must apply even if you do not plan to attend the ceremony.\n\nApplication deadlines: For May graduation, apply by February 1. For August graduation, apply by June 1. For December graduation, apply by October 1. Late applications are accepted with a $50 late fee until 30 days before commencement.\n\nTo apply, log into the Student Portal, navigate to 'Graduation,' and select 'Apply for Graduation.' Select your degree program, expected graduation term, and ceremony attendance preference. The application fee is $75 for undergraduate degrees and $100 for graduate degrees, payable at submission.\n\nWithin two weeks of applying, you will receive a preliminary graduation audit from your academic advisor. This audit identifies any remaining requirements, including courses in progress that must be completed with passing grades. Address any discrepancies immediately with your advisor.\n\nFinal degree conferral occurs approximately three weeks after grades are posted for your final term. Diplomas are mailed 8-10 weeks after degree conferral to the address on file. Update your diploma mailing address in the Student Portal under 'Personal Information' before the graduation deadline.\n\nIf you do not complete requirements in your expected term, you must reapply for a subsequent graduation term. One free reapplication is permitted; additional reapplications incur the full application fee.",
+      "snippet": "Apply for graduation through the Student Portal by the posted deadline. Application fee: $75 undergraduate, $100 graduate. Diplomas mail 8-10 weeks after.",
+      "department": "registration",
+      "category": "graduation",
+      "tags": ["graduation", "commencement", "diploma", "degree conferral", "application"],
+      "last_updated": "2026-01-25T16:00:00Z"
+    },
+    {
+      "article_id": "kb-registration-006",
+      "title": "Understanding Your Degree Audit",
+      "url": "https://registrar.university.edu/degree-audit/overview",
+      "content": "The degree audit is an automated report that tracks your progress toward degree completion. It compares your completed and in-progress coursework against the requirements of your declared major, minor, and general education curriculum. Access your audit anytime through the Student Portal under 'Academic Records' then 'Degree Audit.'\n\nThe audit is organized into requirement blocks: General Education, Major Requirements, Minor Requirements (if applicable), and Electives. Each block shows required courses, completed courses (with grades), in-progress courses, and remaining requirements. Green checkmarks indicate satisfied requirements; yellow indicates in-progress; red indicates unfulfilled.\n\nKey sections to review: The 'What-If' feature allows you to see how your coursework would apply to a different major or minor before officially changing programs. This is valuable for exploring academic options without commitment. The 'GPA Calculator' projects your cumulative GPA based on anticipated grades.\n\nCommon audit discrepancies include: transfer credits not yet articulated, course substitutions not yet processed, or recently declared majors/minors not reflected. Contact your academic advisor or the Registrar's Office to resolve discrepancies. Allow 2-3 weeks for processing of substitutions and exceptions.\n\nYour audit updates in real-time as grades are posted and requirements are met. However, some changes (major declarations, course substitutions, exception approvals) require manual processing. Run a fresh audit before meeting with your advisor and before applying for graduation to ensure accuracy.",
+      "snippet": "The degree audit tracks progress toward your degree. View it in the Student Portal. Use 'What-If' to explore different majors before committing.",
+      "department": "registration",
+      "category": "degree_audit",
+      "tags": ["degree audit", "requirements", "academic progress", "what-if", "graduation requirements"],
+      "last_updated": "2026-01-12T13:45:00Z"
+    },
+    {
+      "article_id": "kb-registration-007",
+      "title": "How to Change Your Major",
+      "url": "https://registrar.university.edu/academic/change-major",
+      "content": "Changing your major is a significant academic decision that affects your degree requirements, timeline to graduation, and potentially your financial aid. We encourage you to meet with an academic advisor before initiating a change.\n\nEligibility requirements vary by program. Most majors accept change-of-major requests from any student in good academic standing (2.0 cumulative GPA minimum). Competitive programs such as Nursing, Business, Computer Science, and Engineering have additional requirements including minimum GPAs of 2.5-3.0, prerequisite course completion, and available capacity. Some programs have specific application windows.\n\nTo change your major, submit a Change of Major form through the Student Portal under 'Academic Records.' Select your desired new major and provide a brief statement about your interest. The form routes to the receiving department for approval. Processing typically takes 5-10 business days; you'll receive email notification of the decision.\n\nOnce approved, your degree audit will update automatically to reflect new program requirements. Note that some previously completed courses may no longer apply toward your degree, while new requirements will be added. Run a 'What-If' audit before submitting your request to understand how the change will affect your graduation timeline.\n\nFinancial aid implications: Maximum timeframe for federal aid is 150% of published program length. Changing majors may reduce remaining eligible semesters if you are close to this limit. Contact Financial Aid for a timeframe calculation before changing programs.\n\nDouble majors are also available—see our Double Major Policy for requirements.",
+      "snippet": "Submit Change of Major form through Student Portal. Standard processing: 5-10 days. Some programs have competitive admission requirements.",
+      "department": "registration",
+      "category": "enrollment",
+      "tags": ["change major", "academic program", "competitive admission", "degree requirements"],
+      "last_updated": "2026-01-08T10:30:00Z"
+    },
+    {
+      "article_id": "kb-registration-008",
+      "title": "Declaring a Minor",
+      "url": "https://registrar.university.edu/academic/declare-minor",
+      "content": "A minor is a secondary area of academic focus requiring 15-21 credit hours, depending on the discipline. Minors appear on your transcript and diploma, demonstrating breadth of knowledge to employers and graduate programs. You may declare up to two minors in addition to your major.\n\nMost minors are open declaration, meaning any student may add them without approval. However, some minors have prerequisites or GPA requirements. Popular restricted minors include Computer Science (requires CSCI 201 with C or better), Business (2.5 GPA, completion of ACCT 201), and Data Analytics (statistics prerequisite).\n\nTo declare an open minor, log into the Student Portal, go to 'Academic Records,' and select 'Add Minor.' Choose from the list of available minors and submit. The minor will appear on your degree audit within 24-48 hours.\n\nFor restricted minors, you must submit a Minor Declaration form with evidence of prerequisite completion. The receiving department reviews applications and responds within 10 business days. If denied, you will receive an explanation and may appeal or reapply after meeting requirements.\n\nPlanning considerations: Minors must share no more than 6 credit hours with your major (double-counting is limited). You must complete at least 9 credit hours of minor coursework at State University (residency requirement)—transfer credits alone cannot fulfill a minor. Minors must be declared by the time you apply for graduation.\n\nConsult your degree audit to see how minor courses fit with your graduation timeline. Some minors can be completed with minimal extra coursework if courses overlap with general education requirements.",
+      "snippet": "Declare open minors instantly through Student Portal. Restricted minors require application. Minors require 15-21 credits with 9 in residence.",
+      "department": "registration",
+      "category": "enrollment",
+      "tags": ["minor", "declare minor", "academic program", "double counting", "requirements"],
+      "last_updated": "2026-01-14T15:20:00Z"
+    },
+    {
+      "article_id": "kb-registration-009",
+      "title": "Course Waitlist Procedures",
+      "url": "https://registrar.university.edu/registration/waitlist",
+      "content": "The waitlist system allows you to queue for full courses and automatically enroll if a seat becomes available. Understanding how the waitlist works helps maximize your chances of getting into desired courses.\n\nTo join a waitlist, register for the course normally through the Student Portal. If the course is full but has waitlist spots available, you'll be prompted to add yourself to the waitlist. Confirm to be added. You can waitlist up to 6 credit hours total across all courses.\n\nWhen a seat opens, the first student on the waitlist receives an email notification and has exactly 24 hours to confirm enrollment through the Student Portal. If you don't respond within 24 hours, you forfeit your position and the seat goes to the next student. Set up text alerts in your notification preferences to avoid missing the window.\n\nWaitlist position is determined by the timestamp when you joined. Your position is visible in the Student Portal under your registration. Positions update dynamically as students ahead of you enroll or drop off.\n\nImportant rules: You cannot waitlist a course that conflicts with your enrolled schedule—you must drop the conflicting course first. If the waitlisted course would put you over the maximum credit limit (18 credits for undergraduates), the automatic enrollment will fail. Request a credit overload approval in advance if needed.\n\nWaitlists close at the end of the first week of classes. After that, contact the instructor directly about available seats. Many instructors maintain their own informal waitlists for late additions.",
+      "snippet": "Join waitlists through normal registration if courses are full. You have 24 hours to accept when a seat opens. Maximum 6 waitlisted credits.",
+      "department": "registration",
+      "category": "enrollment",
+      "tags": ["waitlist", "course registration", "enrollment", "full courses", "notifications"],
+      "last_updated": "2026-01-22T08:00:00Z"
+    },
+    {
+      "article_id": "kb-registration-010",
+      "title": "Credit/No-Credit Grading Option",
+      "url": "https://registrar.university.edu/grades/credit-no-credit",
+      "content": "The Credit/No-Credit (CR/NC) option allows you to take courses outside your major on a pass/fail basis, reducing grade pressure while exploring new subjects. A grade of C- or better converts to CR (Credit); below C- converts to NC (No Credit). Neither affects your GPA.\n\nEligibility: Undergraduate students with at least 30 earned credits may elect CR/NC. You may apply the option to one course per semester, up to a maximum of 16 CR/NC credits toward your degree. First-year students are not eligible except during designated periods announced by the Provost.\n\nRestrictions: CR/NC cannot be used for courses in your major, minor, or general education requirements. It is available only for free electives. Some graduate programs and professional schools view CR/NC grades unfavorably—research your intended path before using this option frequently.\n\nDeadline: You must elect CR/NC by the end of the 8th week of the semester. The election is binding and cannot be reversed after the deadline. You will not know your letter grade before making this decision.\n\nTo elect CR/NC, complete the Credit/No-Credit Election form available in the Student Portal under 'Registration Forms.' The form requires your advisor's electronic signature acknowledging the election. Processing takes 2-3 business days, after which the grading mode appears on your schedule.\n\nNote: CR credits count toward graduation credit requirements but NC does not. NC is not the same as a withdrawal—the course appears on your transcript with the NC notation, indicating you completed the course but did not achieve a C- or better.",
+      "snippet": "CR/NC converts C- or better to Credit (no GPA impact). Elect by week 8. Maximum 16 CR/NC credits toward degree. Not for major/minor courses.",
+      "department": "registration",
+      "category": "enrollment",
+      "tags": ["credit no credit", "pass fail", "grading option", "electives", "GPA"],
+      "last_updated": "2026-01-16T12:00:00Z"
+    },
+    {
+      "article_id": "kb-registration-011",
+      "title": "Complete Withdrawal from the University",
+      "url": "https://registrar.university.edu/withdrawal/complete",
+      "content": "Complete withdrawal means leaving the University entirely for a semester, dropping all courses. This differs from dropping individual courses and has significant academic, financial, and administrative consequences.\n\nBefore withdrawing, we strongly encourage meeting with your academic advisor and a Student Success counselor. Many students considering withdrawal have options they're unaware of, including reduced course loads, medical leave of absence, or incomplete grades for specific circumstances.\n\nTo initiate withdrawal, submit the Complete Withdrawal Request form in the Student Portal or schedule an exit appointment with the Registrar's Office. The effective date of withdrawal determines refund eligibility and transcript notation. Withdrawals before the 60% point of the semester may qualify for partial tuition refunds according to our published refund schedule.\n\nTranscript impact: Complete withdrawal results in 'W' grades for all courses in progress. If you withdraw after the 10th week without documented emergency circumstances, 'WF' (Withdrawal Failing) grades may be assigned at instructor discretion, which calculate as F grades in your GPA.\n\nFinancial aid: Federal regulations require return of Title IV aid (Pell Grants, federal loans) proportional to the unearned portion of the semester. This may create a balance owed to the University. Students who withdraw may also lose eligibility for future aid due to Satisfactory Academic Progress requirements.\n\nReturning after withdrawal: Students who withdraw in good standing may return within two years by submitting a Readmission Application. Students who left due to academic or conduct issues must apply through the appropriate appeals process. Housing, parking, and other auxiliary services require separate reapplication.",
+      "snippet": "Complete withdrawal drops all courses for the semester. Meet with an advisor first. Refunds available before 60% of semester. W grades assigned.",
+      "department": "registration",
+      "category": "add_drop",
+      "tags": ["withdrawal", "leave university", "refund", "readmission", "financial aid"],
+      "last_updated": "2026-01-19T14:00:00Z"
+    },
+    {
+      "article_id": "kb-registration-012",
+      "title": "Resolving Registration Holds",
+      "url": "https://registrar.university.edu/registration/holds",
+      "content": "Registration holds prevent you from enrolling in courses until specific requirements are met. Understanding your holds and resolving them before your registration appointment ensures uninterrupted access to course enrollment.\n\nTo view your holds, log into the Student Portal and navigate to 'Student Records' then 'View Holds.' Each hold displays the type, reason, originating office, and contact information for resolution. Common holds include:\n\nAdvising Hold: Requires meeting with your academic advisor before registering. This is standard for freshmen, students on academic probation, and those in certain majors. Schedule an advising appointment through your department or the Advising Center. After meeting, your advisor releases the hold electronically.\n\nFinancial Hold: Placed when your account balance exceeds $500. You must pay down the balance or establish an approved payment plan through Student Financial Services. Holds are released within 24 hours of payment clearing.\n\nImmunization Hold: Missing required health documentation (proof of MMR vaccination, meningitis vaccine, or tuberculosis screening). Submit documents to Student Health Services via the patient portal. Processing takes 3-5 business days.\n\nLibrary Hold: Unreturned materials or excessive fines. Return materials and pay fines at any campus library branch. Holds are released immediately upon resolution.\n\nAdmissions Hold: Missing final transcripts or test scores for admitted students. Contact Undergraduate or Graduate Admissions to determine what documents are needed.\n\nAllow sufficient time before your registration window to resolve holds. Some holds (immunization, financial) require processing time. Check your hold status 2-3 days after taking action to confirm release. If a hold persists incorrectly, contact the originating office with documentation of your resolution action.",
+      "snippet": "View holds in Student Portal under Student Records. Common holds: advising, financial, immunization. Resolve before your registration window.",
+      "department": "registration",
+      "category": "enrollment",
+      "tags": ["holds", "registration hold", "advising", "financial hold", "immunization"],
+      "last_updated": "2026-01-23T09:30:00Z"
+    }
+  ]
+}

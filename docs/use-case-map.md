@@ -48,4 +48,24 @@ Find the row that sounds most like your problem. **Where it lives** points you t
 | "Voice isn't working in our sub" | [docs/voice.md § Speech Services fallback](voice.md#fallback-azure-speech-services-stt--tts) — flip `VOICE_PROVIDER` | 10 min |
 | "How do we modernize this legacy thing?" | [Extension 04](extensions/04_legacy_modernization/) | 45 min |
 | "We need a CI/CD pipeline" | `.github/workflows/deploy.yml` — already done if you forked | 0 min |
+
+---
+
+## 🗺️ Health at a glance
+
+| Metric | Status |
+|--------|--------|
+| All 14 use cases mapped | [██████████] 100% |
+| Track 2 routes complete | [██████████] 100% |
+| Track 1 bridges flagged | [██████████] 100% |
+| Coach quick-ref present | [██████████] 100% |
+
+| Field | Value |
+|-------|-------|
+| Last reviewed | 2026-05-17 |
+| Reviewed by | T'Challa (Lead) |
+| Doc owner | T'Challa (Lead) |
+| Related PRs (recent) | [#15](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/15) deploy-hygiene · [#14](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/14) cap names · [#8](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/8) infra fixes |
+| Related branches in-flight | (none in last 7 days) |
+| Next review trigger | When a new use case is added or extension refactored |
 | "We're greenfielding — can we still copy patterns?" | Yes. Lift anything from `apps/` or `infra/` as reference; no fork required. | 5 min |

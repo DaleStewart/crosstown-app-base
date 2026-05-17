@@ -14,6 +14,14 @@ class Settings(BaseSettings):
     azure_openai_endpoint: str = ""
     azure_openai_chat_deployment: str = "gpt-4.1"
     azure_openai_realtime_deployment: str = "gpt-realtime-1.5"
+    # Deployment name for input audio transcription (user speech → text).
+    # Azure OpenAI requires an *existing* deployment name — "whisper-1" is NOT valid
+    # because no whisper deployment is provisioned in infra/modules/foundry.bicep.
+    # OpenAI (non-Azure) accepts "whisper-1". Set to "" to disable transcription;
+    # the voice loop continues without user transcript rather than crashing.
+    # Add a whisper-1 or gpt-4o-transcribe deployment to foundry.bicep, then set
+    # AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT=<name> to enable.
+    azure_openai_transcription_deployment: str = ""
 
     azure_speech_endpoint: str = ""
     azure_speech_region: str = "eastus2"

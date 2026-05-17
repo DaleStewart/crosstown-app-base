@@ -53,6 +53,7 @@ def test_health(client_with_fakes: tuple[TestClient, FakeSession]) -> None:
     assert r.status_code == 200
     body = r.json()
     assert body["status"] == "ok"
+    assert body["service"] == "orchestrator"
 
 
 def test_ws_text_round_trip(

@@ -19,4 +19,5 @@ def build_provider(settings: Settings | None = None) -> Provider:
     return FoundryRealtimeProvider(
         endpoint=s.azure_openai_endpoint,
         deployment=s.azure_openai_realtime_deployment,
+        transcription_deployment=s.azure_openai_transcription_deployment,
     )

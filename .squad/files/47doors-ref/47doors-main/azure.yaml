@@ -1,0 +1,53 @@
+# Azure Developer CLI (azd) configuration for University Front Door Support Agent
+# Run `azd up` to provision and deploy the solution
+
+name: university-front-door-agent
+metadata:
+  template: university-front-door-agent@0.0.1
+
+services:
+  backend:
+    project: ./backend
+    language: python
+    host: containerapp
+    docker:
+      path: Dockerfile
+
+  frontend:
+    project: ./frontend
+    language: js
+    host: containerapp
+    docker:
+      path: Dockerfile
+
+# Azure infrastructure
+infra:
+  provider: bicep
+  path: ./infra
+  module: main
+
+# Hooks for deployment lifecycle
+hooks:
+  preprovision:
+    shell: sh
+    run: |
+      echo "Preparing to provision Azure resources..."
+      echo "This will create: Azure OpenAI, Container Apps, Cosmos DB, AI Search"
+
+  postprovision:
+    shell: sh
+    run: |
+      echo "Provisioning complete!"
+      echo "Run 'azd deploy' to deploy your application"
+
+  postdeploy:
+    shell: sh
+    run: |
+      echo "Deployment complete!"
+      echo "Frontend URL: ${AZURE_FRONTEND_URL}"
+      echo "Backend URL: ${AZURE_CONTAINERAPP_URL}"
+      echo "API Health: ${AZURE_CONTAINERAPP_URL}/api/health"
+
+# Pipeline configuration for CI/CD
+pipeline:
+  provider: github

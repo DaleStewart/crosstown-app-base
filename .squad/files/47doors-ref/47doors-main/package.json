@@ -1,0 +1,42 @@
+{
+  "name": "47doors-boot-camp",
+  "version": "1.0.0",
+  "description": "47 Doors University Support Agent - Boot Camp Curriculum",
+  "private": true,
+  "scripts": {
+    "smoke-test": "bash scripts/smoke-test.sh",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && python -m uvicorn app.main:app --reload --port 8000",
+    "start:frontend": "cd frontend && npm run dev",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && python -m pytest tests/ -v --tb=short",
+    "test:frontend": "cd frontend && npm test",
+    "test:e2e": "cd frontend && npm run test:e2e",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd backend && ruff check .",
+    "lint:frontend": "cd frontend && npm run lint",
+    "build": "cd frontend && npm run build",
+    "setup": "npm run setup:backend && npm run setup:frontend",
+    "setup:backend": "cd backend && pip install -r requirements.txt",
+    "setup:frontend": "cd frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/msftsean/hiedcab_frontdoor_agent.git"
+  },
+  "keywords": [
+    "boot camp",
+    "ai-agents",
+    "azure-openai",
+    "rag",
+    "higher-education"
+  ],
+  "author": "Microsoft Higher Education",
+  "license": "MIT"
+}

@@ -6,6 +6,7 @@ COPY . .
 RUN npm run build
 
 FROM nginx:1.27-alpine
+RUN apk add --no-cache curl
 RUN addgroup -S app && adduser -S -G app app
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/templates/default.conf.template
@@ -15,4 +16,6 @@ RUN chmod +x /docker-entrypoint.d/40-orchestrator-url.sh \
  && chown -R app:app /usr/share/nginx/html /var/cache/nginx /var/run /run /var/log/nginx /etc/nginx
 USER app
 EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl --fail --silent --max-time 4 http://localhost:80/api/health || exit 1
 CMD ["nginx", "-g", "daemon off;"]

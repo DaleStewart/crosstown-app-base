@@ -4,21 +4,31 @@
       "name": "get_shuttle_bridging",
       "arguments": {
         "disruption_id": "DSR-2026-001"
+      },
+      "result": {
+        "disruption_id": "DSR-2026-001",
+        "legs": [
+          { "from": "S-Jamaica",    "to": "S-Hicksville", "headway_minutes": 20, "minutes": 45 },
+          { "from": "S-Hicksville", "to": "S-Mineola",    "headway_minutes": 20, "minutes": 15 }
+        ],
+        "total_minutes": 60,
+        "headway_minutes": 20,
+        "notes": "Two-leg bus bridge; capacity-constrained at peak."
       }
     }
   ],
   "citations": [
     {
+      "id": "INC-2001",
       "type": "incident",
-      "id": "DSR-2026-001",
-      "snippet": "Fictional full-line suspension on L1"
+      "snippet": "DSR-2026-001 L1 full shutdown; shuttle bridging activated."
     },
     {
-      "type": "runbook",
       "id": "RB-12-shuttle-bus-bridging",
-      "snippet": "Shuttle-bus bridging procedures during a line shutdown."
+      "type": "runbook",
+      "snippet": "Shuttle bus bridging policy: 20-minute headway, capacity caveats."
     }
   ],
   "warnings": [],
-  "text": "Yes \u2014 shuttle buses bridge the closed L1 segment. See RB-12-shuttle-bus-bridging for the published stops."
+  "text": "Yes — shuttle buses are bridging the L1 outage (DSR-2026-001 / INC-2001) in two legs: S-Jamaica to S-Hicksville (~45 min ride) and S-Hicksville to S-Mineola (~15 min ride), each at a 20-minute headway. See runbook RB-12-shuttle-bus-bridging for capacity caveats and rider-comms guidance."
 }

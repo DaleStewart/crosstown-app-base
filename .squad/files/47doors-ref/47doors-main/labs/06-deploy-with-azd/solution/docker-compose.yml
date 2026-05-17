@@ -1,0 +1,52 @@
+# Docker Compose for University Front Door Agent
+# Lab 06: Deploy with azd - SOLUTION
+#
+# This configuration allows local development and testing
+# before deploying to Azure with azd.
+
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - MOCK_MODE=true
+      # Azure service connections (optional for local testing)
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
+      - AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT:-gpt-4o}
+      - AZURE_SEARCH_ENDPOINT=${AZURE_SEARCH_ENDPOINT:-}
+      - AZURE_SEARCH_API_KEY=${AZURE_SEARCH_API_KEY:-}
+      - AZURE_COSMOS_ENDPOINT=${AZURE_COSMOS_ENDPOINT:-}
+      - AZURE_COSMOS_KEY=${AZURE_COSMOS_KEY:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # Frontend service (optional - uncomment if you have a frontend)
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3000:80"
+  #   environment:
+  #     - VITE_API_BASE_URL=http://localhost:8000
+  #   depends_on:
+  #     backend:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+
+# Optional: Define networks for service isolation
+# networks:
+#   frontdoor-network:
+#     driver: bridge
