@@ -26,3 +26,22 @@ You're done when **ALL** of the following are true.
    Show all tests green.
 4. Ask the coach: _"What happened on the L3 line last month?"_ and show a log entry from your
    new corpus appearing in the citations.
+
+
+## 📚 Acceptance criteria
+
+| Metric | Status |
+|--------|--------|
+| Acceptance criteria | [██████████] 100% |
+| Edge cases listed | [██████████] 100% |
+| Pass/fail thresholds | [██████████] 100% |
+| Reviewer assigned | Banner (Tester) |
+
+| Field | Value |
+|-------|-------|
+| Last reviewed | 2026-05-17 |
+| Reviewed by | T'Challa (Lead) |
+| Doc owner | Banner (Tester) |
+| Related PRs (recent) | (none in last 7 days) |
+| Related branches in-flight | (none — exercise only) |
+| Next review trigger | When acceptance criteria are revisited or team completes extension |

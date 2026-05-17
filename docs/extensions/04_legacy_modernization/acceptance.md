@@ -28,3 +28,22 @@ You're done when **ALL** of the following are true.
 3. Show `legacy/SampleController.cs` side-by-side with `apps/legacy_service/main.py` in the
    editor and point out the structural similarity (controller → router, action → endpoint).
 4. Run `pytest docs/extensions/04_legacy_modernization/tests/ -v` and show all green.
+
+
+## 🏗️ Acceptance criteria
+
+| Metric | Status |
+|--------|--------|
+| Acceptance criteria | [██████████] 100% |
+| Edge cases listed | [██████████] 100% |
+| Pass/fail thresholds | [██████████] 100% |
+| Reviewer assigned | Stark (Architect) |
+
+| Field | Value |
+|-------|-------|
+| Last reviewed | 2026-05-17 |
+| Reviewed by | T'Challa (Lead) |
+| Doc owner | Stark (Architect) |
+| Related PRs (recent) | (none in last 7 days) |
+| Related branches in-flight | (none — exercise only) |
+| Next review trigger | When acceptance criteria are revisited or team completes extension |
