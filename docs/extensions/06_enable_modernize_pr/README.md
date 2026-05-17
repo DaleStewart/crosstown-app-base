@@ -63,3 +63,23 @@ All tests **fail** until the workflow file is renamed and corrected.
 - [Use case map](../../use-case-map.md)
 - [Architecture](../../architecture.md)
 - Previous: [05 — Wire Legacy to Agent](../05_wire_legacy_to_agent/README.md) · Next: [07 — Frontend Rebrand](../07_frontend_rebrand/README.md)
+
+---
+
+## 🤖 Health at a glance
+
+| Metric | Status |
+|--------|--------|
+| Acceptance criteria | [██████████] 100% |
+| Failing tests in place | [██████████] 100% |
+| Copilot prompts | [██████████] 100% (3 prompts) |
+| Time to complete | 15 min |
+
+| Field | Value |
+|-------|-------|
+| Last reviewed | 2026-05-17 |
+| Reviewed by | T'Challa (Lead) |
+| Doc owner | Banner (Tester) |
+| Related PRs (recent) | (none in last 7 days) |
+| Related branches in-flight | (none — exercise only) |
+| Next review trigger | When this extension's failing tests are reshaped or a team completes it |
