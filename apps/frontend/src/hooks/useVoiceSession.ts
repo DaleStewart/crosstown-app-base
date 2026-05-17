@@ -296,11 +296,16 @@ export function useVoiceSession(
   const disconnect = useCallback(async (): Promise<void> => {
     await stopTalking();
     if (wsRef.current) {
+      try {
+        send({ type: "stop" });
+      } catch {
+        /* noop */
+      }
       wsRef.current.close();
       wsRef.current = null;
     }
     dispatch({ type: "reset" });
-  }, [stopTalking]);
+  }, [send, stopTalking]);
 
   useEffect(() => {
     return () => {

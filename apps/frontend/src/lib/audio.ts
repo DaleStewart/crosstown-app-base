@@ -8,35 +8,48 @@ export async function startMic(onPcm: PcmCallback): Promise<MicSession> {
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
   });
-  const ctx = new AudioContext();
-  const source = ctx.createMediaStreamSource(stream);
-  const processor = ctx.createScriptProcessor(4096, 1, 1);
-  const targetRate = 16000;
+  // AudioContext is created after an async gap so browsers (Chrome autoplay
+  // policy) may start it suspended. Wrap setup in try/catch so we always
+  // release the mic stream if anything here fails.
+  let ctx: AudioContext | null = null;
+  try {
+    ctx = new AudioContext();
+    await ctx.resume();
+    const source = ctx.createMediaStreamSource(stream);
+    const processor = ctx.createScriptProcessor(4096, 1, 1);
+    const targetRate = 16000;
 
-  processor.onaudioprocess = (ev: AudioProcessingEvent) => {
-    const input = ev.inputBuffer.getChannelData(0);
-    const ratio = ctx.sampleRate / targetRate;
-    const outLen = Math.floor(input.length / ratio);
-    const out = new Int16Array(outLen);
-    for (let i = 0; i < outLen; i++) {
-      const sample = input[Math.floor(i * ratio)] ?? 0;
-      const clipped = Math.max(-1, Math.min(1, sample));
-      out[i] = clipped < 0 ? clipped * 0x8000 : clipped * 0x7fff;
-    }
-    onPcm(out.buffer);
-  };
+    processor.onaudioprocess = (ev: AudioProcessingEvent) => {
+      const input = ev.inputBuffer.getChannelData(0);
+      const ratio = (ctx as AudioContext).sampleRate / targetRate;
+      const outLen = Math.floor(input.length / ratio);
+      const out = new Int16Array(outLen);
+      for (let i = 0; i < outLen; i++) {
+        const sample = input[Math.floor(i * ratio)] ?? 0;
+        const clipped = Math.max(-1, Math.min(1, sample));
+        out[i] = clipped < 0 ? clipped * 0x8000 : clipped * 0x7fff;
+      }
+      onPcm(out.buffer);
+    };
 
-  source.connect(processor);
-  processor.connect(ctx.destination);
+    source.connect(processor);
+    processor.connect((ctx as AudioContext).destination);
 
-  return {
-    async stop(): Promise<void> {
-      processor.disconnect();
-      source.disconnect();
-      stream.getTracks().forEach((t) => t.stop());
-      await ctx.close();
-    },
-  };
+    const capturedCtx = ctx;
+    return {
+      async stop(): Promise<void> {
+        processor.disconnect();
+        source.disconnect();
+        stream.getTracks().forEach((t) => t.stop());
+        await capturedCtx.close();
+      },
+    };
+  } catch (err) {
+    // Ensure the mic indicator light goes off even if Web Audio setup fails.
+    stream.getTracks().forEach((t) => t.stop());
+    if (ctx) await ctx.close().catch(() => undefined);
+    throw err;
+  }
 }
 
 export class AudioPlayer {

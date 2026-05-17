@@ -2,6 +2,13 @@ import { useCallback, useEffect, type ReactNode } from "react";
 import { Mic, MicOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function isTypingInInput(e: KeyboardEvent): boolean {
+  const t = e.target as HTMLElement | null;
+  if (!t) return false;
+  const tag = t.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || t.isContentEditable;
+}
+
 export interface PushToTalkButtonProps {
   recording: boolean;
   onStart: () => void;
@@ -25,12 +32,14 @@ export function PushToTalkButton({
 
   useEffect(() => {
     const down = (ev: KeyboardEvent): void => {
+      if (isTypingInInput(ev)) return;
       if (ev.code === "Space" && !ev.repeat && !disabled) {
         ev.preventDefault();
         onStart();
       }
     };
     const up = (ev: KeyboardEvent): void => {
+      if (isTypingInInput(ev)) return;
       if (ev.code === "Space" && !disabled) {
         ev.preventDefault();
         onStop();
