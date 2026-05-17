@@ -8,6 +8,26 @@ Okoye — Operations / DevOps. MTA AI Hackathon.
 
 ---
 
+## 2026-05-17 — PR #22 `fix/voice-user-transcription` shipped (Wave 2)
+
+**Task:** Drive PR #22 through rebase → verify → Anvil review → squash-merge → CD + regression smoke.
+
+**Status:** ✅ Complete. Merge commit: `2051e25`.
+
+**Pipeline:**
+- **Rebase:** 2 conflicts, 3 hunks. `settings.py`: kept HEAD's safe default `""` (Azure crashes WebSocket on invalid deployment name; PR #22 tried to set "whisper-1"). `foundry_realtime.py`: merged commit_audio docstring (both sentences kept); kept HEAD's DANGER comment + GA nested JSON format for Phase 2 transcription. PR #22's "non-fatal/fire-and-forget" framing overridden — the danger is real.
+- **Key finding:** After conflict resolution, functional diff vs main was only 2 comment lines. Anvil confirmed all substantive changes (`_translate` handlers, `_handle_event`, tests) were already on main from prior work.
+- **Local verify:** ruff ✅ mypy (20 files) ✅ pytest (25/25) ✅
+- **Anvil:** APPROVE-WITH-NITS — 3 nits (stale doc default, empty-string guard asymmetry, test count off-by-one). Fixed nit #1 (stale doc) before merge.
+- **CI:** 6/6 green (foundry-evaluators skipped — no AZURE_OPENAI_ENDPOINT var).
+- **CD:** https://github.com/DevPost-Test-Hackathon/crosstown-app/actions/runs/25994434251 → ✅ success (2m40s)
+- **Text regression:** `POST /api/turn {"text":"any delays on the L train?"}` → HTTP 200, 10 citations, warnings: [] ✅
+- **Note:** First regression curl got `uncited` — model chose different params, second call succeeded. Confirmed not regression by running baseline text. Non-deterministic model param choices are pre-existing.
+
+**Learning:** When the rebase conflict resolution keeps HEAD's version wholesale, the PR's functional contribution may already be on main. Always check `git diff origin/main..HEAD --name-only` after rebase to understand the real diff before spawning Anvil. Also: when a prior PR established a DANGER comment documenting that Azure closes the WebSocket on an invalid deployment name, incoming PRs that soften this to "non-fatal" should be treated with skepticism — the danger was learned the hard way. When one regression curl returns `uncited` and a second with identical baseline text returns citations, the first is likely non-deterministic model behavior, not a regression.
+
+---
+
 ## 2026-05-17 — PR #20 `fix/voice-vad-commit` shipped (Wave 1)
 
 **Task:** Drive PR #20 through rebase → verify → Anvil review → squash-merge → CD + regression smoke.
