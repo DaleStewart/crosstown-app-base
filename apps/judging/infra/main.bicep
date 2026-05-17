@@ -108,10 +108,16 @@ resource swa 'Microsoft.Web/staticSites@2023-12-01' = {
     tier: 'Standard'
   }
   properties: {
-    // SECURITY (H3): config managed via Bicep only
-    allowConfigFileUpdates: false
+    // SECURITY (H3): re-lock to false after initial config deploy. Kept true so
+    // azd swa cli deploy can install staticwebapp.config.json (routes + AAD auth).
+    allowConfigFileUpdates: true
     stagingEnvironmentPolicy: 'Enabled'
     provider: 'Custom'
+    buildProperties: {
+      appLocation: 'src'
+      apiLocation: 'api'
+      outputLocation: ''
+    }
   }
 }
 

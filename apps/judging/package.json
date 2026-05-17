@@ -1,0 +1,9 @@
+{
+  "name": "mta-hackathon-judging-deploy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Wrapper package.json so azd's npm framework has a project root; actual app deps live in src/ and api/.",
+  "scripts": {
+    "build": "echo no root build needed"
+  }
+}

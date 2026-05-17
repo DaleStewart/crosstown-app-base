@@ -8,6 +8,7 @@ infra:
   module: main
 services:
   web:
-    project: ./src
+    project: .
     host: staticwebapp
     language: js
+    dist: src

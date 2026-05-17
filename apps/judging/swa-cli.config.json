@@ -1,0 +1,14 @@
+{
+  "$schema": "https://aka.ms/azure/static-web-apps-cli/schema",
+  "configurations": {
+    "judging": {
+      "appLocation": "src",
+      "apiLocation": "api",
+      "outputLocation": ".",
+      "apiLanguage": "node",
+      "apiVersion": "20",
+      "appBuildCommand": "echo no app build needed",
+      "apiBuildCommand": "echo no api build needed"
+    }
+  }
+}
