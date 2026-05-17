@@ -1,0 +1,11 @@
+id: OS-010
+title: "Service-advisor: S-Penn to S-East alternate around L1"
+prompt: "How do I get from S-Penn to S-East with the L1 disruption?"
+expected_substrings:
+  - "S-Penn"
+  - "S-East"
+  - "L2"
+  - "L3"
+expect_citations: true
+expected_tools:
+  - find_alternate_route

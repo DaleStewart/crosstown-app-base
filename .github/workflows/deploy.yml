@@ -3,6 +3,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      confirm_non_main:
+        description: "Override main-only deploy guard (FR-013). Set to true to deploy from a non-main ref; emits a loud ::warning::. Default false."
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -10,10 +16,34 @@ permissions:
 
 jobs:
   deploy:
+    # ─── Main-only deploy guard (spec FR-013, plan §2.5 / §4) ───
+    # Enforces that azd provision/deploy only runs from refs/heads/main, so
+    # placeholder ACA images from feature branches can never reach production.
+    # workflow_dispatch may override via the confirm_non_main input, which
+    # emits a ::warning:: naming the branch + actor for audit. Push events
+    # have no override path.
     runs-on: ubuntu-latest
     environment: dev
     steps:
       - uses: actions/checkout@v4
+
+      - name: Main-only deploy guard (FR-013)
+        env:
+          GH_REF: ${{ github.ref }}
+          GH_EVENT: ${{ github.event_name }}
+          GH_ACTOR: ${{ github.actor }}
+          CONFIRM_NON_MAIN: ${{ github.event.inputs.confirm_non_main }}
+        run: |
+          if [ "$GH_REF" = "refs/heads/main" ]; then
+            echo "✅ Deploy guard: ref is refs/heads/main; proceeding."
+            exit 0
+          fi
+          if [ "$GH_EVENT" = "workflow_dispatch" ] && [ "$CONFIRM_NON_MAIN" = "true" ]; then
+            echo "::warning title=Non-main deploy override::Deploying from ${GH_REF} (actor: ${GH_ACTOR}) with confirm_non_main=true. FR-013 override path; ensure this is intentional."
+            exit 0
+          fi
+          echo "❌ Deploy guard: deploys must originate from main (current ref: ${GH_REF}). Set confirm_non_main=true on workflow_dispatch to override."
+          exit 1
 
       - name: Install azd
         uses: Azure/setup-azd@v2

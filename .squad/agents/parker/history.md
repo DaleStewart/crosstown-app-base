@@ -1,4 +1,50 @@
 ## 2026-05-15 — Post-merge frontend gates (Parker)
+Aborted parker-4 — task reassigned to anvil:anvil per Sean's redirect.
+
+## 2026-05-16 — Spacebar PTT + Audio + /api/health P0s fixed (PR #25) (Parker)
+
+**🤖 Autopilot disclosure:** acted in autopilot for this task per the system prompt directive. Requestor: Sean.
+
+Three P0 UAT bugs surfaced post-PR-#23 (TextInput). All client-side; orchestrator untouched.
+
+**Issue 1 — Spacebar PTT regression:**
+- Root cause: `PushToTalkButton.tsx` window-level keydown/keyup handlers had no guard checking `ev.target.tagName`. After PR #23 added `TextInput`, pressing space when the text input had focus would call `ev.preventDefault()` (preventing the space character from being typed) AND `onStart()` (triggering PTT). UX broken in both directions.
+- Fix: Added `if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;` early-return in both handlers.
+
+**Issue 2 — Audio not recording:**
+- Root cause A: `startMic()` in `audio.ts` called `new AudioContext()` but never `ctx.resume()`. In `startTalking`, `await connect()` precedes `startMic`, so the AudioContext was created outside a direct user-gesture frame — browsers suspend it by default, causing the ScriptProcessorNode's `onaudioprocess` to never fire.
+- Fix A: Added `await ctx.resume()` immediately after `new AudioContext()`.
+- Root cause B: `stopTalking()` in `useVoiceSession.ts` never sent `{ type: "stop" }` over the WS. Per the 2026-05-16 learning: the stop frame is the commit boundary. Without it the orchestrator never knew the user finished speaking.
+- Fix B: Added `send({ type: "stop" })` to `stopTalking()`; added `send` to `useCallback` deps.
+
+**Issue 3 — /api/health 404:**
+- Root cause: `Header.tsx` fetches `/api/health`. nginx's `/api/` proxy passes the full path to the orchestrator, which only serves `/health` (not `/api/health`). 404 on every page load.
+- Fix: Added `location = /api/health` exact-match block in `nginx.conf` rewriting to `${ORCHESTRATOR_URL}/health`. Exact match takes priority over the prefix `/api/` block.
+
+**Bonus fix:** Added `include: ["tests/**/*.{test,spec}.{ts,tsx}"]` to vitest config to exclude `e2e/mic-button.spec.ts` from vitest runs (pre-existing spurious exit-code-1).
+
+**Files changed:** `PushToTalkButton.tsx`, `audio.ts`, `useVoiceSession.ts`, `nginx.conf`, `vite.config.ts`
+
+**Gates:** lint ✅ typecheck ✅ vitest 9/9 ✅ build ✅ (1525 modules, 179.97 kB)
+
+**Deploy:** ACR build dtk → `spacebar-fix-1778964947`; `az containerapp update` → revision `frontend--0000006` Healthy, 100% traffic
+
+**Playwright live verify (2/2 pass):**
+- `[ws opened]` wss://frontend... ✅
+- `{"type":"start",...}` sent ✅
+- Binary PCM frames sent (audio recording active) ✅
+- `{"type":"stop"}` sent on release (new — stop frame now wired) ✅
+- 0 console errors, 0 network failures ✅
+
+**D-035 filed. PR #25:** https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/25
+
+## Learnings
+
+2026-05-16 — Window-level keyboard handlers MUST guard against `ev.target.tagName === 'INPUT'` or `'TEXTAREA'` when any text inputs are present on the page. Without this, space bar PTT intercepts typing (and vice versa). Applies to any app with dual voice+text UX.
+
+2026-05-16 — `AudioContext` created after an `await` (even in an async function triggered by a user gesture) may be suspended. Always call `ctx.resume()` immediately after `new AudioContext()` in async recording setups.
+
+
 
 Ran all four CI gates on `apps/frontend` post-realtime-swap merge (D-009 + D-011):
 
@@ -164,4 +210,28 @@ Sean reported UAT mic button dead. Diagnosed end-to-end and shipped PR #17.
 ## Learnings
 
 2026-05-16 — nginx → ACA HTTPS upstream **always** needs `proxy_ssl_server_name on;` + `proxy_ssl_name $host;` + `proxy_set_header Host $host;`. The default behavior (no SNI, inbound Host forwarded) silently produces 502s with the diagnostic `peer closed connection in SSL handshake` line in error logs. Worth baking into any future ACA-fronted nginx template.
+
+## 2026-05-16 — T106 nginx /api/health rewrite shipped (Phase 1 deploy-hygiene batch)
+
+**Task:** T106 (Large) — nginx `/api/health` → orchestrator `/health` rewrite per FR-014.
+
+**Status:** ✅ Complete. Branch: `chore/deploy-hygiene` (not committed; file-only).
+
+**Deliverable:**
+Added explicit `location = /api/health` block to `apps/frontend/nginx.conf` above catch-all `/api/` block. Exact-match `=` modifier is evaluated before prefix match; intercepts smoke-test URL. proxy_pass rewrites to `/health` on upstream (trailing URI replaces original).
+
+**Problem solved:** GET /api/health was 404. nginx's `/api/` proxy passed full `/api/health` path to orchestrator, which only serves `/health`. Smoke test (T101) was failing as expected.
+
+**Config details:**
+- Uses existing `ORCHESTRATOR_URL` and `ORCHESTRATOR_HOST` (convention).
+- Added `X-Forwarded-For` / `X-Forwarded-Proto` headers for audit.
+- Timeouts: 3s connect, 5s read.
+
+**Verification:**
+- envsubst render: ✅ Block emits above catch-all, variables substitute, URI replacement correct.
+- nginx -t: skipped (Docker daemon not running); T101 will end-to-end test.
+
+**Note:** Plan §2.4 referenced `/healthz` (incorrect). Audit T001 confirmed `/health`. Updated accordingly. No git operations performed per task constraints.
+
+**Decision:** D-030.
 

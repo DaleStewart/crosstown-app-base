@@ -136,3 +136,42 @@
 - **Follow-up (out of scope for Bug #10):** `search_logs` `time_range` could be made more forgiving (accept string fallback) or system-prompt example added so the model doesn't try the string form. Tracked as a secondary observation, not a blocker. Recommend Maximoff/Stark take a look before live eval gate run.
 
 ## 2026-05-15 — Lab dry-run runbook delivered; P0 gpt-4.1 version pin shipped as PR #5; awaiting tenant login + PR merge for azd up
+
+## 2026-05-16 — T007-followup service-advisor cassettes (Phase 1 deploy-hygiene RED→GREEN)
+
+**Task:** T007-followup (Medium escalation) — Hand-craft service-advisor cassettes for prompts 4–6 to unblock eval gate when PR #27 ships.
+
+**Status:** ✅ Complete. Branch: `chore/deploy-hygiene` (not committed; file-only).
+
+**Deliverable (6 files):**
+- 3 cassettes: `evals/orch_cassettes/OS-009.json` (get_disruption_status), OS-010.json (find_alternate_route), OS-011.json (get_shuttle_bridging).
+- 3 scenarios: `evals/orch_scenarios/OS-009_disruption_status.yaml`, OS-010_find_alternate_route.yaml, OS-011_get_shuttle_bridging.yaml.
+- All JSON valid, all YAML valid.
+
+**Citation compliance (critical):**
+- All three cassettes honor invariant: every response text includes ≥1 citation token matching CITATION_REGEX (`INC-XXXX`, `L-XXXXXX`, or `RB-XX-...`). Pattern signatures use explicit INC/RB references since DSR-* doesn't match regex.
+- OS-009: INC-2001, L-201001, RB-11-line-shutdown-contingency.
+- OS-010: INC-2001, RB-11-line-shutdown-contingency.
+- OS-011: INC-2001, RB-12-shuttle-bus-bridging.
+
+**Tool payloads (synthetic plausibility, Anvil to reconcile post-PR#27):**
+- `get_disruption_status({"line": "L1"})` — returns disruption_id, status, affected segment (edges from route_graph.json).
+- `find_alternate_route({"from": "S-Penn", "to": "S-East", "avoid_disruption": "DSR-2026-001"})` — **Mismatch flagged**: used Sean's keys (from/to/avoid_disruption) vs. PR doc (origin/destination/disruption_id).
+- `get_shuttle_bridging({"disruption_id": "DSR-2026-001"})` — returns legs, total_minutes, headway (verbatim from route_graph.json).
+
+**Verification:**
+- JSON + YAML parse: ✅ all 6 files.
+- Citation regex: ✅ all three cassettes.
+- Orchestrator runner (hermetic mode, 0% fail threshold): **11/11 PASS** (includes existing OS-001 through OS-008 + new OS-009/010/011).
+
+**Synthetic IDs:**
+- INC-2001 (not in data files; chosen to avoid collision with INC-1005/1010).
+- L-201001 (outside existing L-000xxx/009xxx range).
+- RB-11-line-shutdown-contingency, RB-12-shuttle-bus-bridging (match filenames in docs/service-disruption-advisor.md).
+
+**Recommendations for Anvil:**
+- Post-PR#27 merge: re-record cassettes from live orchestrator + service_advisor stack to verify tool_calls[].arguments/result envelopes match actual handlers.
+- Items 2–6 in task notes detail all contract assumption hazards.
+
+**Decision:** D-030. Eval gate now GREEN for full 11-scenario set.
+

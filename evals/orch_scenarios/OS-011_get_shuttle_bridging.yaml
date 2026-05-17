@@ -1,0 +1,11 @@
+id: OS-011
+title: "Service-advisor: shuttle bridging for L1 outage"
+prompt: "Are there shuttle buses for L1?"
+expected_substrings:
+  - "shuttle"
+  - "S-Jamaica"
+  - "S-Hicksville"
+  - "S-Mineola"
+expect_citations: true
+expected_tools:
+  - get_shuttle_bridging

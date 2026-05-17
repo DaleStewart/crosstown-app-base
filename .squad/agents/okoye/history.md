@@ -254,3 +254,39 @@ Only one model version pin in `infra/` was incorrect; this PR fixes it. No other
 **Status:** P0 cleared as soon as #5 merges. Next dependency for GO verdict on `azd up`: §10 sub-scoped re-verify on the target sub `47156f11-...` Monday morning (quota + provider registration). Captured as inbox decision D-016.
 
 ## 2026-05-15 — Lab dry-run runbook delivered; P0 gpt-4.1 version pin shipped as PR #5; awaiting tenant login + PR merge for azd up
+
+## 2026-05-16 — T101 smoke-test.sh + T107 deploy.yml guard (Phase 1 deploy-hygiene batch)
+
+**Tasks:** T101 (Large, FR-009), T107 (Large, FR-013).
+
+**Status:** ✅ Complete. Branch: `chore/deploy-hygiene` (not committed; file-only).
+
+**T101 deliverable (`scripts/smoke-test.sh`):**
+- Comprehensive post-deployment smoke test. bash, `set -euo pipefail`, single positional arg + optional `--full` flag.
+- 5 baseline checks: frontend root (200 + "Crosstown" marker), `/api/health` rewrite (200 + status + service), direct orchestrator health (optional, env-gated), `/api/turn` response, 6 demo prompts (--full only).
+- JSON parser: auto-detects jq or falls back to grep/sed. Exit codes: 0 (pass), 1 (check fail), 2 (usage).
+- Verification: bash -n clean; negative test (bogus host) correct; live test correctly detects nginx rewrite not yet landed.
+
+**Key deviations from plan (upgrades):**
+- `/health` not `/healthz` (audit T001).
+- Check 2 requires `service == "orchestrator"` (detects nginx rewrite to wrong upstream).
+- 6 explicit demo prompts (task brief + FR-008).
+- Check 4 prompt `"status of L1?"` (task brief override).
+
+**T107 deliverable (.github/workflows/deploy.yml):**
+- FR-013 main-only deploy guard. First step (after checkout) validates main or dispatch + override.
+- New `workflow_dispatch.inputs.confirm_non_main` (boolean, default false).
+- Override warning uses `::warning::` with branch ref + actor.
+- 4-case trace: push main ✅, push feature ❌, dispatch non-main + override ⚠️, dispatch non-main ❌.
+
+**Coordination notes:**
+- Audit T001 + T004 provided facts for both tasks (canonical `/health`, `FRONTEND_URL` azd var).
+- T103 postdeploy hook must use `FRONTEND_URL` not `SERVICE_FRONTEND_URI` when it lands.
+
+**Decision:** D-030.
+
+## Learnings
+
+2026-05-16 — Phase 0 audits (T001, T003, T004, T005) were load-bearing. Canonical `/health` endpoint cascaded to 5+ dependent tasks. Always audit unknown contracts early.
+
+2026-05-16 — Coordinate across agents: audit results (T001/T004) + phase-1 task facts (T101/T107) + postprovision hook (T103) must stay in sync. Documented in D-030 inbox decision for T'Challa to forward to T103 owner before execution.
