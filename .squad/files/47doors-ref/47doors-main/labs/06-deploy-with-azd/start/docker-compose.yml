@@ -1,0 +1,47 @@
+# Docker Compose for University Front Door Agent
+# Lab 06: Deploy with azd
+#
+# TODO: Complete this docker-compose.yml for local development and testing
+# Reference: https://docs.docker.com/compose/compose-file/
+
+version: '3.8'
+
+services:
+  backend:
+    # TODO: Configure the build context and Dockerfile path
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    # TODO: Map port 8000 on the container to port 8000 on the host
+    ports:
+      # TODO: Add port mapping
+
+    # TODO: Set environment variables
+    # Required:
+    #   - ENVIRONMENT: development
+    #   - MOCK_MODE: true (for local testing without Azure services)
+    # Optional (for full functionality):
+    #   - AZURE_OPENAI_ENDPOINT
+    #   - AZURE_OPENAI_API_KEY
+    environment:
+      # TODO: Add environment variables
+
+    # TODO: Add a healthcheck configuration
+    # Test command: curl -f http://localhost:8000/api/health
+    # Intervals: 30s, timeout 10s, 3 retries
+    healthcheck:
+      # TODO: Configure healthcheck
+
+    # TODO: Set restart policy (unless-stopped recommended)
+
+  # Optional: Frontend service
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     backend:
+  #       condition: service_healthy

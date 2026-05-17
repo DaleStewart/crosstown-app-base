@@ -1,0 +1,20 @@
+chore: Scribe intake — decisions merge, history summarization, deploy-hygiene batch
+
+STEP 1: Archived D-001 through D-012 to .squad/decisions-archive/ (14.8 KB archive).
+STEP 2: Merged 7 decisions from inbox (D-020, D-021, D-023, D-024, D-025, D-026, D-027).
+STEP 3: Created 4 orchestration logs (T102/Okoye, T103/Okoye, T105/Parker, T108/Anvil).
+STEP 4: Created session log — PR #29 Anvil cleared (PASS, smoke test validated, eval 11/11).
+STEP 5: Updated agent history files for Stark, Parker, Okoye, Banner, Anvil (batch outcomes).
+STEP 6: Summarized Parker, Okoye, Banner history files (archived pre-2026-05-16 entries).
+STEP 7: Staged all .squad/ files written by Scribe.
+STEP 8: Health report ready.
+
+Branch: chore/deploy-hygiene
+Decisions merged from inbox: 7 (D-020..D-027 excluding D-022)
+Files merged + deleted: 7
+Archive files created: 4 (1 decisions + 3 agent histories)
+History files summarized: 3 (Parker, Okoye, Banner)
+Orchestration logs created: 4
+Session log created: 1
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

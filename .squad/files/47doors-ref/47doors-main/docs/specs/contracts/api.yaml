@@ -1,0 +1,498 @@
+openapi: 3.1.0
+info:
+  title: Front Door Support Agent API
+  description: |
+    API for the Universal Front Door Support Agent - a three-agent system that routes
+    student support requests to appropriate departments, creates tickets, and retrieves
+    relevant knowledge base articles.
+  version: 1.0.0
+  contact:
+    name: University IT Support
+
+servers:
+  - url: https://api.frontdoor.university.edu
+    description: Production
+  - url: https://api-staging.frontdoor.university.edu
+    description: Staging
+  - url: http://localhost:8000
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Chat
+    description: Main conversation endpoints
+  - name: Tickets
+    description: Ticket status and history
+  - name: Knowledge
+    description: Knowledge base search
+  - name: Health
+    description: System health checks
+
+paths:
+  /api/chat:
+    post:
+      operationId: submitQuery
+      summary: Submit a support query
+      description: |
+        Process a student's support query through the three-agent pipeline:
+        1. QueryAgent: Detect intent and extract entities
+        2. RouterAgent: Determine routing and escalation
+        3. ActionAgent: Create ticket and retrieve KB articles
+      tags:
+        - Chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              passwordReset:
+                summary: Password reset request
+                value:
+                  message: "I forgot my password and can't log into Canvas"
+                  session_id: null
+              facilitiesIssue:
+                summary: Facilities issue
+                value:
+                  message: "The elevator in Smith Hall is broken"
+                  session_id: "550e8400-e29b-41d4-a716-446655440000"
+              ambiguousQuery:
+                summary: Ambiguous query
+                value:
+                  message: "I need help with my account"
+                  session_id: null
+      responses:
+        '200':
+          description: Query processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+              examples:
+                ticketCreated:
+                  summary: Ticket created
+                  value:
+                    session_id: "550e8400-e29b-41d4-a716-446655440000"
+                    ticket_id: "TKT-IT-20260120-0042"
+                    department: "IT"
+                    status: "created"
+                    message: "I've created a ticket for IT Support (TKT-IT-20260120-0042) with high priority. Expected response: within 2 hours."
+                    knowledge_articles:
+                      - article_id: "kb-001"
+                        title: "How to Reset Your Canvas Password"
+                        url: "https://kb.university.edu/canvas-password"
+                        relevance_score: 0.94
+                    escalated: false
+                    estimated_response_time: "2 hours"
+                needsClarification:
+                  summary: Clarification needed
+                  value:
+                    session_id: "550e8400-e29b-41d4-a716-446655440000"
+                    ticket_id: null
+                    department: null
+                    status: "pending_clarification"
+                    message: "I want to help you with your account. Are you referring to your university login account, your financial account, or something else?"
+                    knowledge_articles: []
+                    escalated: false
+                    estimated_response_time: null
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Service temporarily unavailable (graceful degradation)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+
+  /api/tickets/{ticket_id}:
+    get:
+      operationId: getTicketStatus
+      summary: Get ticket status
+      description: Retrieve the current status of a support ticket
+      tags:
+        - Tickets
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^TKT-[A-Z]{2,3}-\d{8}-\d{4}$'
+          example: "TKT-IT-20260120-0042"
+      responses:
+        '200':
+          description: Ticket found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketStatus'
+        '404':
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/tickets:
+    get:
+      operationId: listUserTickets
+      summary: List user's tickets
+      description: Retrieve all tickets for the authenticated student
+      tags:
+        - Tickets
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, in_progress, resolved, closed]
+          description: Filter by ticket status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          description: Maximum number of tickets to return
+      responses:
+        '200':
+          description: List of tickets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TicketSummary'
+                  total:
+                    type: integer
+
+  /api/knowledge/search:
+    get:
+      operationId: searchKnowledge
+      summary: Search knowledge base
+      description: |
+        Search the knowledge base for relevant articles.
+        Available without authentication (read-only mode during SSO outages).
+      tags:
+        - Knowledge
+      security: []  # No auth required for KB search
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 500
+          description: Search query
+        - name: department
+          in: query
+          schema:
+            $ref: '#/components/schemas/Department'
+          description: Filter by department
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 3
+          description: Maximum number of articles to return
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  articles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/KnowledgeArticle'
+                  total_results:
+                    type: integer
+
+  /api/health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      description: System health and dependency status
+      tags:
+        - Health
+      security: []
+      responses:
+        '200':
+          description: System healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: System degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: University SSO JWT token
+
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Student's support query
+        session_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Existing session ID for multi-turn conversations
+
+    ChatResponse:
+      type: object
+      required:
+        - session_id
+        - status
+        - message
+        - escalated
+      properties:
+        session_id:
+          type: string
+          format: uuid
+          description: Session ID for follow-up queries
+        ticket_id:
+          type: string
+          pattern: '^TKT-[A-Z]{2,3}-\d{8}-\d{4}$'
+          nullable: true
+          description: Created ticket ID (if any)
+        department:
+          $ref: '#/components/schemas/Department'
+          nullable: true
+        status:
+          $ref: '#/components/schemas/ActionStatus'
+        message:
+          type: string
+          description: User-friendly response message
+        knowledge_articles:
+          type: array
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/KnowledgeArticle'
+        escalated:
+          type: boolean
+          description: Whether request was escalated to human
+        escalation_reason:
+          $ref: '#/components/schemas/EscalationReason'
+          nullable: true
+        estimated_response_time:
+          type: string
+          nullable: true
+          description: Human-readable SLA estimate
+          example: "2 hours"
+
+    TicketStatus:
+      type: object
+      required:
+        - ticket_id
+        - department
+        - status
+        - created_at
+      properties:
+        ticket_id:
+          type: string
+          pattern: '^TKT-[A-Z]{2,3}-\d{8}-\d{4}$'
+        department:
+          $ref: '#/components/schemas/Department'
+        status:
+          type: string
+          enum: [open, in_progress, pending_info, resolved, closed]
+        priority:
+          $ref: '#/components/schemas/Priority'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        assigned_to:
+          type: string
+          nullable: true
+          description: Name of assigned agent (if any)
+        resolution_summary:
+          type: string
+          nullable: true
+          description: Resolution details (if resolved)
+
+    TicketSummary:
+      type: object
+      required:
+        - ticket_id
+        - department
+        - status
+        - created_at
+        - summary
+      properties:
+        ticket_id:
+          type: string
+        department:
+          $ref: '#/components/schemas/Department'
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        summary:
+          type: string
+          maxLength: 200
+
+    KnowledgeArticle:
+      type: object
+      required:
+        - article_id
+        - title
+        - url
+        - relevance_score
+      properties:
+        article_id:
+          type: string
+        title:
+          type: string
+        url:
+          type: string
+          format: uri
+        snippet:
+          type: string
+          maxLength: 200
+          nullable: true
+        relevance_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        department:
+          $ref: '#/components/schemas/Department'
+          nullable: true
+
+    HealthStatus:
+      type: object
+      required:
+        - status
+        - timestamp
+        - services
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        services:
+          type: object
+          properties:
+            llm:
+              $ref: '#/components/schemas/ServiceHealth'
+            ticketing:
+              $ref: '#/components/schemas/ServiceHealth'
+            knowledge_base:
+              $ref: '#/components/schemas/ServiceHealth'
+            session_store:
+              $ref: '#/components/schemas/ServiceHealth'
+
+    ServiceHealth:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [up, down, degraded]
+        latency_ms:
+          type: integer
+          nullable: true
+        error:
+          type: string
+          nullable: true
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+
+    Department:
+      type: string
+      enum:
+        - IT
+        - HR
+        - REGISTRAR
+        - FINANCIAL_AID
+        - FACILITIES
+        - STUDENT_AFFAIRS
+        - CAMPUS_SAFETY
+        - ESCALATE_TO_HUMAN
+
+    Priority:
+      type: string
+      enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+        - URGENT
+
+    ActionStatus:
+      type: string
+      enum:
+        - created
+        - escalated
+        - pending_clarification
+        - kb_only
+        - error
+
+    EscalationReason:
+      type: string
+      enum:
+        - confidence_too_low
+        - policy_keyword_detected
+        - sensitive_topic
+        - multi_department
+        - user_requested_human
+        - max_clarifications_exceeded

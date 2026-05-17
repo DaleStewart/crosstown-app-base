@@ -1,0 +1,220 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables for theming */
+:root {
+  --color-primary: theme('colors.primary.600');
+  --color-primary-hover: theme('colors.primary.700');
+  --color-bg-primary: theme('colors.white');
+  --color-bg-secondary: theme('colors.gray.50');
+  --color-bg-tertiary: theme('colors.gray.100');
+  --color-text-primary: theme('colors.gray.900');
+  --color-text-secondary: theme('colors.gray.600');
+  --color-text-tertiary: theme('colors.gray.500');
+  --color-border: theme('colors.gray.200');
+  --color-border-focus: theme('colors.primary.500');
+}
+
+/* High contrast mode */
+.high-contrast {
+  --color-primary: #0000ee;
+  --color-primary-hover: #0000cc;
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f5f5f5;
+  --color-bg-tertiary: #e5e5e5;
+  --color-text-primary: #000000;
+  --color-text-secondary: #333333;
+  --color-text-tertiary: #555555;
+  --color-border: #000000;
+  --color-border-focus: #0000ee;
+}
+
+/* High contrast overrides - apply actual visual changes */
+.high-contrast {
+  background-color: #ffffff !important;
+}
+
+.high-contrast header {
+  background-color: #ffffff !important;
+  border-color: #000000 !important;
+}
+
+.high-contrast .bg-white {
+  background-color: #ffffff !important;
+}
+
+.high-contrast .bg-gray-50,
+.high-contrast .bg-gray-100 {
+  background-color: #f5f5f5 !important;
+}
+
+.high-contrast .text-gray-900 {
+  color: #000000 !important;
+}
+
+.high-contrast .text-gray-600,
+.high-contrast .text-gray-500 {
+  color: #333333 !important;
+}
+
+.high-contrast .border-gray-200,
+.high-contrast .border-gray-300 {
+  border-color: #000000 !important;
+}
+
+.high-contrast .bg-primary-600 {
+  background-color: #0000ee !important;
+}
+
+.high-contrast .text-primary-600 {
+  color: #0000ee !important;
+}
+
+.high-contrast .border-primary-600 {
+  border-color: #0000ee !important;
+}
+
+.high-contrast .hover\:bg-gray-100:hover {
+  background-color: #e5e5e5 !important;
+}
+
+.high-contrast .hover\:bg-primary-50:hover {
+  background-color: #e8e8ff !important;
+}
+
+/* High contrast message bubbles */
+.high-contrast .bg-primary-600.text-white {
+  background-color: #0000ee !important;
+}
+
+.high-contrast .bg-gray-100.text-gray-900 {
+  background-color: #f5f5f5 !important;
+  border: 2px solid #000000;
+}
+
+/* Base styles */
+body {
+  @apply antialiased;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+/* Focus visible styles for accessibility */
+*:focus-visible {
+  @apply outline-2 outline-offset-2;
+  outline-color: var(--color-border-focus);
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  @apply absolute -top-10 left-0 bg-primary-600 text-white px-4 py-2 z-50;
+  @apply focus:top-0;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* Message bubble animations */
+@keyframes message-appear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-bubble {
+  animation: message-appear 0.2s ease-out;
+}
+
+/* Typing indicator */
+@keyframes typing-dot {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-4px);
+  }
+}
+
+.typing-dot {
+  animation: typing-dot 1.4s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* =============================================================================
+   Dynamic Branding Support
+   These classes use CSS variables set by BrandingContext for runtime theming
+   ============================================================================= */
+
+/* Dynamic primary color utilities */
+.bg-brand-primary {
+  background-color: var(--color-primary);
+}
+
+.text-brand-primary {
+  color: var(--color-primary);
+}
+
+.border-brand-primary {
+  border-color: var(--color-primary);
+}
+
+.hover\:bg-brand-primary-light:hover {
+  background-color: var(--branding-primary-50, #eff6ff);
+}
+
+.ring-brand-primary {
+  --tw-ring-color: var(--color-primary);
+}
+
+/* Override Tailwind primary classes to use dynamic colors */
+:root:not(.high-contrast) .text-primary-600 {
+  color: var(--color-primary);
+}
+
+:root:not(.high-contrast) .bg-primary-600 {
+  background-color: var(--color-primary);
+}
+
+:root:not(.high-contrast) .border-primary-600 {
+  border-color: var(--color-primary);
+}
+
+:root:not(.high-contrast) .hover\:bg-primary-50:hover {
+  background-color: var(--branding-primary-50, #eff6ff);
+}
+
+:root:not(.high-contrast) .ring-primary-500 {
+  --tw-ring-color: var(--color-primary);
+}
+
+:root:not(.high-contrast) .focus\:ring-primary-500:focus {
+  --tw-ring-color: var(--color-primary);
+}

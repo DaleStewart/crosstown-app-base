@@ -1,0 +1,142 @@
+{
+  "labs": [
+    {
+      "lab_number": "00",
+      "title": "Environment Setup",
+      "duration_minutes": 30,
+      "learning_objectives": [
+        "Verify all prerequisites are installed",
+        "Configure Azure credentials",
+        "Test GitHub Copilot Agent Mode"
+      ],
+      "prerequisites": [],
+      "has_start_code": false,
+      "has_solution_code": false,
+      "deliverables": [
+        "verify_environment.py passes all checks",
+        ".env configured with Azure endpoints",
+        "Can hit /api/health endpoint"
+      ]
+    },
+    {
+      "lab_number": "01",
+      "title": "Understanding AI Agents",
+      "duration_minutes": 90,
+      "learning_objectives": [
+        "Understand multi-agent vs single agent",
+        "Learn QueryAgent → RouterAgent → ActionAgent pattern",
+        "Practice intent classification"
+      ],
+      "prerequisites": ["00"],
+      "has_start_code": false,
+      "has_solution_code": false,
+      "deliverables": [
+        "Intent classifier >90% accuracy on test queries"
+      ]
+    },
+    {
+      "lab_number": "02",
+      "title": "Azure MCP Setup",
+      "duration_minutes": 30,
+      "learning_objectives": [
+        "Configure Azure MCP Server for Copilot",
+        "Test natural language Azure queries"
+      ],
+      "prerequisites": ["00"],
+      "has_start_code": true,
+      "has_solution_code": true,
+      "deliverables": [
+        "MCP server responds to @azure queries"
+      ]
+    },
+    {
+      "lab_number": "03",
+      "title": "Spec-Driven Development",
+      "duration_minutes": 45,
+      "learning_objectives": [
+        "Write SPEC.md for agent feature",
+        "Create constitution.md with guardrails",
+        "Generate code from spec using Copilot"
+      ],
+      "prerequisites": ["01"],
+      "has_start_code": false,
+      "has_solution_code": false,
+      "deliverables": [
+        "Escalation Detection Agent spec written",
+        "Higher Ed constitution principles documented"
+      ]
+    },
+    {
+      "lab_number": "04",
+      "title": "Build RAG Pipeline",
+      "duration_minutes": 120,
+      "learning_objectives": [
+        "Set up Azure AI Search with hybrid search",
+        "Create embeddings for KB articles",
+        "Build RetrieveAgent with citations"
+      ],
+      "prerequisites": ["01", "02"],
+      "has_start_code": true,
+      "has_solution_code": true,
+      "deliverables": [
+        "Hybrid search returns relevant KB articles",
+        "Citations included in responses"
+      ]
+    },
+    {
+      "lab_number": "05",
+      "title": "Agent Orchestration",
+      "duration_minutes": 120,
+      "learning_objectives": [
+        "Wire up three-agent pipeline",
+        "Implement handoff protocols",
+        "Add session context for multi-turn",
+        "(Optional) Understand how voice and phone modalities use the same agent pipeline"
+      ],
+      "exercises": [
+        {"id": "05x-voice-phone-extensions", "title": "Voice & Phone Extensions", "duration": "30-45 min", "optional": true}
+      ],
+      "prerequisites": ["04"],
+      "has_start_code": true,
+      "has_solution_code": true,
+      "deliverables": [
+        "Full pipeline QueryAgent → RouterAgent → ActionAgent",
+        "Multi-turn conversation works"
+      ]
+    },
+    {
+      "lab_number": "06",
+      "title": "Deploy with azd",
+      "duration_minutes": 90,
+      "learning_objectives": [
+        "Containerize with Docker",
+        "Deploy with azd up",
+        "Configure monitoring"
+      ],
+      "prerequisites": ["05"],
+      "has_start_code": true,
+      "has_solution_code": true,
+      "deliverables": [
+        "Agent deployed to Azure",
+        "Health check responds"
+      ]
+    },
+    {
+      "lab_number": "07",
+      "title": "MCP Server (Stretch)",
+      "duration_minutes": 60,
+      "learning_objectives": [
+        "Understand MCP tool/resource model",
+        "Expose 47 Doors as MCP server",
+        "Test with Copilot Agent Mode"
+      ],
+      "prerequisites": ["05"],
+      "has_start_code": true,
+      "has_solution_code": true,
+      "deliverables": [
+        "university_support_query tool responds",
+        "@47doors queries work in VS Code"
+      ]
+    }
+  ]
+}

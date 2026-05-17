@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(speckit.specify)",
+      "Skill(speckit.specify:*)",
+      "Skill(speckit.plan)",
+      "Skill(speckit.plan:*)",
+      "Bash(npm install:*)",
+      "Bash(PYTHONPATH=. python:*)",
+      "Bash(curl:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(tasklist:*)",
+      "Bash(npx vite:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm --version:*)",
+      "Bash(\"C:/Program Files/nodejs/npx.cmd\" vite --host 0.0.0.0)",
+      "Bash(\"C:/Program Files/nodejs/npx.cmd\" tsc --noEmit)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: Universal Front Door Support Agent implementation\n\nImplement three-agent system \\(QueryAgent, RouterAgent, ActionAgent\\) for\nrouting university student support requests to appropriate departments\n\\(IT, HR, Registrar, Financial Aid, Facilities\\).\n\nBackend \\(FastAPI/Python\\):\n- Service interfaces and mock implementations for LLM, ticketing,\n  knowledge base, session store, and audit logging\n- Pydantic schemas for chat, tickets, sessions, and knowledge articles\n- API routes for chat, health check, and session management\n- Dependency injection container for service switching\n\nFrontend \\(React/TypeScript/Tailwind\\):\n- Chat interface styled like Claude.ai\n- High contrast accessibility mode with working toggle\n- Talk to Human button for escalation requests\n- Responsive message bubbles, typing indicator, and ticket cards\n- Knowledge article display component\n\nInfrastructure:\n- Docker and docker-compose configuration\n- Nginx reverse proxy for frontend\n- Mock data for testing scenarios\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(git rm:*)",
+      "Bash(git mv:*)",
+      "Bash(source .venv/Scripts/activate)",
+      "Bash(uvicorn:*)",
+      "Bash(.venv/Scripts/python -m uvicorn:*)",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(.venv/Scripts/python.exe:*)",
+      "Bash(netstat:*)",
+      "Bash(dir:*)",
+      "Bash(az bicep build:*)",
+      "Bash(az version:*)",
+      "Bash(az bicep version:*)",
+      "Bash(az bicep:*)",
+      "Bash(powershell.exe -Command \"cd ''C:\\\\Users\\\\segayle\\\\repos\\\\hied_cab\\\\hiedcab_frontdoor_agent\\\\infra''; az bicep build --file main.bicep --outfile azuredeploy.json; Get-ChildItem\")"
+    ]
+  }
+}
