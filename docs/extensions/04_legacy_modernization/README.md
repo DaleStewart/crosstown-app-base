@@ -112,3 +112,23 @@ All tests **fail** until `legacy/SampleController.cs` and `apps/legacy_service/m
 - [Use case map](../../use-case-map.md)
 - [Architecture](../../architecture.md)
 - Previous: [03 — Add Tool](../03_add_tool/README.md) · Next: [05 — Wire Legacy to Agent](../05_wire_legacy_to_agent/README.md)
+
+---
+
+## 🏗️ Health at a glance
+
+| Metric | Status |
+|--------|--------|
+| Acceptance criteria | [██████████] 100% |
+| Failing tests in place | [██████████] 100% |
+| Copilot prompts | [██████████] 100% (3 prompts) |
+| Time to complete | 60 min |
+
+| Field | Value |
+|-------|-------|
+| Last reviewed | 2026-05-17 |
+| Reviewed by | T'Challa (Lead) |
+| Doc owner | Stark (Architect) |
+| Related PRs (recent) | (none in last 7 days) |
+| Related branches in-flight | (none — exercise only) |
+| Next review trigger | When this extension's failing tests are reshaped or a team completes it |
