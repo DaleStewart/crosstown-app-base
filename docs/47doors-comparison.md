@@ -1,6 +1,6 @@
 # 47doors vs Our App — Architecture & Process Delta
 
-> **Purpose:** Strategic analysis for the MTA hackathon team. Research only, no code changes.  
+> **Purpose:** 47doors is an Anthropic-built reference app that ships a working text + audio interaction loop. We compare select pieces of its architecture against ours so that — when our app misbehaves — we have a known-working baseline to debug against. **This is a learning reference, not a parity target.** Crosstown's product is intentionally different from 47doors; the comparisons here exist to surface patterns we can borrow or warnings we should heed.  
 > **Written:** 2026-05-16 | **Author:** Anvil  
 > **Audience:** Sean + whoever makes the Tuesday demo call
 
@@ -80,7 +80,7 @@ location /       → try_files $uri /index.html
 ```
 No Dockerfile HEALTHCHECK. No explicit `/api/health` proxy rule (falls through to `/api/`).
 
-**The 404 / Hello World pitfall:** Our regressions weren't nginx bugs — they were ACA serving the placeholder image (`mcr.microsoft.com/k8se/quickstart:latest`) instead of our container. nginx never ran. Neither 47doors nor we have a guard in the deploy pipeline that verifies `GET /api/health` returns 200 before marking a deploy successful. **47doors' smoke-test.sh does this locally — we don't have an equivalent.**
+**The 404 / Hello World pitfall:** Our regressions weren't nginx bugs — they were ACA serving the placeholder image (`mcr.microsoft.com/k8se/quickstart:latest`) instead of our container. nginx never ran. Neither 47doors nor we have a guard in the deploy pipeline that verifies `GET /api/health` returns 200 before marking a deploy successful. **47doors' smoke-test.sh does this locally — we now have an equivalent: `scripts/smoke-test.sh` exists on `main` and is wired as a `postdeploy` hook in `azure.yaml`.**
 
 ---
 
@@ -148,7 +148,7 @@ image: placeholderImage  // azd replaces this with real built image after azd bu
 | `postprovision` | `echo "Run azd deploy"` (no-op) | Runs `load_search_index.ps1/.sh` to seed AI Search |
 | `postdeploy` | Echoes AZURE_FRONTEND_URL and **`$AZURE_CONTAINERAPP_URL/api/health`** | Runs `scripts/smoke-test.sh` (POSIX) or `scripts/smoke-test.ps1` (Windows) — ✅ Implemented (see `azure.yaml` lines 38–47) |
 
-**47doors' `postdeploy` hook prints the health URL explicitly.** Ours doesn't. If ours did, the "Hello World" regression would at least produce a visible prompt to check `/api/health` immediately after deploy. Not a fix, but a faster feedback loop.
+**47doors' `postdeploy` hook prints the health URL explicitly.** Ours does more: it runs `scripts/smoke-test.sh` which actively checks `/api/health` and exits non-zero on failure, failing the deploy visibly. This eliminates the "Hello World" silent regression entirely.
 
 ### Why the current regression happened
 
@@ -158,14 +158,14 @@ The frontend rollback (`fe-202605161807` losing text input) was **not** an azd p
 3. `fe-202605161807` was built from that branch, producing an image that pre-dates the fixes
 4. That image was deployed, rolling back the frontend
 
-**Root cause: no branch protection / build provenance check.** Neither repo enforces "only deploy images built from `main`." 47doors doesn't solve this either. The difference is that 47doors has `scripts/smoke-test.sh` which explicitly checks `/api/health` and could catch "Hello World" within 30 seconds of deploy. We have no equivalent.
+**Root cause: no branch protection / build provenance check.** Neither repo enforces "only deploy images built from `main`." 47doors doesn't solve this either. The difference is that 47doors has `scripts/smoke-test.sh` which explicitly checks `/api/health` and could catch "Hello World" within 30 seconds of deploy. We now have an equivalent: `scripts/smoke-test.sh` on `main` does exactly this, wired via the `postdeploy` hook in `azure.yaml`.
 
 ### What would have prevented Bug #11 (Hello World) and the frontend rollback
 
 | Guard | 47doors has it? | We have it? | Would it have helped? |
 |---|---|---|---|
-| `scripts/smoke-test.sh` checks `/api/health` | ✅ Yes | ❌ No | ✅ Bug #11: caught immediately |
-| `postdeploy` hook prints health URL | ✅ Yes (echo only) | ❌ No | 🟡 Marginally — prompts manual check |
+| `scripts/smoke-test.sh` checks `/api/health` | ✅ Yes | ✅ Yes | ✅ Bug #11: caught immediately |
+| `postdeploy` hook runs smoke-test | ✅ Yes (echo only) | ✅ Yes | ✅ Fails deploy if `/api/health` not 200 |
 | Dockerfile HEALTHCHECK | ✅ Yes | ❌ No | 🟡 ACA doesn't use Dockerfile HEALTHCHECK directly, but it signals container readiness |
 | "Only deploy from `main`" CI gate | ❌ No | ❌ No | ✅ Frontend rollback: prevented |
 | Deploy image pinned from PR SHA | ❌ No | ❌ No | ✅ Frontend rollback: prevented |
@@ -228,7 +228,7 @@ Their eval harness tests the _quality_ of the three-agent pipeline (does it clas
 
 ### The `smoke-test.sh` is the key adoptable artifact
 
-`scripts/smoke-test.sh` (282 lines) does what no one on our team has taken the time to write:
+47doors' `scripts/smoke-test.sh` (282 lines) does this well:
 1. Checks Python/Node/npm versions
 2. Runs backend unit tests
 3. Starts backend if not running
@@ -273,9 +273,11 @@ They documented the session.update format split as a **skill** (`.squad/skills/a
 
 ---
 
-## 8. Top Adoptable Patterns — Status Update (2026-05-17)
+## 8. Patterns From 47doors — What We've Borrowed and What Remains Optional
 
-**Items #1 and #2 are already shipped.** See `azure.yaml` (lines 38–47) and `scripts/smoke-test.sh`/`scripts/smoke-test.ps1`.
+These are patterns 47doors uses that we've evaluated against our needs. Items marked ✅ are already adopted; the rest are optional improvements we can pull when they're the right trade-off — not parity requirements.
+
+**Items #1 and #2 are already shipped.**See `azure.yaml` (lines 38–47) and `scripts/smoke-test.sh`/`scripts/smoke-test.ps1`.
 
 ### ✅ DONE — 1. `scripts/smoke-test.sh` + `scripts/smoke-test.ps1`
 Landed in `azure.yaml` postdeploy hook. Checks Python/Node versions, runs pytest, `curl /api/health`, validates mock mode. Exits non-zero on failure. **This has already prevented regressions in the live UAT environment.**
@@ -338,15 +340,17 @@ Our agent instructions document architectural contracts that matter: citation co
 - One service-advisor tool call visible in ToolCallPanel ← shows multi-specialist
 - `/api/health` returns 200 on the deployed URL ← the kill-chain catch
 
-### Ordered fix sequence (by risk, not alphabetical)
+### Demo prep checklist (by risk, not alphabetical)
+
+Items 1–2 are Crosstown-specific gaps; items 3–5 reference patterns 47doors uses that we've now evaluated.
 
 1. **Verify `service-advisor` is in `azure.yaml` on `main`.** If not, this is a P0 before any deploy. A tool registry that can't reach service-advisor will produce confusing failures at demo time.
 
 2. **Cherry-pick or re-merge PRs #19, #21, #23, #25 onto `main`.** Do not build another image from anything but `main`. Tag the resulting commit.
 
-3. **Add `smoke-test.sh` (even a 20-line version).** Minimum: `curl /api/health` returning 200. Run it after every deploy.
+3. ✅ **DONE — `scripts/smoke-test.sh` + `scripts/smoke-test.ps1` are on `main`.** Minimum: `curl /api/health` returning 200. Runs automatically after every deploy via the `postdeploy` hook.
 
-4. **Add `postdeploy` hook** (30-minute change). Fail the deploy step visibly if `/api/health` is not 200.
+4. ✅ **DONE — `postdeploy` hook is in `azure.yaml` (lines 38–47).** Fails the deploy visibly if `/api/health` is not 200.
 
 5. **Then `azd deploy` from `main` only.** Never from a feature branch.
 
@@ -359,9 +363,9 @@ Our agent instructions document architectural contracts that matter: citation co
 
 ### If 47doors' demo approach is adoptable
 
-They have a `DemoPage.tsx` component and a referenced demo runbook. Their smoke test (`scripts/smoke-test.sh`) is the right pre-demo checklist. Adopting their smoke test takes 2 hours and immediately gives Sean a go/no-go signal before showing the app to anyone.
+They have a `DemoPage.tsx` component and a referenced demo runbook. Their smoke test (`scripts/smoke-test.sh`) is the right pre-demo checklist. ✅ We have already adopted it — `scripts/smoke-test.sh` + `scripts/smoke-test.ps1` are on `main` and wired into the `postdeploy` hook in `azure.yaml`.
 
-**The minimum viable Monday morning action:** Write 30 lines of smoke test, add postdeploy hook, verify `service-advisor` in `azure.yaml`, deploy from `main`. That's 3 hours of work that eliminates the entire class of regressions you've been fighting.
+**The minimum viable Monday morning action:** Verify `service-advisor` in `azure.yaml`, then deploy from `main`. The smoke-test and postdeploy hook are already shipped — that part of the regression class is closed.
 
 ---
 
