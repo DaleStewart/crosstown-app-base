@@ -513,3 +513,64 @@ The pump's `_translate()` silently dropped `error` events — these schema rejec
 - ✅ D-029 decision written
 - 🔗 PR #19 (Parker frontend) + PR #20 (orchestrator) must merge together
 - PR #20: https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/20
+
+---
+
+## 2026-05-16 — Bug #15: User Transcription Re-enable (PR #22)
+
+**Requested by:** Sean (segayle). Chat window shows assistant responses but not user speech — conversation is one-sided. PR #20 dropped `input_audio_transcription` to unblock the voice loop; this PR restores it safely.
+
+### Root Cause
+
+PR #20 correctly removed `input_audio_transcription` from `session.update` after it caused a 10-second `asyncio.TimeoutError` on revision `--0000005`. But that was because the pump silently swallowed error events and never set `session_ready`. With PR #20's error capture in place (fast-fail instead of timeout), it's now safe to retry — a rejection becomes a logged error, not a hang.
+
+**MS Learn (2026-05-14 revision) confirms:** `input_audio_transcription` is a valid Azure OpenAI Realtime parameter. Azure requires a deployment name in the `model` field; OpenAI accepts `whisper-1`. We default to `whisper-1` and expose `AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT` for Azure deployments.
+
+### Fix (branch `squad/fix-voice-user-transcription`, PR #22)
+
+**Two-phase session.update strategy:**
+- Phase 1: known-safe payload (instructions, tools, output_modalities) — awaits `session.updated` ACK. Unchanged.
+- Phase 2: fire-and-forget `session.update` with only `input_audio_transcription: {model: "whisper-1"}`. If rejected, error absorbed by `_translate` (returns None), session unaffected.
+
+**Also includes PR #20 orchestrator changes (not yet in main):**
+- `commit_audio()` on `FoundryRealtimeSession` — explicit buffer commit + response.create
+- Pump error capture — `error` events raise `RuntimeError` immediately (no timeout hang)
+- `orchestrator.py` stop handler — calls `commit_audio()`, no `break`, loop stays open
+
+**New `_translate` handlers:**
+- `conversation.item.input_audio_transcription.delta` → `TranscriptDelta(role="user", final=False)`
+- `conversation.item.input_audio_transcription.failed` → `None` (graceful silence)
+
+**Client contract (existing convention, no change needed on Parker's side):**
+```
+{"type": "transcript_delta", "role": "user", "text": "...", "final": false}
+{"type": "transcript_delta", "role": "user", "text": "...", "final": true}
+```
+
+### Validation
+
+- `ruff check .` — clean
+- `mypy --strict .` — 20 files, no issues
+- `pytest -v` — 25/25 pass (14 new in `tests/test_foundry_realtime.py`)
+
+### Deploy
+
+ACR build `user-transcript-20260516112305` → revision `orchestrator--0000008` (Healthy, 100% traffic).
+Live `/api/turn` smoke: HTTP 200, text_len=130, tool_calls=[search_logs, search_logs], warnings=log-analyst 400 (pre-existing, unrelated).
+
+### Outcome
+
+- ✅ Orchestrator side shipped — user transcription enabled via two-phase session.update
+- ✅ `_translate` complete for all three transcription event types (delta, completed, failed)
+- ✅ `commit_audio` + stop-handler fix included (PR #20 changes now in main via PR #22)
+- ✅ D-031 decision written
+- 🔗 Parker's PR #21 + PR #22 must deploy together for full conversation parity
+- PR #22: https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/22
+
+### Autopilot disclosure
+
+Ran in autopilot mode. Key autonomous decisions:
+- Included PR #20 orchestrator changes in this PR (deployed but not in main; lands together)
+- Two-phase fire-and-forget for transcription (session survives rejection)
+- Default `AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT=whisper-1` (task's first-try variant)
+- Kept existing `transcript_delta` event name (matches Parker's PR #21 rendering contract)

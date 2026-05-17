@@ -135,3 +135,26 @@ Sean reported hold-mic → button turns yellow → release → chat empty. Diagn
 
 2026-05-16 — In push-to-talk WS protocols, the `stop` frame is the commit boundary — without it the server has no idea the user finished talking. Always verify both sides of the conversation boundary (start + stop) are wired at the same call site, not split across different functions with different call semantics.
 
+## 2026-05-16 — User-turn transcripts in chat (PR #21) (Parker)
+
+Sean reported the chat only showed assistant responses — not a real conversation. Wanda (in parallel) is re-enabling `input_audio_transcription` on the orchestrator and will forward `user_transcript` events. This PR wires up the frontend to receive and render those events.
+
+**🤖 Autopilot disclosure:** acted in autopilot for this task per the system prompt directive. Requestor: Sean.
+
+**Changes (4 files):**
+- `apps/frontend/src/lib/protocol.ts` — `UserTranscript` type added; `parseServerMessage` normalizes all 4 Wanda event-name aliases to `{ type: "user_transcript", text, item_id? }`. Aliases handled: `user_transcript`, `user_transcript_completed`, `input_audio_transcription_completed`, `transcript_user_final`.
+- `apps/frontend/src/hooks/useVoiceSession.ts` — `applyFrame` case for `user_transcript` appends `{ role: "user", final: true }` to `transcripts`. Empty-text no-op.
+- `apps/frontend/tests/useVoiceSession.test.ts` — 2 new tests: canonical event and all 4 alias names.
+- `apps/frontend/tests/protocol.test.ts` — alias normalization test + `UserTranscript` recognized by `isServerMessage`.
+
+**`Transcript.tsx`:** No change needed — `role: "user"` was already styled as right-aligned blue bubble (`bg-subway-blue text-white self-end`).
+
+**Gates:** lint ✅, typecheck ✅, vitest 9/9 ✅ (was 6; +3 new), build ✅ (177.79 kB).
+
+**Deploy:** ACR build run `dta` → `user-transcript-20260516111507`; `az containerapp update` → revision `frontend--0000004` (Healthy, 100% traffic).
+
+**Live verify:** Waiting on Wanda's server-side deploy. Once both are live: hold mic → release → confirm user bubble (blue, right) + assistant bubble (grey, left) appear in chat.
+
+**D-032 filed.**
+**PR #21:** https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/21
+

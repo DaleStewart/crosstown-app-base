@@ -37,6 +37,7 @@ class FoundryRealtimeSession:
 
         Called when the client signals end-of-utterance (push-to-talk release).
         With server_vad this is belt-and-suspenders; without it, it is required.
+        Without an explicit commit + response.create, the model never processes speech.
         """
         if self._ws is None or self._closed:
             return
@@ -246,6 +247,7 @@ class FoundryRealtimeProvider:
         # this is NOT a soft error. Only send when AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT
         # is explicitly configured with a real deployment name (default is "").
         # Infra: add a whisper-1 / gpt-4o-transcribe deployment to foundry.bicep first.
+        # OpenAI (non-Azure) accepts "whisper-1" without a custom deployment.
         #
         # GA nested format for gpt-realtime-1.5 (audio.input.transcription.model).
         # Ref: 47doors-ref/47doors-main/backend/app/services/azure/realtime.py

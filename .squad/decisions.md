@@ -1006,6 +1006,71 @@ Frontend separately uses `/ws/voice` (WebSocket), not `/api/turn`, so this never
 ## Optional follow-up (not a blocker)
 Bug #10 secondary symptom (model occasionally tries `search_logs.time_range` as string) still produces 400s in log-analyst tail that the model self-corrects from. Net customer impact: zero (citations: 10, warnings: NONE). A tightened schema with an example value would silence those tail lines. Tracked but not urgent.
 
+### D-031 · Re-enable input_audio_transcription — two-phase session.update (conversation parity, server side)
+**Date:** 2026-05-16
+**Author:** Maximoff (Anomaly Hunter)
+**Requested by:** Sean
+**Status:** Adopted
+
+PR #20 dropped `input_audio_transcription` from `session.update` because it caused a 10-second timeout on the first deploy attempt. PR #22 restores it safely using a two-phase approach:
+
+1. **Phase 1** — known-safe `session.update` with instructions/tools/modalities. Waits for `session.updated` ACK before returning.
+2. **Phase 2** — fire-and-forget `session.update` with only `input_audio_transcription: {model: "whisper-1"}`. If the server rejects this (e.g. `Unknown parameter`), the error is silently absorbed by `_translate` (returns `None`); the voice loop continues without transcription rather than crashing.
+
+This is safe because by Phase 2, `session_ready` is already set and `session_error` is no longer checked.
+
+**Also ships:** All PR #20 orchestrator fixes (commit_audio, pump error capture, stop-handler no-break) which were deployed from branch but not yet in main.
+
+**New `_translate` handlers:**
+- `conversation.item.input_audio_transcription.delta` → `TranscriptDelta(role="user", final=False)` (streaming partials)
+- `conversation.item.input_audio_transcription.failed` → `None` (graceful silence)
+
+**Client event contract** (existing convention, unchanged):
+```json
+{"type": "transcript_delta", "role": "user", "text": "...", "final": false}
+{"type": "transcript_delta", "role": "user", "text": "...", "final": true}
+```
+
+**New setting:** `AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT` (default: `whisper-1`). Azure OpenAI requires an existing deployment name; OpenAI accepts `whisper-1`. Set to `""` to disable.
+
+**Validation:** ruff clean, mypy --strict 20 files clean, pytest 25/25 (14 new in test_foundry_realtime.py).
+
+**Deploy:** ACR build `user-transcript-20260516112305` → revision `orchestrator--0000008` (Healthy, 100% traffic).
+
+**PR:** https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/22
+
+---
+
+### D-032 · User-turn transcripts must be rendered in the chat window (conversation parity)
+**Date:** 2026-05-16
+**Author:** Parker (Frontend)
+**Requested by:** Sean
+**Status:** Adopted
+
+The chat window was showing only assistant responses. Sean reported the UI was not a conversation — the user's own speech was invisible.
+
+**Root cause:** The frontend had no handler for the `user_transcript` (or alias) event that Wanda's orchestrator sends when `input_audio_transcription` is enabled. The event never reached the `transcripts` state array, so nothing was rendered on the user side.
+
+**Fix (PR #21, commit c7c3a5e):**
+- `protocol.ts`: Added `UserTranscript` type. `parseServerMessage` now normalizes all 4 Wanda event-name aliases to `{ type: "user_transcript", text, item_id? }`:
+  - `user_transcript` (canonical)
+  - `user_transcript_completed`
+  - `input_audio_transcription_completed`
+  - `transcript_user_final`
+- `useVoiceSession.ts`: `applyFrame` gained a `user_transcript` case that appends a `{ role: "user", final: true }` `TranscriptLine`. Empty-text events are ignored (no-op).
+- `Transcript.tsx`: No change needed. `role: "user"` was already styled as right-aligned blue bubble (`bg-subway-blue text-white self-end`).
+- Tests: +3 new vitest cases (canonical event, all 4 aliases, protocol normalization). Total: 9/9.
+
+**Gates:** lint ✅, typecheck ✅, vitest 9/9 ✅, build ✅ (177.79 kB).
+
+**Deploy:** ACR build `user-transcript-20260516111507` → revision `frontend--0000004` (Healthy, 100% traffic).
+
+**Live verify:** Waiting on Wanda's server-side deploy (input_audio_transcription re-enable + user_transcript forwarding). Once both deploys are live, hold mic → release → confirm user bubble appears in chat alongside assistant response.
+
+**PR:** https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/21
+
+---
+
 ## Guidelines
 
 - All meaningful changes require team consensus.
