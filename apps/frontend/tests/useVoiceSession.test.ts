@@ -92,4 +92,50 @@ describe("useVoiceSession", () => {
     act(() => result.current.sendText("hello"));
     expect(ws.sent.some((s) => s.includes('"text":"hello"'))).toBe(true);
   });
+
+  it("appendUserTurn adds a user transcript line without WS", () => {
+    const { result } = renderHook(() =>
+      useVoiceSession({ url: "ws://test/ws/voice" })
+    );
+    act(() => result.current.appendUserTurn("hello from keyboard"));
+    expect(result.current.state.transcripts).toHaveLength(1);
+    expect(result.current.state.transcripts[0]).toMatchObject({
+      role: "user",
+      text: "hello from keyboard",
+      final: true,
+    });
+  });
+
+  it("appendAssistantTurn adds assistant transcript and tool entry with citations", () => {
+    const { result } = renderHook(() =>
+      useVoiceSession({ url: "ws://test/ws/voice" })
+    );
+    act(() =>
+      result.current.appendAssistantTurn({
+        text: "Here are the door faults.",
+        citations: [{ source: "log#5", snippet: "door fault at Atlantic" }],
+        warnings: [],
+      })
+    );
+    expect(result.current.state.transcripts).toHaveLength(1);
+    expect(result.current.state.transcripts[0]).toMatchObject({
+      role: "assistant",
+      text: "Here are the door faults.",
+      final: true,
+    });
+    expect(result.current.state.toolCalls).toHaveLength(1);
+    expect(result.current.state.toolCalls[0]!.citations).toHaveLength(1);
+    expect(result.current.state.toolCalls[0]!.pending).toBe(false);
+  });
+
+  it("appendAssistantTurn with no citations does not create a tool entry", () => {
+    const { result } = renderHook(() =>
+      useVoiceSession({ url: "ws://test/ws/voice" })
+    );
+    act(() =>
+      result.current.appendAssistantTurn({ text: "No data found.", citations: [], warnings: [] })
+    );
+    expect(result.current.state.transcripts).toHaveLength(1);
+    expect(result.current.state.toolCalls).toHaveLength(0);
+  });
 });

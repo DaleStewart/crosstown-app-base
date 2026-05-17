@@ -106,10 +106,16 @@ class FoundryRealtimeSession:
             text = data.get("transcript", "")
             if isinstance(text, str):
                 return TranscriptDelta(role="assistant", text=text, final=True)
+        if kind == "conversation.item.input_audio_transcription.delta":
+            text = data.get("delta", "")
+            if isinstance(text, str) and text:
+                return TranscriptDelta(role="user", text=text, final=False)
         if kind == "conversation.item.input_audio_transcription.completed":
             text = data.get("transcript", "")
             if isinstance(text, str):
                 return TranscriptDelta(role="user", text=text, final=True)
+        if kind == "conversation.item.input_audio_transcription.failed":
+            return None
         if kind == "response.function_call_arguments.done":
             name = str(data.get("name", ""))
             call_id = str(data.get("call_id", ""))
@@ -145,9 +151,10 @@ class FoundryRealtimeSession:
 class FoundryRealtimeProvider:
     name = "foundry_realtime"
 
-    def __init__(self, endpoint: str, deployment: str) -> None:
+    def __init__(self, endpoint: str, deployment: str, transcription_deployment: str = "") -> None:
         self._endpoint = endpoint
         self._deployment = deployment
+        self._transcription_deployment = transcription_deployment
 
     async def _get_token(self) -> str:
         async with DefaultAzureCredential() as cred:
@@ -214,4 +221,31 @@ class FoundryRealtimeProvider:
 
         asyncio.create_task(pump())
         await asyncio.wait_for(session_ready.wait(), timeout=10.0)
+
+        # Phase 2 (conditional): enable input audio transcription.
+        # DANGER: Azure OpenAI closes the WebSocket if the deployment name is invalid —
+        # this is NOT a soft error. Only send when AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT
+        # is explicitly configured with a real deployment name (default is "").
+        # Infra: add a whisper-1 / gpt-4o-transcribe deployment to foundry.bicep first.
+        #
+        # GA nested format for gpt-realtime-1.5 (audio.input.transcription.model).
+        # Ref: 47doors-ref/47doors-main/backend/app/services/azure/realtime.py
+        if self._transcription_deployment:
+            await ws.send(
+                json.dumps(
+                    {
+                        "type": "session.update",
+                        "session": {
+                            "audio": {
+                                "input": {
+                                    "transcription": {
+                                        "model": self._transcription_deployment,
+                                    },
+                                },
+                            },
+                        },
+                    }
+                )
+            )
+
         return session

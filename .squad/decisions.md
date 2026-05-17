@@ -72,6 +72,61 @@ As of 2026-05-15, D-009 executes a deliberate model upgrade from `gpt-4o-realtim
 - **Finding:** Pre-existing `apps/frontend/vite.config.ts:15` TypeScript error (test property not on `UserConfigExport`). Needs `import { defineConfig } from 'vitest/config'` instead of `vite`. **NOT caused by either PR — unrelated to merged changes.** Logged as cleanup backlog.
 - `npm run build` **FAILED** due to this same pre-existing vite/vitest collision. No new breakage from PRs.
 
+### D-034 · Text input added — Sean can type questions (voice parity)
+**Date:** 2026-05-16
+**Author:** Parker (Frontend)
+**Status:** Adopted
+
+Sean requested a text input field alongside push-to-talk so users can type questions when voice is unavailable.
+
+**Implementation:**
+- New `apps/frontend/src/components/TextInput.tsx` — controlled `<input>` + Send button; calls `POST /api/turn` with `{text}` body; optimistically renders user bubble; appends assistant response with citations; shows error turn on failure; disables + "Sending…" while in-flight
+- `useVoiceSession.ts` extended with `append_user` / `append_assistant` actions and `appendUserTurn(text)` / `appendAssistantTurn({text, citations, warnings})` helpers; `append_assistant` also pushes a synthetic `ToolCallEntry` to the side panel when citations/warnings are present
+- `App.tsx` renders `TextInput` below `Transcript`; wires helpers from the hook
+- 3 new vitest tests (hook-level, no WS required)
+
+**CI:** lint ✅, typecheck ✅, tests 9/9 ✅, build ✅ (1525 modules, 179.81 kB)  
+
+---
+
+### D-033 · Voice regression from PR #22 — Phase 2 WS-close root cause + fix
+**Date:** 2026-05-16
+**Author:** Maximoff (Anomaly Hunter)
+**Requested by:** Sean
+**Status:** Adopted
+
+**Problem:** Voice broken after PR #22 deployed as `orchestrator--0000008`. Sean reported "nothing is showing up." Logs: WS opens → closes 22s later with zero error events visible.
+
+**Root cause:** `azure_openai_transcription_deployment` defaulted to `"whisper-1"` in PR #22. No whisper deployment exists in `infra/modules/foundry.bicep` (only `gpt-4.1` + `gpt-realtime-1.5`). Phase 2 fire-and-forget `session.update` sent `model: "whisper-1"` → Azure OpenAI rejected the unknown deployment name and **closed the WebSocket**. The pump `finally` block put `None` in the inbound queue; `events()` returned immediately; zero audio/transcript events reached the client.
+
+**47doors delta (from `.squad/files/47doors-ref/47doors-main/backend/app/services/azure/realtime.py`):**
+- 47doors uses WebRTC + `/client_secrets` (different arch; audio goes direct from browser to AOAI)
+- Their session config uses GA nested format `audio.input.transcription.model` (not preview flat `input_audio_transcription.model`)
+- Single-phase (no fire-and-forget Phase 2) — all config in one `/client_secrets` body
+
+**Fix (PR #24):**
+1. `settings.py`: default `azure_openai_transcription_deployment` → `""` (disabled until a real deployment is provisioned)
+2. `foundry_realtime.py`: Phase 2 guard unchanged (`if self._transcription_deployment:`); payload switches to GA nested `audio.input.transcription.model`
+3. `foundry_realtime.py`: `_translate` handlers for `.delta` and `.failed` transcription events
+4. `factory.py`: passes `transcription_deployment` to provider
+5. `tests/test_foundry_realtime.py`: 13 unit tests
+
+**Emergency fix timeline:**
+- 17:07Z: env var `AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT=''` on `orchestrator--0000009` → voice restored in 30s
+- 17:11Z: `orchestrator--0000010` ACR rebuild from clean code, Healthy, 100% traffic
+
+**Autopilot disclosure:** Full rollback to `--0000007` was not needed; env var override on `--0000009` was faster and restored Sean's voice in <1 min. Code fix shipped as PR #24.
+
+**To enable user transcription in future:** Add a whisper-1 or gpt-4o-transcribe deployment to `infra/modules/foundry.bicep`, then set `AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT=<deployment-name>` on the orchestrator container app.
+
+**Files:** PR #24 (https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/24)
+**Deploy:** ACR run `dtg` → `text-input-1778951364`; revision `frontend--0000005` Healthy, 100% traffic  
+**PR:** #23 — https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/23
+
+**Pattern adapted from:** 47doors `ChatInput.tsx` + `useChat.ts` — callback-prop pattern keeps `TextInput` stateless; single source of truth for messages stays in `useVoiceSession` reducer.
+
+**Voice regression isolation:** text input calls HTTP `POST /api/turn`, not the voice WebSocket. Wanda's orchestrator regression (revision --0000008) does not affect text input.
+
 **Eval Gates (Maximoff — Citation + Orchestrator + Tool Routing):**
 - Citation gate: 8/8 scenarios, 0.0% uncited (threshold ≤5%) ✅
 - Orchestrator gate: 8/8 scenarios, 0.0% routing failures (threshold ≤0%) ✅

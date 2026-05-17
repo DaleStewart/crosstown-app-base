@@ -273,6 +273,70 @@ endpoint=s.azure_openai_endpoint,
 - Diagnosis report: `.squad/files/maximoff-bug8-diagnosis-2026-05-15.md`
 - Inbox note: `.squad/decisions/inbox/maximoff-bug8-diagnosis-2026-05-15.md`
 - Live `/api/turn` still returning 500 — blocked on Brady/Squad shipping the 2-file fix
+
+---
+
+## 2026-05-16 — Voice Regression Diagnosis + Fix (PR #22 broke voice, PR #24 fixes it)
+
+**Date:** 2026-05-16  
+**Requested by:** Sean (segayle)
+
+### Mission
+
+Sean reported "nothing is showing up" on voice after PR #22 deployed as `orchestrator--0000008`. Voice was confirmed working after PR #20. Regression window: PR #22 deploy.
+
+### Log Analysis
+
+Container logs (`orchestrator--0000008`): WS accepted → `connection open` → 22s later `connection closed`. No error events logged. Silent blackout.
+
+### Root Cause
+
+**PR #22 changed `azure_openai_transcription_deployment` default to `"whisper-1"`** — but no whisper deployment exists in `infra/modules/foundry.bicep` (only `gpt-4.1` + `gpt-realtime-1.5` are provisioned). Phase 2 fire-and-forget sent `session.update { input_audio_transcription: { model: "whisper-1" } }` → Azure OpenAI rejected the unknown deployment name and **closed the Foundry WebSocket**. The pump `finally` block put `None` in the inbound queue; `events()` returned immediately; zero audio/transcript events reached the client.
+
+The "fire-and-forget is safe" assumption in D-031 was wrong — Azure closes the WS on an invalid deployment name, not just rejects with an error event.
+
+### 47doors Reference Study (`.squad/files/47doors-ref/47doors-main/backend/app/services/azure/realtime.py`)
+
+| Dimension | 47doors | Ours (pre-fix) |
+|-----------|---------|----------------|
+| Architecture | WebRTC + `/client_secrets` REST | WS proxy |
+| Session config | Single-phase in `/client_secrets` body | Two-phase `session.update` |
+| Transcription field | `audio.input.transcription.model` (GA nested) | `input_audio_transcription.model` (preview flat) |
+| Transcription default | `"whisper-1"` (they provision it) | `"whisper-1"` ← **bug** (not provisioned) |
+
+Adopted: GA nested format for Phase 2.
+
+### Fix Timeline
+
+- **17:07Z** — env var `AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT=''` on `orchestrator--0000009` → voice restored in <1 min, no rebuild
+- **17:11Z** — `orchestrator--0000010` ACR build from clean code (`transcription-fix-20260516130553`), Healthy, 100% traffic
+- **~17:20Z** — PR #24 opened: `fix(orchestrator): safe transcription default + GA nested format`
+
+### Changes (PR #24)
+
+1. `settings.py`: `azure_openai_transcription_deployment` defaults to `""` (disabled)
+2. `foundry_realtime.py`: Phase 2 uses GA nested `audio.input.transcription.model`
+3. `foundry_realtime.py`: `_translate` handlers for `.delta` and `.failed` events
+4. `factory.py`: passes `transcription_deployment` to provider
+5. `tests/test_foundry_realtime.py`: 13 new unit tests
+
+**Gates:** ruff ✅ mypy --strict (20 files) ✅ pytest 25/25 ✅
+
+### Outcome
+
+- 🟢 Voice restored — Sean can UAT immediately
+- 🟢 PR #24 open: https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/24
+- 🟡 User transcription disabled (intentional) — re-enable by adding whisper/gpt-4o-transcribe deployment to `foundry.bicep` + setting env var
+- 🟡 PR #22 (`squad/fix-voice-user-transcription`) should be closed or superseded by PR #24
+
+### Learnings
+
+- Azure OpenAI Realtime WS closes (not just error-events) on invalid deployment names — "fire-and-forget" is NOT safe for session.update
+- GA model `gpt-realtime-1.5` uses nested `audio.input.transcription` format; preview flat `input_audio_transcription` is deprecated/rejected
+- Always validate that referenced deployment names exist in Bicep before using them as defaults
+- 47doors reference: useful for GA format; their architecture (WebRTC) is different from ours (WS proxy)
+
+**Decision inbox:** D-033
 ## 2026-05-15 — Lab dry-run runbook delivered; P0 gpt-4.1 version pin shipped as PR #5; awaiting tenant login + PR merge for azd up
 
 ---

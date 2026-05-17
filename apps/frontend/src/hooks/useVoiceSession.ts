@@ -38,7 +38,9 @@ type Action =
   | { type: "error"; message: string }
   | { type: "frame"; frame: ServerMessage }
   | { type: "recording"; value: boolean }
-  | { type: "reset" };
+  | { type: "reset" }
+  | { type: "append_user"; text: string }
+  | { type: "append_assistant"; text: string; citations: Citation[]; warnings: string[] };
 
 const initial: State = {
   status: "idle",
@@ -60,6 +62,38 @@ function reducer(state: State, action: Action): State {
       return initial;
     case "frame":
       return applyFrame(state, action.frame);
+    case "append_user":
+      return {
+        ...state,
+        transcripts: [
+          ...state.transcripts,
+          { id: cryptoId(), role: "user", text: action.text, final: true },
+        ],
+      };
+    case "append_assistant": {
+      const newToolCalls =
+        action.citations.length > 0 || action.warnings.length > 0
+          ? [
+              ...state.toolCalls,
+              {
+                call_id: cryptoId(),
+                name: "api/turn",
+                args: {},
+                citations: action.citations,
+                warnings: action.warnings,
+                pending: false,
+              },
+            ]
+          : state.toolCalls;
+      return {
+        ...state,
+        transcripts: [
+          ...state.transcripts,
+          { id: cryptoId(), role: "assistant", text: action.text, final: true },
+        ],
+        toolCalls: newToolCalls,
+      };
+    }
   }
 }
 
@@ -163,6 +197,8 @@ export type UseVoiceSession = {
   startTalking: () => Promise<void>;
   stopTalking: () => Promise<void>;
   sendText: (text: string) => void;
+  appendUserTurn: (text: string) => void;
+  appendAssistantTurn: (payload: { text: string; citations: Citation[]; warnings: string[] }) => void;
 };
 
 const DEFAULT_ORCHESTRATOR_WS =
@@ -266,5 +302,16 @@ export function useVoiceSession(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { state, connect, disconnect, startTalking, stopTalking, sendText };
+  const appendUserTurn = useCallback(
+    (text: string): void => dispatch({ type: "append_user", text }),
+    []
+  );
+
+  const appendAssistantTurn = useCallback(
+    (payload: { text: string; citations: Citation[]; warnings: string[] }): void =>
+      dispatch({ type: "append_assistant", ...payload }),
+    []
+  );
+
+  return { state, connect, disconnect, startTalking, stopTalking, sendText, appendUserTurn, appendAssistantTurn };
 }

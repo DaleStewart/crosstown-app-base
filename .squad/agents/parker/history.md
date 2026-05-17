@@ -39,3 +39,29 @@ Peter Parker / Spider-Man — Frontend developer. MTA AI Hackathon.
 - **ACA revision flips take 1–30 s to route traffic to the new revision.** Smoke gates that run immediately after `azd deploy` returns can hit the old revision and see stale JSON (e.g., `service=""`). The fix is a deadline-based retry loop (not a fixed sleep) so fast deploys stay fast and slow flips don't false-fail.
 - Smoke check 4 needed same retry envelope as check 2 — first /api/turn after cold start is LLM-bound, ~14s.
 
+
+
+2026-05-16 — In push-to-talk WS protocols, the `stop` frame is the commit boundary — without it the server has no idea the user finished talking. Always verify both sides of the conversation boundary (start + stop) are wired at the same call site, not split across different functions with different call semantics.
+
+## 2026-05-16 — Text input for typed questions (PR #23) (Parker)
+
+Sean requested a text input alongside push-to-talk so users can type questions when voice is unavailable (or just prefer typing).
+
+**Autopilot disclosure:** acted in autopilot for this task per the system prompt directive. Requestor: Sean (AFK during execution).
+
+**Changes (4 files):**
+- `apps/frontend/src/components/TextInput.tsx` — new controlled-input component; POST /api/turn with {text} body; optimistic user bubble; appends assistant response; error turn on failure; disables + "Sending..." while in-flight
+- `apps/frontend/src/hooks/useVoiceSession.ts` — two new reducer actions (append_user, append_assistant) + appendUserTurn(text) / appendAssistantTurn({text, citations, warnings}) exposed on UseVoiceSession; append_assistant pushes a synthetic ToolCallEntry when citations/warnings present (shows in side panel)
+- `apps/frontend/src/App.tsx` — imports TextInput, destructures appendUserTurn/appendAssistantTurn from hook, renders TextInput below Transcript
+- `apps/frontend/tests/useVoiceSession.test.ts` — 3 new tests: appendUserTurn without WS, appendAssistantTurn with citations (synthetic tool entry created), appendAssistantTurn with no citations (no tool entry)
+
+**47doors pattern observed:** ChatInput.tsx uses a callback prop (onSend) — stateless component, no direct API knowledge. useChat.ts owns optimistic user message + API call + state append. Adapted: onUserTurn / onAssistantTurn prop callbacks; hook owns all state.
+
+**Gates:** lint pass, typecheck pass, vitest 9/9 pass (+3 new; was 6), build pass (1525 modules, 179.81 kB)
+
+**Deploy:** ACR run dtg -> text-input-1778951364; az containerapp update -> revision frontend--0000005 (Healthy, 100% traffic).
+
+**D-034 filed.**
+**PR #23:** https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/23
+
+**Live verify:** Deferred to user UAT. Sean to open frontend, type "Show me door-fault logs from Atlantic station", hit Send -- expect user bubble immediately + assistant response with citations after API call returns.

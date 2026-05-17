@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { PushToTalkButton } from "@/components/PushToTalkButton";
 import { Transcript } from "@/components/Transcript";
 import { ToolCallPanel } from "@/components/ToolCallPanel";
+import { TextInput } from "@/components/TextInput";
 import { useVoiceSession } from "@/hooks/useVoiceSession";
 
 const MODE = (import.meta.env.VITE_VOICE_MODE === "continuous"
@@ -10,7 +11,7 @@ const MODE = (import.meta.env.VITE_VOICE_MODE === "continuous"
   : "push_to_talk") as "continuous" | "push_to_talk";
 
 export default function App(): ReactNode {
-  const { state, startTalking, stopTalking } = useVoiceSession({ mode: MODE });
+  const { state, startTalking, stopTalking, appendUserTurn, appendAssistantTurn } = useVoiceSession({ mode: MODE });
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
@@ -25,6 +26,7 @@ export default function App(): ReactNode {
             />
           </div>
           <Transcript lines={state.transcripts} />
+          <TextInput onUserTurn={appendUserTurn} onAssistantTurn={appendAssistantTurn} />
         </section>
         <aside className="lg:row-span-1">
           <ToolCallPanel entries={state.toolCalls} />
