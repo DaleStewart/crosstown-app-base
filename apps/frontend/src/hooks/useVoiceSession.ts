@@ -180,6 +180,17 @@ function applyFrame(state: State, frame: ServerMessage): State {
       return { ...state, error: frame.message, status: "error" };
     case "audio_delta":
       return state;
+    case "user_transcript": {
+      // Append a finalized user-turn line from Wanda's server-side transcription.
+      if (!frame.text) return state;
+      return {
+        ...state,
+        transcripts: [
+          ...state.transcripts,
+          { id: cryptoId(), role: "user", text: frame.text, final: true },
+        ],
+      };
+    }
   }
 }
 
