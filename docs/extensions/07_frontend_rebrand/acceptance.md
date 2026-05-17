@@ -21,3 +21,22 @@ You're done when **ALL** of the following are true.
    npx vitest run docs/extensions/07_frontend_rebrand/tests/
    ```
    Show all green.
+
+
+## 🎨 Acceptance criteria
+
+| Metric | Status |
+|--------|--------|
+| Acceptance criteria | [██████████] 100% |
+| Edge cases listed | [██████████] 100% |
+| Pass/fail thresholds | [██████████] 100% |
+| Reviewer assigned | Parker (Frontend) |
+
+| Field | Value |
+|-------|-------|
+| Last reviewed | 2026-05-17 |
+| Reviewed by | T'Challa (Lead) |
+| Doc owner | Parker (Frontend) |
+| Related PRs (recent) | (none in last 7 days) |
+| Related branches in-flight | (none — exercise only) |
+| Next review trigger | When acceptance criteria are revisited or team completes extension |

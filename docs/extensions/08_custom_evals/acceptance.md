@@ -23,3 +23,22 @@ You're done when **ALL** of the following are true.
    Show all green, including the new scenarios.
 3. Open one of your YAML files and walk the coach through the `prompt`, `expected_tools`,
    and `must_cite` fields, explaining what each one tests.
+
+
+## 📏 Acceptance criteria
+
+| Metric | Status |
+|--------|--------|
+| Acceptance criteria | [██████████] 100% |
+| Edge cases listed | [██████████] 100% |
+| Pass/fail thresholds | [██████████] 100% |
+| Reviewer assigned | Banner (Tester) |
+
+| Field | Value |
+|-------|-------|
+| Last reviewed | 2026-05-17 |
+| Reviewed by | T'Challa (Lead) |
+| Doc owner | Banner (Tester) |
+| Related PRs (recent) | (none in last 7 days) |
+| Related branches in-flight | (none — exercise only) |
+| Next review trigger | When acceptance criteria are revisited or team completes extension |
