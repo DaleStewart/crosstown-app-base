@@ -77,3 +77,22 @@ Both use `${PORT:-<default>}` shell expansion. curl adds ~3–5 MB to each image
 - No git operations performed per task constraints.
 
 **Decision:** D-030.
+
+## 2026-05-16 — Phase 1 Deploy-Hygiene Batch Cleared (PR #29)
+
+**Task:** Phase 1 scribe intake for deploy-hygiene batch (T102 Okoye, T105 Parker, T103 Okoye, T108 Anvil large review).
+
+**Status:** ✅ Anvil review complete — **PASS**.
+
+**Decisions merged:**
+- D-020: Orchestrator aiohttp dep (Banner)
+- D-021: Bug #6 fixed, Bug #7 escalated (Banner)
+- D-023: Bug #8 fixed, Bug #9 escalated (Maximoff)
+- D-024: Bug #9 fix shipped (Maximoff)
+- D-025: Bug #10 shipped (Banner)
+- D-026: Frontend + log-analyst live (Okoye)
+- D-027: Bug #12 — no-bug (Banner)
+
+**Anvil verdict:** All 6 high-value checks passed. PR #29 safe to land as step 0 of Tuesday demo merge train. Non-blocking soft concerns documented (frontend HEALTHCHECK couples locally, OS-010 cassette key reconciliation in PR #27, smoke check 3 silent skip acceptable).
+
+**Next:** Merge PR #29 to `main`, queue PR #27 (service_advisor).

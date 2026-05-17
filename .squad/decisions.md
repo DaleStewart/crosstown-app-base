@@ -1,240 +1,3 @@
-# Squad Decisions
-
-## Active Decisions
-
-### D-001 · Cast the Avengers · Lead: T'Challa
-**Date:** 2026-05-12
-**Author:** Squad (operator request)
-**Status:** Adopted
-
-The squad is cast from the **Marvel Cinematic Universe** as the **Avengers**, with **T'Challa (Black Panther)** as the Lead. T'Challa's role aligns with the `ralph` slot's persistent-memory mandate: institutional recall + tie-breaking authority.
-
-**Hires today:**
-- `ralph` → **T'Challa** (Lead, Black Panther)
-- `scribe` → **Shuri** (Knowledge archivist + R&D)
-
-**Bench (hire as needed):** Tony Stark, Natasha Romanoff, Bruce Banner, Sam Wilson, Peter Parker, Okoye, Wanda Maximoff, Stephen Strange. See `.squad/casting/registry.json` for intended roles.
-
-**Rationale:** T'Challa-as-Lead gives us a calm, strategy-first persona that complements the hackathon's "opt-in scaffolding" framing. The MCU was already on the allowlist (capacity 25) and pairs naturally with the team's existing two-slot baseline.
-
-**Reversal procedure:** Re-cast by overwriting `.squad/casting/registry.json` and appending a new entry to `.squad/casting/history.json`. Update `.squad/team.md` and the affected `agents/*/charter.md`.
-
-### D-002 · Judging app layout — `apps/judging/` as a sibling workload
-**Date:** 2026-05-13
-**Author:** Stark (Architect)
-**Status:** Adopted
-
-Everything for the judging app lives under **`apps/judging/`** as a self-contained workload:
-- `apps/judging/shared/criteria.js` (dual-export: CJS + window global)
-- `apps/judging/staticwebapp.config.json` (SWA AAD + route rules)
-- `apps/judging/api/` (SWA managed Functions: teams-list, teams-create, myscores, score-submit, leaderboard, lock, export)
-- `apps/judging/infra/main.bicep` (Cosmos serverless + SWA Standard)
-
-Root `azure.yaml`, root `infra/`, and sibling `apps/*` remain untouched.
-
-**Rationale:** Isolation of deploy lifecycle, single source of truth for criteria, SWA managed Functions reduces infra surface, partition key `/track` on Cosmos ensures predictable RU.
-
-**Follow-ups (Okoye):** Decide azd integration vs. standalone GH Actions workflow. Replace `{{TODO_TENANT_GUID}}`. Document admin-role grant path.
-
-### D-003 · Frontend design tokens for the judging app (v3 — MTA brand)
-**Date:** 2026-05-13
-**Author:** Parker (Frontend)
-**Status:** Adopted
-
-Reference scorecards used Barlow as a stand-in. Sean confirmed the real MTA brand is **Helvetica** + the **NYCT route palette**. All tokens repointed to MTA specs at `apps/judging/src/styles.css`:
-- Color: MTA Blue `#0039A6`, MTA Red `#EE352E`, MTA Green `#00933C`, MTA Orange `#FF6319`, MTA Yellow `#FCCC0A`
-- Typography: Helvetica Neue (no web fonts), 400 body / 500 labels / 700 display, uppercase tracking `-0.02em` to `-0.04em`
-- Shape: `--radius: 2px` (buttons), `--radius-lg: 0` (cards), circular bullets/pills
-- Tier ladder: Exceptional (green, ≥90), Strong (navy, ≥70), Developing (orange, ≥50), Needs work (red, <50)
-- Components: `.bullet` (route-bullet primitive), `.hack-roundel`, `.signage`, `.tier-block`, `.tier-cell`, etc.
-- Iconography: Tabler icons (mono), used sparingly; numbered bullets replace criterion icons
-- Dark mode: bg `#0A0A0A`, surface `#181818`, navy `#4D7EE8`
-
-**Rationale:** Maintains MTA visual identity, sharp-cornered panels, brand-layer compliance. Trademark: hackathon `AI` route bullet (not MTA "M" logo).
-
-### D-004 · Separate `azure.yaml` inside `apps/judging/` (do not modify root)
-**Date:** 2026-05-13
-**Author:** Okoye (Operations)
-**Status:** Adopted
-
-Ship a **self-contained `azd` project at `apps/judging/azure.yaml`** with its own `infra/` folder. Users run `cd apps/judging && azd up` to deploy. Root `azure.yaml` is untouched.
-
-**Rationale:** Isolation of blast radius, different lifecycles (event-scoped vs. long-running platform), different service topology (single staticwebapp vs. multi-containerapp), team parallelism, azd nesting is native.
-
-**Trade-offs:** Users must `cd apps/judging` before azd commands (documented). SWA Functions auto-discovery documented as fallback using `swa deploy --api-location ./api`.
-
-### D-005 · Test strategy — interception-first Playwright
-**Date:** 2026-05-13
-**Author:** Banner (Tester)
-**Status:** Adopted
-
-For the judging app's E2E tests, **stub `/.auth/me` and `/api/*` with `page.route()` per test**. Do **not** depend on live AAD or live Cosmos DB for the default test run. A separate, opt-in "integration" project can be added later for real Functions + Cosmos contract testing.
-
-**Rationale:** AAD is hard to script; SWA CLI auth simulator is stateful. Overriding `/.auth/me` per test gives deterministic `clientPrincipal` (anon/judge/admin) matching what `apps/judging/src/auth.js` reads. Cosmos is expensive/slow; frontend logic (picker, criterion disable, lock banner on 423, admin leaderboard, POST payloads) is observable purely from JSON shape. Tests run in seconds, hermetic, no secrets in CI, not flaky.
-
-**Coverage:**
-- `unit/criteria.test.js` — assertions on `computeTotal`, `tier`
-- `e2e/landing.spec.js` — track cards render, admin gated by role
-- `e2e/judge.spec.js` — picker loads, submit enables only when all 5 scored, posts to `/api/score`, HTTP 423 shows lock banner
-- `e2e/admin.spec.js` — non-admin gate, leaderboard rank order, lock toggle POSTs `{track, locked}` to `/api/lock`, add-team POSTs to `/api/teams`
-
-**Not covered:** Real API contract drift (integration tests later), auth-policy enforcement (SWA server-side only), Copilot-track flow (only Azure tracked; unit smoke covers both).
-
-**Open:** CI workflow (`.github/workflows/judging-tests.yml`) for PR unit + label-gated E2E? Extend to Copilot track now or wait for stabilization?
-
-### D-006 · gpt-4o → gpt-4.1 Model Version Regression Sweep
-**Date:** 2026-05-13
-**Author:** Maximoff (QA/Anomaly Detection)
-**Status:** Adopted
-
-Replaced all `gpt-4o` model deployment references in the root MTA AI Hackathon project with `gpt-4.1`. Mechanical configuration fix across 13 hits in 9 files (Bicep, env templates, Python settings, Markdown docs).
-
-**Files affected:**
-- `infra/modules/foundry.bicep` — deployment resource, model field
-- `.env.example` — AZURE_OPENAI_CHAT_DEPLOYMENT
-- `apps/log_analyst/settings.py`, `apps/orchestrator/settings.py` — chat deployment defaults
-- `apps/log_analyst/README.md`, `docs/evals.md`, `docs/voice.md`, `evals/foundry_evaluators.py`, `evals/README.md` — docstrings, examples
-
-**Why `gpt-4o-realtime-preview` was left alone:** Distinct purpose (voice/audio path). Real model name, explicitly named and immutable. Chat completions uses `gpt-4.1` (NEW); realtime uses `gpt-4o-realtime-preview` (UNTOUCHED).
-
-**Verification:** 0 remaining `gpt-4o` hits (excluding realtime); 13 `gpt-4.1` refs in place; 11 realtime refs untouched.
-
-**Risk:** Low — pure config/documentation changes, no app logic altered. Scope locked to root (apps/judging/ excluded). Deployment-ready: `azd up` to deploy new model to Azure OpenAI account.
-
-### D-007 · Security Review — MTA Hackathon Judging App
-**Date:** 2026-05-13
-**Author:** Strange (Security Engineer)
-**Status:** Adopted
-
-**Verdict:** 🟡 Ship after must-fix items — 2 critical findings (CSV formula injection in export, unfilled tenant GUID placeholder) and 4 high findings must be addressed before external deployment. Core auth/authz model is solid.
-
-**Report:** `apps/judging/SECURITY_REVIEW.md`
-
-### D-008 · Security Hardening Sweep — 10 findings closed (Stark + Okoye)
-**Date:** 2026-05-13
-**Author:** Stark (Backend/API) + Okoye (Operations / Platform)
-**Status:** Adopted
-
-All 10 findings from Strange's security review (D-007) have been closed across two commits:
-
-**Stark's lane (7f6b670):** API surface fixes
-- C1 — CSV formula injection (pi/export/index.js): csvEscape() now prefixes hostile cell starts
-- H4 — Request body size limit (pi/host.json): 100 KB cap on all Functions
-- M1 — Leaderboard gating (pi/leaderboard/index.js): admin bypass; non-admin 403 until locked
-- M2 — Lock route GET handler (pi/lock/): GET reads lock status, POST unchanged
-
-**Okoye's lane (ae0cdeb):** Config + infra surface
-- C2 — Tenant GUID (staticwebapp.config.json): replaced TODO with Microsoft tenant GUID
-- H1 — Security headers (staticwebapp.config.json): X-Frame-Options, CSP, Referrer-Policy added
-- H2 — Cosmos firewall (infra/main.bicep): networkAclBypass + empty rules; private endpoint marked TODO
-- H3 — Config lock (infra/main.bicep): allowConfigFileUpdates=false; Bicep-managed only
-- M3 — Gitignore (pps/judging/.gitignore): expanded coverage for env, azure, keys, test artifacts
-- M4 — Connection string handling (infra/main.bicep): comment-documented threat model, Key Vault path marked
-
-**Verdict upgrade:** 🟡 Ship after must-fix items → 🟢 Ship (all must-fix items now fixed).
-
-**Verification:** Both commits verify clean (node --check, bicep build, JSON parsing). No cross-file conflicts. Ready for external deployment.
-
-### D-009 · Foundry Realtime Model Upgrade — gpt-4o-realtime-preview to gpt-realtime-1.5
-**Date:** 2026-05-15
-**Author:** Okoye (Verification + PR)
-**Status:** Adopted
-
-Swapped `gpt-4o-realtime-preview` (version `2024-10-01`, api-version `2024-10-01-preview`) → `gpt-realtime-1.5` (version `2026-02-23`) using the GA `/openai/v1/realtime?model={deployment}` endpoint pattern (no api-version query param). 
-### D-009 · Foundry Realtime Model Version Swap to gpt-realtime-1.5
-**Date:** 2026-05-15
-**Author:** Okoye (Operations)
-**Status:** Local commit ready; push blocked (remote auth)
-**Branch:** `squad/swap-realtime-to-gpt-realtime-1.5` (SHA: `d79a8d2`)
-
-Upgrade Foundry voice provider from `gpt-4o-realtime-preview` to `gpt-realtime-1.5`. Seven files modified:
-- `.env.example` — updated deployment name
-- `apps/orchestrator/settings.py` — updated chat + voice deployment references
-- `apps/orchestrator/voice/foundry_realtime.py` — new implementation
-- `infra/main.bicep`, `infra/modules/foundry.bicep` — new model in deployment
-- `docs/architecture.md`, `docs/voice.md` — updated examples and version notes
-
-**Scope:** Realtime voice path only. Chat completions (D-006: `gpt-4.1`) untouched. Citation + eval gates pass with realtime swap in place.
-
-**Blockers:** Remote repository (`git@github.com:DevPost-Test-Hackathon/crosstown-app`) not found or SSH auth failed. Commit queued locally; push and PR pending remote provisioning fix.
-
-**Next:** Fix remote origin URL or SSH credential, then `git push -u origin squad/swap-realtime-to-gpt-realtime-1.5` + `gh pr create`.
-
-### D-010 · Decision Log Supersedes Maximoff "leave realtime alone" Instruction
-**Date:** 2026-05-15
-**Author:** T'Challa (Lead) — noted retrospectively via Scribe
-**Status:** Archived (no further action)
-
-Earlier session (morning 2026-05-15) included an instruction to Maximoff: "do not modify realtime". This instruction is now superseded by D-009 (realtime swap decision adopted). The decision log is the source of truth; Maximoff's cross-agent record is stale. No reversal needed — D-009 is the active architecture.
-
-### D-011 · GitHub Spec Kit v0.8.10 Adoption + Constitution Ratified + Spec 001 Worked Example
-**Date:** 2026-05-15
-**Author:** Okoye (Operations) + Stark (Architect)
-**Status:** Local commit ready; push blocked (remote auth)
-**Branch:** `squad/add-spec-kit-v0.8.10` (SHA: `7c063c5`)
-
-**Three components in one decision:**
-
-#### Component A: Spec Kit v0.8.10 Installation
-Installed GitHub Spec Kit CLI (`specify-cli==0.8.10`) into the repo, enabling spec-driven workflows:
-- Scaffolding: Constitution → Specification → Plan → Tasks → Implementation
-- Copilot integration: slash commands (`/speckit.constitution`, `/speckit.plan`, etc.) in Copilot CLI and Chat
-- Script type: PowerShell (Windows-native, aligns with repo precedent)
-- Flags: `--here` (in-place), `--ignore-agent-tools`, `--no-git` (repo already initialized)
-
-**Artifacts created (43 files):**
-- `.specify/` — 17 files (config, scripts, templates, workflows)
-- `.github/agents/speckit.*.agent.md` — 9 agent definitions
-- `.github/prompts/speckit.*.prompt.md` — 9 prompt files
-- `specs/001-realtime-1-5-upgrade/` — 3 worked-example artifacts (spec, plan, tasks)
-- `.squad/skills/spec-kit-authoring/SKILL.md` — 1 skill bridge
-- Cross-agent history updates — 3 files
-
-#### Component B: Constitution v1.0.0 Ratified
-Six principles derived from existing repo contracts (not invented, already in `.github/copilot-instructions.md`):
-
-1. **Citations Are Load-Bearing** (NON-NEGOTIABLE)
-2. **Mock Data Only** (NON-NEGOTIABLE)
-3. **Hermetic by Default, Live on Demand**
-4. **Keyless Auth Everywhere**
-5. **One Voice Abstraction, Two Implementations**
-6. **Extensions Are Exercises, Not Features**
-
-Stored at `.specify/memory/constitution.md` v1.0.0, ratified 2026-05-15.
-
-#### Component C: Spec 001 Worked Example
-Realtime model upgrade (D-009 context) used as the reference flow:
-- **Spec:** Requirements decomposition for gpt-realtime-1.5 swap
-- **Plan:** Implementation breakdown
-- **Tasks:** 10/10 actionable items, all complete (mapped to D-009 files)
-
-All artifacts at `specs/001-realtime-1-5-upgrade/`.
-
-**Rationale:**
-- Spec-driven decomposition reduces design drift.
-- Copilot integration (slash commands) eliminates context switching.
-- PowerShell aligns with Windows environment and existing conventions.
-- Constitution anchors future features and spec workflows.
-- Worked example (Spec 001) gives team a concrete reference on this codebase.
-
-**Blockers:** Same remote auth issue as D-009. Branch + commit queued locally; push and PR pending.
-
-**Deprecation note:** Spec Kit CLI evolving — by v0.10.0, `--ai` becomes `--integration`, git extension auto-enable will be removed. Recommend pinned `v0.8.10` for reproducibility or upgrade path.
-
-**Next:** Fix remote, push, open PR. Then reconcile dual decisions files (root `.squad/decisions.md` vs. `specs/001-*/decisions.md` subfolder pattern) in a future session.
-
-### D-012 · Two Local Branches Queued — Remote Auth Blocker
-**Date:** 2026-05-15
-**Author:** Okoye (Operations)
-**Status:** Operational note; awaiting remote provisioning
-**Branches:**
-- `squad/swap-realtime-to-gpt-realtime-1.5` (SHA: `d79a8d2` — realtime model swap, D-009)
-- `squad/add-spec-kit-v0.8.10` (SHA: `7c063c5` — spec-kit adoption + constitution, D-011)
-
-Both branches committed locally but cannot push to origin. Remote repository (`git@github.com:DevPost-Test-Hackathon/crosstown-app`) is not found or SSH auth failed. No action needed from the squad until remote is provisioned or URL corrected. Once resolved, both branches can push and open PRs in parallel (no dependency).
-
-**Tracking:** Flagged here so future team knows why two productive branches sit unpushed.
-
 ### D-013 · Org Import Successful — PRs #1 and #2 Open
 **Date:** 2026-05-15
 **Author:** Okoye (Operations)
@@ -432,10 +195,720 @@ Lab dry-run executes as Phase 0–4 per runbook at `.squad/files/lab-dry-run-run
 
 ---
 
+
+### D-20 · [merged from inbox]
+**Date:** 2026-05-15
+**Author:** Banner (Tester / Quality)
+**Status:** Proposed (awaiting PR #10 merge + redeploy)
+
+## Decision
+
+Added `aiohttp>=3.9` as a direct top-level dependency in `apps/orchestrator/pyproject.toml` to satisfy `azure.identity.aio`'s async transport requirement.
+
+Form chosen: **direct dep**, not `azure-identity[aio]` extras. Rationale: `azure-identity 1.17.1` does not actually publish an `[aio]` extras group (pip warned on attempt). Direct `aiohttp` pin is the supported form per Azure SDK docs.
+
+## Trigger
+
+Bug #5 from the 2026-05-19 customer-handoff dry-run. Live `azd up` smoke (Okoye, 2026-05-15) showed `POST /api/turn` returning HTTP 500 with `ImportError: aiohttp package is not installed` thrown by `azure.identity.aio._credentials.app_service`.
+
+## Scope
+
+- File changed: `apps/orchestrator/pyproject.toml` (one line added).
+- PR: [#10](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/10), branch `squad/fix-orchestrator-aiohttp-dep`, based on `squad/fix-foundry-hub-name-length`.
+- Stack order: #5 (merged) → #7 → #8 → #9 (Okoye, search RBAC) → #10 (this).
+
+## Validation
+
+- `python -m ruff check .` — pass
+- `python -m mypy --strict .` — pass (19 files)
+- `python -m pytest -q` — 11/11 pass
+- Import smoke — `aiohttp 3.13.5` loads alongside `azure.identity.aio`
+
+## Follow-ups
+
+1. Land PR #9 first, then PR #10.
+2. Run `azd deploy orchestrator` to roll the fixed container — **do not auto-trigger**; coordinate with Squad to avoid overlap with Okoye's RBAC redeploy.
+3. After redeploy, re-run `/api/turn` live smoke to confirm Bug #5 is closed.
+
+## Autopilot disclosure
+
+PR was opened in autopilot without live per-step approval. Change is a single-line dep addition; non-destructive, reviewable, CI-gated.
+
+
+
+### D-21 · [merged from inbox]
+**Date:** 2026-05-15
+**Author:** Banner (Tester / Quality)
+**Status:** Proposed — needs T'Challa adoption + Brady awareness before Phase 2.5
+
+## Summary
+
+| Item | Status |
+|---|---|
+| Bug #6 — Cosmos seed `BadRequest` (missing `id` field on incident docs) | ✅ **FIXED** — PR #11 |
+| Bug #5 / PR #10 — orchestrator `aiohttp` dep | ✅ **COMPLETED** via PR #12 (Dockerfile inlined deps; pyproject change alone wasn't enough) |
+| Cosmos `incidents` container | ✅ 20 docs seeded, both `id` and `incidentId` populated |
+| `/api/turn` live cited responses | ❌ **STILL BLOCKED** — new Bug #7 surfaced |
+| Phase 2.5 LIVE-READY verdict | 🔴 **NO-GO** until Bug #7 fixed |
+
+## Bug #6 — root cause + fix (PR #11)
+
+**Where:** `scripts/load_search_index.py` → `seed_incidents()` (line ~135).
+
+**Cause:** `data/seed_incidents.json` records carry `incidentId` (correct partition key per architectural contract #6) but **no top-level `id` field**. Cosmos SQL API rejects any document without a non-empty `id` string.
+
+**Live repro proof:**
+| Doc shape | Cosmos response |
+|---|---|
+| `{ incidentId: "INC-TEST-NOID", ... }` | `CosmosHttpResponseError(BadRequest): "One of the specified inputs is invalid"` |
+| `{ id: "INC-TEST-WITHID", incidentId: "INC-TEST-WITHID", ... }` | Upsert OK (`_rid` returned) |
+
+**Fix:** mirror `incidentId` → `id` if absent before upsert. 6 lines added in one function.
+
+**Why mirror is safe:** the reader (`apps/log_analyst/tools/summarize_incident.py::_fetch_incident`) queries by `incidentId`, not by point-read on `id`, so `id == incidentId` introduces no contract drift.
+
+**PR:** https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/11
+**Branch:** `squad/fix-cosmos-seed-incidents` (base `squad/fix-orchestrator-aiohttp-dep` = PR #10).
+
+## PR #10 completion — PR #12 (Dockerfile dep)
+
+**Where:** `apps/orchestrator/Dockerfile` lines 5-9.
+
+**Cause:** PR #10 added `aiohttp>=3.9` to `pyproject.toml`. The Dockerfile builder pins its dep list **inline** and does NOT install from `pyproject.toml`, so the dep never made it into the image. After `azd deploy orchestrator` against dry-run env, `/api/turn` still raised the original `ImportError: aiohttp package is not installed`.
+
+**Fix:** add `"aiohttp>=3.9"` to the Dockerfile builder pip install line. One-line change.
+
+**Confirmed effective:** post-redeploy, the aiohttp ImportError is gone from the trace; a different error replaces it (Bug #7).
+
+**PR:** https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/12
+**Branch:** `squad/fix-orchestrator-aiohttp-dockerfile` (base `squad/fix-cosmos-seed-incidents` = PR #11).
+
+**Mea culpa:** I shipped PR #10 thinking pyproject was authoritative — should have checked the Dockerfile. Logging here so we don't repeat. Follow-up worth filing: switch Dockerfile to `pip install .` (reads pyproject) so this class of drift can't recur.
+
+## NEW — Bug #7 (escalated, NOT fixed) — Foundry Realtime WebSocket URL scheme
+
+**Where:** `apps/orchestrator/voice/foundry_realtime.py:160` (`open_session`).
+
+**Symptom:** All three tool turns return HTTP 500.
+
+**Stack trace (full log: `.squad/files/orchestrator-500-trace-after-dockerfile.log`):**
+```
+File "/app/voice/foundry_realtime.py", line 160, in open_session
+    ws = await websockets.connect(url, additional_headers=headers)
+File "/usr/local/lib/python3.11/site-packages/websockets/uri.py", line 76, in parse_uri
+    raise InvalidURI(uri, "scheme isn't ws or wss")
+websockets.exceptions.InvalidURI:
+  https://swedencentral.api.azureml.ms/openai/v1/realtime?model=gpt-realtime-1.5
+  isn't a valid URI: scheme isn't ws or wss
+```
+
+**Almost certainly:** the Foundry Realtime endpoint env var is being read as `https://...` (the AzureML inference URL) and passed straight into `websockets.connect()` which requires `ws://` or `wss://`. Fix is likely a one-liner: `url = url.replace("https://", "wss://", 1)` (or build the WS URL explicitly from the endpoint).
+
+**Why I'm not shipping the fix:**
+- Per Brady's failure-handling rule: "If `/api/turn` returns 500 with a NEW error after deploy → STOP, capture stack trace, escalate (don't blindly fix more bugs without Brady's signoff)."
+- `voice/foundry_realtime.py` is on the realtime swap critical path (D-009). Touching it without the realtime owner's review is risky.
+- The fix touches Foundry plumbing — Maximoff or Strange territory.
+
+**Owner suggestion:** Maximoff (eval / realtime familiarity) or whoever owns the D-009 realtime swap.
+
+## Phase 2.5 verdict
+
+**🔴 NO-GO** until Bug #7 ships. Bug #6 is fixed and verified, but `/api/turn` cannot return any cited response (every tool path requires `provider.open_session()` which crashes before tool dispatch).
+
+Once Bug #7 is fixed and orchestrator redeployed, expected state is GREEN (Cosmos seeded, AI Search seeded, aiohttp present). Re-run the same three smoke turns to confirm.
+
+## References
+
+- Bug #6 PR: https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/11
+- Bug #5 follow-up PR: https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/12
+- Postprovision (Bug #6 verified): `.squad/files/azd-hook-postprovision-after-bug6.log` — 20 incidents upserted
+- Orchestrator deploy (Dockerfile fix): `.squad/files/azd-deploy-orchestrator-final-v2.log` — 1m 37s
+- Bug #7 trace: `.squad/files/orchestrator-500-trace-after-dockerfile.log`
+- Architectural contract: `.github/copilot-instructions.md` § 6 (Cosmos partition keys)
+
+
+
+### D-23 · [merged from inbox]
+**Date:** 2026-05-15  
+**Author:** Wanda Maximoff (autopilot — Brady OK'd)  
+**Status:** DECISION + ESCALATION
+
+---
+
+## What shipped (PR #14)
+
+**Bug #8 root cause:** `factory.py` passed `AZURE_AI_FOUNDRY_PROJECT_ENDPOINT`
+(`https://swedencentral.api.azureml.ms`) to `FoundryRealtimeProvider`. The GA
+`gpt-realtime-1.5` WebSocket endpoint lives on `AZURE_OPENAI_ENDPOINT`
+(`https://cog-oai-crosstown-dryrun-may15-yycemmso7sk7q.openai.azure.com/`).
+
+**Fix (2 files, 3 lines):**
+- `settings.py`: add `azure_openai_endpoint: str = ""`  
+- `voice/factory.py`: `endpoint=s.azure_openai_endpoint`
+
+**Evidence:** Live probe — `azureml.ms` → HTTP 404 | `openai.azure.com` → HANDSHAKE_OK.  
+**Validation:** ruff ✅ · mypy --strict ✅ · pytest 11/11 ✅  
+**Deploy:** `azd deploy orchestrator` — 30 s, revision `orchestrator--azd-1778880853`
+
+---
+
+## Smoke result post-deploy
+
+| Tool path | HTTP | Citations | Tool calls | Warnings |
+|-----------|------|-----------|------------|----------|
+| search_logs | 200 OK | 0 | [] | uncited |
+| detect_pattern | 200 OK | 0 | [] | uncited |
+| summarize_incident | 200 OK | 0 | [] | uncited |
+
+✅ Bug #8 cleared — no more 500 / InvalidStatus HTTP 404.  
+🔴 **Bug #9 found** — tool dispatch not happening; citation contract NOT met.
+
+---
+
+## Bug #9 (escalated — NOT chased per failure-handling rules)
+
+**Symptom:** All `/api/turn` calls return HTTP 200 with generic model text, `tool_calls: []`,
+`citations: []`, `warnings: ["uncited"]`. Model says "I don't have access to station logs."
+
+**Known facts:**
+- `tools_loaded: true` (health endpoint)
+- Container logs: clean 200s, no tracebacks
+- `session.update` sends `tools` + `instructions` (system prompt) to Realtime API
+- Same behavior across all 3 tool paths
+
+**Possible causes Brady should rule on:**
+1. `tool_choice` not set in `session.update` — gpt-realtime-1.5 may require explicit `"tool_choice": "auto"` or `"required"` to invoke tools
+2. Timing race — `session.update` ACK not awaited before `send_text` fires
+3. System prompt not strong enough to instruct tool use in Realtime context
+4. Model behavior difference vs gpt-4o-realtime-preview
+
+**Recommended next investigation:** Check `session.updated` server event ACK before sending user message; add `"tool_choice": "auto"` to `session.update`.
+
+---
+
+Brady: Bug #8 is done. Need a ruling on Bug #9 before Phase 2.5 can go live.
+
+
+
+### D-26 · [merged from inbox]
+**Date:** 2026-05-15T22:37:00-04:00
+**From:** Okoye (Operations / DevOps)
+**To:** Sean, Team
+**Re:** Bug #11 — ACA Hello World placeholder resolved
+
+---
+
+## Status: ✅ LIVE
+
+Both services are now running their real container images on ACA.
+
+| Service | Revision | HealthState | Traffic | Image |
+|---|---|---|---|---|
+| frontend | `frontend--azd-1778884551` | Healthy | 100% | `crcrosstowndryrunmay15yycemmso7sk7q.azurecr.io/mta-ai-hackathon/frontend-crosstown-dryrun-may15:azd-deploy-1778884543` |
+| log-analyst | `log-analyst--azd-1778884163` | Healthy | 100% | `crcrosstowndryrunmay15yycemmso7sk7q.azurecr.io/mta-ai-hackathon/log-analyst-crosstown-dryrun-may15:azd-deploy-...` |
+
+## Frontend
+
+**URL:** https://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io
+
+Content: `HTTP 200 | 423 bytes | <title>MTA Hackathon — Voice Demo</title>` — real Vite/React push-to-talk app.
+
+## Root cause (two bugs in Dockerfile, compounding)
+
+1. **CRLF shebang** — `docker-entrypoint.sh` had Windows CRLF. Alpine reads `#!/bin/sh\r` → "not found", container exits immediately. ACA falls back to Hello World placeholder.
+2. **nginx pid permission** — `nginx:1.27-alpine` defaults to `pid /run/nginx.pid;`. Running as non-root `app` user, `/run` is not writable → `[emerg] Permission denied`. Also crashes, same Hello World result.
+
+## Fix (commit 942b3b0)
+
+- `docker-entrypoint.sh` → LF line endings
+- `Dockerfile` → `sed -i 's|^pid .*|pid /tmp/nginx.pid;|'` + `/run` in chown
+- `.gitattributes` → `*.sh text eol=lf` (prevents CRLF recurrence)
+
+## /api/turn re-smoke (no regression)
+
+```
+search_logs:       Citations: 10  | Tool calls: 1 | Warnings: NONE  ✅
+detect_pattern:    Citations: 0   | Tool calls: 2 | Warnings: 400 (pre-existing PR #16)  ⚠️
+summarize_incident: Citations: 2  | Tool calls: 1 | Warnings: NONE  ✅
+```
+
+Log-analyst redeploy did **not** regress orchestrator tool dispatch.
+
+## Sean — UAT checklist
+
+- [ ] Open https://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io — should see push-to-talk UI (not Hello World)
+- [ ] Press mic, ask "Show me door-fault logs from Atlantic" — should get voiced response with citations
+- [ ] API smoke: `search_logs` and `summarize_incident` paths return citations ✅
+- [ ] Known gap: `detect_pattern` returns 400 — Banner/PR #16 is addressing this
+
+---
+*Okoye, 2026-05-15*
+
+
+
+### D-27 · [merged from inbox]
+**Author:** Banner
+**Status:** Inbox — for Sean's review
+
+## Outcome
+**No code change shipped.** Bug #12 was caused by sending `{"message": "..."}` to `POST /api/turn`; the canonical request shape is `{"text": "..."}` (pinned by `apps/orchestrator/main.py::TurnRequest`, 11 pytest cases, eval runner, redteam runner, and README).
+
+## Live verification (all 3 tool paths, 2026-05-15 ~22:44Z)
+| Tool | citations | warnings | tool_calls.arguments |
+|---|---|---|---|
+| `search_logs` | 10 | NONE | `{"query":"door fault Atlantic station"}` |
+| `detect_pattern` | 39 | NONE | `{"log_id":"L-001234"}` |
+| `summarize_incident` | 2 | NONE | `{"incident_id":"INC-1001"}` |
+
+Bug #10 (PR #16) fix holds. detect_pattern still resolves `log_id` correctly.
+
+## Mystery resolution
+Banner's earlier Bug #10 smoke at 22:18Z **already saw the real log-analyst image** (10/39/2 citations cannot come from Hello World). Okoye-2's 22:29Z redeploy (revision `log-analyst--azd-1778884163`) was likely a refresh of the already-deployed real image, not a Hello-World → real transition. ACA prunes old revisions, which is why her `az containerapp revision list` saw only one. No hidden fallback exists in the orchestrator dispatch path (verified in `main.py:97-119` and `agent/tools.py::dispatch`).
+
+## ⚠️ Process note for Sean
+The Bug #12 brief used `{"message":"..."}` in its test commands — that was the source of the 422s. Future test payloads should use `{"text":"..."}` to match the canonical contract.
+
+## What to use for UAT
+```powershell
+$orchUrl = "https://orchestrator.blackriver-0ab9be19.swedencentral.azurecontainerapps.io"
+$body = @{ text = "Show me door-fault logs from Atlantic station" } | ConvertTo-Json
+Invoke-RestMethod -Uri "$orchUrl/api/turn" -Method Post -Body $body -ContentType "application/json"
+```
+
+Frontend separately uses `/ws/voice` (WebSocket), not `/api/turn`, so this never affected the push-to-talk UI.
+
+## Diagnosis doc
+`.squad/files/banner-bug12-diagnosis-2026-05-15.md` — full forensic trace, expected-vs-actual diff, mystery resolution, recommendation.
+
+## Optional follow-up (not a blocker)
+Bug #10 secondary symptom (model occasionally tries `search_logs.time_range` as string) still produces 400s in log-analyst tail that the model self-corrects from. Net customer impact: zero (citations: 10, warnings: NONE). A tightened schema with an example value would silence those tail lines. Tracked but not urgent.
+
+### D-20
+
+**Date:** 2026-05-15
+**Author:** Banner (Tester / Quality)
+**Status:** Proposed (awaiting PR #10 merge + redeploy)
+
+## Decision
+
+Added `aiohttp>=3.9` as a direct top-level dependency in `apps/orchestrator/pyproject.toml` to satisfy `azure.identity.aio`'s async transport requirement.
+
+Form chosen: **direct dep**, not `azure-identity[aio]` extras. Rationale: `azure-identity 1.17.1` does not actually publish an `[aio]` extras group (pip warned on attempt). Direct `aiohttp` pin is the supported form per Azure SDK docs.
+
+## Trigger
+
+Bug #5 from the 2026-05-19 customer-handoff dry-run. Live `azd up` smoke (Okoye, 2026-05-15) showed `POST /api/turn` returning HTTP 500 with `ImportError: aiohttp package is not installed` thrown by `azure.identity.aio._credentials.app_service`.
+
+## Scope
+
+- File changed: `apps/orchestrator/pyproject.toml` (one line added).
+- PR: [#10](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/10), branch `squad/fix-orchestrator-aiohttp-dep`, based on `squad/fix-foundry-hub-name-length`.
+- Stack order: #5 (merged) → #7 → #8 → #9 (Okoye, search RBAC) → #10 (this).
+
+## Validation
+
+- `python -m ruff check .` — pass
+- `python -m mypy --strict .` — pass (19 files)
+- `python -m pytest -q` — 11/11 pass
+- Import smoke — `aiohttp 3.13.5` loads alongside `azure.identity.aio`
+
+## Follow-ups
+
+1. Land PR #9 first, then PR #10.
+2. Run `azd deploy orchestrator` to roll the fixed container — **do not auto-trigger**; coordinate with Squad to avoid overlap with Okoye's RBAC redeploy.
+3. After redeploy, re-run `/api/turn` live smoke to confirm Bug #5 is closed.
+
+## Autopilot disclosure
+
+PR was opened in autopilot without live per-step approval. Change is a single-line dep addition; non-destructive, reviewable, CI-gated.
+
+### D-21
+
+**Date:** 2026-05-15
+**Author:** Banner (Tester / Quality)
+**Status:** Proposed — needs T'Challa adoption + Brady awareness before Phase 2.5
+
+## Summary
+
+| Item | Status |
+|---|---|
+| Bug #6 — Cosmos seed `BadRequest` (missing `id` field on incident docs) | ✅ **FIXED** — PR #11 |
+| Bug #5 / PR #10 — orchestrator `aiohttp` dep | ✅ **COMPLETED** via PR #12 (Dockerfile inlined deps; pyproject change alone wasn't enough) |
+| Cosmos `incidents` container | ✅ 20 docs seeded, both `id` and `incidentId` populated |
+| `/api/turn` live cited responses | ❌ **STILL BLOCKED** — new Bug #7 surfaced |
+| Phase 2.5 LIVE-READY verdict | 🔴 **NO-GO** until Bug #7 fixed |
+
+## Bug #6 — root cause + fix (PR #11)
+
+**Where:** `scripts/load_search_index.py` → `seed_incidents()` (line ~135).
+
+**Cause:** `data/seed_incidents.json` records carry `incidentId` (correct partition key per architectural contract #6) but **no top-level `id` field**. Cosmos SQL API rejects any document without a non-empty `id` string.
+
+**Live repro proof:**
+| Doc shape | Cosmos response |
+|---|---|
+| `{ incidentId: "INC-TEST-NOID", ... }` | `CosmosHttpResponseError(BadRequest): "One of the specified inputs is invalid"` |
+| `{ id: "INC-TEST-WITHID", incidentId: "INC-TEST-WITHID", ... }` | Upsert OK (`_rid` returned) |
+
+**Fix:** mirror `incidentId` → `id` if absent before upsert. 6 lines added in one function.
+
+**Why mirror is safe:** the reader (`apps/log_analyst/tools/summarize_incident.py::_fetch_incident`) queries by `incidentId`, not by point-read on `id`, so `id == incidentId` introduces no contract drift.
+
+**PR:** https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/11
+**Branch:** `squad/fix-cosmos-seed-incidents` (base `squad/fix-orchestrator-aiohttp-dep` = PR #10).
+
+## PR #10 completion — PR #12 (Dockerfile dep)
+
+**Where:** `apps/orchestrator/Dockerfile` lines 5-9.
+
+**Cause:** PR #10 added `aiohttp>=3.9` to `pyproject.toml`. The Dockerfile builder pins its dep list **inline** and does NOT install from `pyproject.toml`, so the dep never made it into the image. After `azd deploy orchestrator` against dry-run env, `/api/turn` still raised the original `ImportError: aiohttp package is not installed`.
+
+**Fix:** add `"aiohttp>=3.9"` to the Dockerfile builder pip install line. One-line change.
+
+**Confirmed effective:** post-redeploy, the aiohttp ImportError is gone from the trace; a different error replaces it (Bug #7).
+
+**PR:** https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/12
+**Branch:** `squad/fix-orchestrator-aiohttp-dockerfile` (base `squad/fix-cosmos-seed-incidents` = PR #11).
+
+**Mea culpa:** I shipped PR #10 thinking pyproject was authoritative — should have checked the Dockerfile. Logging here so we don't repeat. Follow-up worth filing: switch Dockerfile to `pip install .` (reads pyproject) so this class of drift can't recur.
+
+## NEW — Bug #7 (escalated, NOT fixed) — Foundry Realtime WebSocket URL scheme
+
+**Where:** `apps/orchestrator/voice/foundry_realtime.py:160` (`open_session`).
+
+**Symptom:** All three tool turns return HTTP 500.
+
+**Stack trace (full log: `.squad/files/orchestrator-500-trace-after-dockerfile.log`):**
+```
+File "/app/voice/foundry_realtime.py", line 160, in open_session
+    ws = await websockets.connect(url, additional_headers=headers)
+File "/usr/local/lib/python3.11/site-packages/websockets/uri.py", line 76, in parse_uri
+    raise InvalidURI(uri, "scheme isn't ws or wss")
+websockets.exceptions.InvalidURI:
+  https://swedencentral.api.azureml.ms/openai/v1/realtime?model=gpt-realtime-1.5
+  isn't a valid URI: scheme isn't ws or wss
+```
+
+**Almost certainly:** the Foundry Realtime endpoint env var is being read as `https://...` (the AzureML inference URL) and passed straight into `websockets.connect()` which requires `ws://` or `wss://`. Fix is likely a one-liner: `url = url.replace("https://", "wss://", 1)` (or build the WS URL explicitly from the endpoint).
+
+**Why I'm not shipping the fix:**
+- Per Brady's failure-handling rule: "If `/api/turn` returns 500 with a NEW error after deploy → STOP, capture stack trace, escalate (don't blindly fix more bugs without Brady's signoff)."
+- `voice/foundry_realtime.py` is on the realtime swap critical path (D-009). Touching it without the realtime owner's review is risky.
+- The fix touches Foundry plumbing — Maximoff or Strange territory.
+
+**Owner suggestion:** Maximoff (eval / realtime familiarity) or whoever owns the D-009 realtime swap.
+
+## Phase 2.5 verdict
+
+**🔴 NO-GO** until Bug #7 ships. Bug #6 is fixed and verified, but `/api/turn` cannot return any cited response (every tool path requires `provider.open_session()` which crashes before tool dispatch).
+
+Once Bug #7 is fixed and orchestrator redeployed, expected state is GREEN (Cosmos seeded, AI Search seeded, aiohttp present). Re-run the same three smoke turns to confirm.
+
+## References
+
+- Bug #6 PR: https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/11
+- Bug #5 follow-up PR: https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/12
+- Postprovision (Bug #6 verified): `.squad/files/azd-hook-postprovision-after-bug6.log` — 20 incidents upserted
+- Orchestrator deploy (Dockerfile fix): `.squad/files/azd-deploy-orchestrator-final-v2.log` — 1m 37s
+- Bug #7 trace: `.squad/files/orchestrator-500-trace-after-dockerfile.log`
+- Architectural contract: `.github/copilot-instructions.md` § 6 (Cosmos partition keys)
+
+### D-23
+
+**Date:** 2026-05-15  
+**Author:** Wanda Maximoff (autopilot — Brady OK'd)  
+**Status:** DECISION + ESCALATION
+
+---
+
+## What shipped (PR #14)
+
+**Bug #8 root cause:** `factory.py` passed `AZURE_AI_FOUNDRY_PROJECT_ENDPOINT`
+(`https://swedencentral.api.azureml.ms`) to `FoundryRealtimeProvider`. The GA
+`gpt-realtime-1.5` WebSocket endpoint lives on `AZURE_OPENAI_ENDPOINT`
+(`https://cog-oai-crosstown-dryrun-may15-yycemmso7sk7q.openai.azure.com/`).
+
+**Fix (2 files, 3 lines):**
+- `settings.py`: add `azure_openai_endpoint: str = ""`  
+- `voice/factory.py`: `endpoint=s.azure_openai_endpoint`
+
+**Evidence:** Live probe — `azureml.ms` → HTTP 404 | `openai.azure.com` → HANDSHAKE_OK.  
+**Validation:** ruff ✅ · mypy --strict ✅ · pytest 11/11 ✅  
+**Deploy:** `azd deploy orchestrator` — 30 s, revision `orchestrator--azd-1778880853`
+
+---
+
+## Smoke result post-deploy
+
+| Tool path | HTTP | Citations | Tool calls | Warnings |
+|-----------|------|-----------|------------|----------|
+| search_logs | 200 OK | 0 | [] | uncited |
+| detect_pattern | 200 OK | 0 | [] | uncited |
+| summarize_incident | 200 OK | 0 | [] | uncited |
+
+✅ Bug #8 cleared — no more 500 / InvalidStatus HTTP 404.  
+🔴 **Bug #9 found** — tool dispatch not happening; citation contract NOT met.
+
+---
+
+## Bug #9 (escalated — NOT chased per failure-handling rules)
+
+**Symptom:** All `/api/turn` calls return HTTP 200 with generic model text, `tool_calls: []`,
+`citations: []`, `warnings: ["uncited"]`. Model says "I don't have access to station logs."
+
+**Known facts:**
+- `tools_loaded: true` (health endpoint)
+- Container logs: clean 200s, no tracebacks
+- `session.update` sends `tools` + `instructions` (system prompt) to Realtime API
+- Same behavior across all 3 tool paths
+
+**Possible causes Brady should rule on:**
+1. `tool_choice` not set in `session.update` — gpt-realtime-1.5 may require explicit `"tool_choice": "auto"` or `"required"` to invoke tools
+2. Timing race — `session.update` ACK not awaited before `send_text` fires
+3. System prompt not strong enough to instruct tool use in Realtime context
+4. Model behavior difference vs gpt-4o-realtime-preview
+
+**Recommended next investigation:** Check `session.updated` server event ACK before sending user message; add `"tool_choice": "auto"` to `session.update`.
+
+---
+
+Brady: Bug #8 is done. Need a ruling on Bug #9 before Phase 2.5 can go live.
+
+### D-24
+
+**Date:** 2026-05-15
+**Author:** Maximoff (Wanda)
+**Status:** SHIPPED — awaiting merge into PR #14 base
+
+## Decision
+
+Ship PR #15 (`squad/fix-realtime-tool-dispatch-race`) to fix Bug #9: orchestrator
+`/api/turn` returned HTTP 200 but with `tool_calls: []`, `citations: []`, and
+`warnings: ["uncited"]` on all three tool paths after Bug #8 fix.
+
+## Root Cause Summary
+
+Three compounding bugs in `apps/orchestrator/voice/foundry_realtime.py`:
+
+1. **Timing race (H2):** `open_session()` sent `session.update` (with tool specs) and returned
+   immediately. The caller fired `conversation.item.create` + `response.create` before the
+   Realtime API server processed tool registration (before `session.updated` ACK).
+
+2. **GA schema mismatch (H4):** `session.update` payload used `gpt-4o-realtime-preview` field
+   names rejected by the `gpt-realtime-1.5` GA API: `modalities: ["text","audio"]` (renamed to
+   `output_modalities`; combining text+audio invalid), `input_audio_format`/`output_audio_format`
+   (not valid top-level GA fields), missing `type: "realtime"` in session object. Server responded
+   with an `error` event silently swallowed by `_translate`, so `session.updated` never arrived.
+
+3. **response.done loop break (H3b):** The first `response.done` (function-call response, output
+   type `"function_call"`, no `content[]`) was translated as `Final(text="")`, causing `api_turn`
+   to break before the model's actual text reply (second response) arrived.
+
+## Fix Applied
+
+Three commits on `squad/fix-realtime-tool-dispatch-race` (stacked on PR #14):
+
+- **Commit 1:** `asyncio.Event session_ready` — await `session.updated` with 10 s timeout before returning session; `"tool_choice": "auto"` in session.update
+- **Commit 2:** GA schema correction — `"type": "realtime"`, `"output_modalities": ["audio"]`, removed invalid top-level audio format fields; `_translate response.done` captures both `transcript` and `text` content fields
+- **Commit 3:** `_translate response.done` returns `None` for pure function-call responses; only returns `Final` when message content exists or output is empty
+
+## Live Smoke Results (final deploy)
+
+| Path | Citations | Tool | Warnings | Text |
+|---|---|---|---|---|
+| search_logs | 10 | ✅ search_logs | NONE | 307 chars |
+| detect_pattern | 0 | ✅ detect_pattern | 400 Bad Request (log-analyst) | 223 chars |
+| summarize_incident | 2 | ✅ summarize_incident | NONE | 364 chars |
+
+**Citation contract met for 2/3 paths.** `detect_pattern` dispatches correctly but log-analyst
+returns HTTP 400 — separate pre-existing issue in log-analyst tool handler, not orchestrator.
+
+## Action Required from Brady/Sean
+
+1. **Merge PR #13 → PR #14 → PR #15** in order (stacked PRs).
+2. Investigate `detect_pattern` log-analyst 400 error (new Bug #10 candidate).
+3. Run live eval gate (`EVAL_MODE=live`) once PRs are merged and redeployed to `main`.
+
+### D-25
+
+**Date:** 2026-05-15
+**Owner:** Banner
+**Status:** SHIPPED — PR #16 stacked on PR #15
+
+## What
+
+Live `/api/turn` smoke against `detect_pattern` returned HTTP 400 from log-analyst
+(`log_id must be a non-empty string`). Investigation showed the orchestrator was
+exposing **empty** parameter schemas to the Realtime model for **every** tool —
+`search_logs` and `summarize_incident` only worked by the model guessing obvious
+arg names. `detect_pattern.log_id` is not obvious, so the model invented
+`seed_log_id` (or omitted it entirely) and log-analyst correctly 400'd.
+
+## Root cause (1 line)
+
+`apps/orchestrator/agent/tools.py::ToolRegistry.load()` read field `parameters`
+from log-analyst's `/tools` response, but log-analyst's `ToolDescriptor`
+(`apps/log_analyst/citations.py`) serializes the JSON Schema as `input_schema`.
+
+## Fix
+
+Accept both `input_schema` and `parameters`. One file, one logic change.
+Backwards-compatible with the existing test mock. Regression test added.
+
+## Validation (local — `apps/orchestrator`)
+
+- `ruff check .` — clean
+- `mypy --strict .` — 19 files, no issues
+- `pytest -q` — 12/12 pass (added `test_registry_load_input_schema`)
+
+## Validation (live, after `az containerapp update --image ...`)
+
+| Tool | citations | warnings | tool args |
+|---|---|---|---|
+| `search_logs` | 10 | (one stray 400 on first call — model self-corrected on retry) | `query`, `time_range` |
+| **`detect_pattern`** | **39** | **NONE** | `{"log_id": "L-001234"}` ✅ |
+| `summarize_incident` | 2 | NONE | `{"incident_id": "INC-1001"}` |
+
+Bug #10 verified fixed. All three tool paths now return citations.
+
+## Notes
+
+- `azd deploy orchestrator` failed three times with intermittent ARM 404s (HTML
+  error pages from `management.azure.com` on `getContainerApp` / `listSecrets`
+  / `PATCH containerApps`). Fell back to `az containerapp update --image
+  $latestTag` which succeeded immediately. New revision: `orchestrator--0000002`,
+  100% traffic, healthy, running.
+- Post-fix, the Realtime model now sees the full JSON Schema for every tool.
+  This exposes a minor secondary effect: on `search_logs`, the model sometimes
+  formats `time_range` as a string on its first attempt (instead of the
+  required `{from, to}` object) and self-corrects on a retry. Net result is
+  still citations=10, but a `400 Bad Request` warning surfaces. Not blocking
+  Phase 2.5; can be tightened later by adding a stricter system-prompt example
+  or by relaxing `time_range` to accept a string fallback. **Not in scope here.**
+
+## Open decision
+
+None — D-025 is a clean ship. Stacked PR chain remains:
+
+| # | Bug | PR | Status |
+|---|---|---|---|
+| 7 | wss:// scheme | #13 | merged |
+| 8 | AOAI direct endpoint | #14 | open |
+| 9 | Realtime tool dispatch race + GA schema | #15 | open |
+| **10** | **Orchestrator schema-passthrough (`input_schema`)** | **#16** | **open — this PR** |
+
+## Autopilot disclosure
+
+This session was completed under autopilot mode. Branch
+`squad/fix-log-analyst-detect-pattern-400` created from
+`squad/fix-realtime-tool-dispatch-race`, fix authored, ruff/mypy/pytest run
+locally (all green), committed with Co-authored-by trailer, pushed, PR #16
+opened against PR #15. Image pushed via `azd deploy orchestrator` (which then
+hit ARM intermittent errors); revision promoted via `az containerapp update
+--image $latestTag`. Live smoke verified detect_pattern + summarize_incident
+return citations with NONE warnings; search_logs returns 10 citations with a
+self-corrected retry artifact (acceptable, documented above).
+
+### D-26
+
+**Date:** 2026-05-15T22:37:00-04:00
+**From:** Okoye (Operations / DevOps)
+**To:** Sean, Team
+**Re:** Bug #11 — ACA Hello World placeholder resolved
+
+---
+
+## Status: ✅ LIVE
+
+Both services are now running their real container images on ACA.
+
+| Service | Revision | HealthState | Traffic | Image |
+|---|---|---|---|---|
+| frontend | `frontend--azd-1778884551` | Healthy | 100% | `crcrosstowndryrunmay15yycemmso7sk7q.azurecr.io/mta-ai-hackathon/frontend-crosstown-dryrun-may15:azd-deploy-1778884543` |
+| log-analyst | `log-analyst--azd-1778884163` | Healthy | 100% | `crcrosstowndryrunmay15yycemmso7sk7q.azurecr.io/mta-ai-hackathon/log-analyst-crosstown-dryrun-may15:azd-deploy-...` |
+
+## Frontend
+
+**URL:** https://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io
+
+Content: `HTTP 200 | 423 bytes | <title>MTA Hackathon — Voice Demo</title>` — real Vite/React push-to-talk app.
+
+## Root cause (two bugs in Dockerfile, compounding)
+
+1. **CRLF shebang** — `docker-entrypoint.sh` had Windows CRLF. Alpine reads `#!/bin/sh\r` → "not found", container exits immediately. ACA falls back to Hello World placeholder.
+2. **nginx pid permission** — `nginx:1.27-alpine` defaults to `pid /run/nginx.pid;`. Running as non-root `app` user, `/run` is not writable → `[emerg] Permission denied`. Also crashes, same Hello World result.
+
+## Fix (commit 942b3b0)
+
+- `docker-entrypoint.sh` → LF line endings
+- `Dockerfile` → `sed -i 's|^pid .*|pid /tmp/nginx.pid;|'` + `/run` in chown
+- `.gitattributes` → `*.sh text eol=lf` (prevents CRLF recurrence)
+
+## /api/turn re-smoke (no regression)
+
+```
+search_logs:       Citations: 10  | Tool calls: 1 | Warnings: NONE  ✅
+detect_pattern:    Citations: 0   | Tool calls: 2 | Warnings: 400 (pre-existing PR #16)  ⚠️
+summarize_incident: Citations: 2  | Tool calls: 1 | Warnings: NONE  ✅
+```
+
+Log-analyst redeploy did **not** regress orchestrator tool dispatch.
+
+## Sean — UAT checklist
+
+- [ ] Open https://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io — should see push-to-talk UI (not Hello World)
+- [ ] Press mic, ask "Show me door-fault logs from Atlantic" — should get voiced response with citations
+- [ ] API smoke: `search_logs` and `summarize_incident` paths return citations ✅
+- [ ] Known gap: `detect_pattern` returns 400 — Banner/PR #16 is addressing this
+
+---
+*Okoye, 2026-05-15*
+
+### D-27
+
+**Author:** Banner
+**Status:** Inbox — for Sean's review
+
+## Outcome
+**No code change shipped.** Bug #12 was caused by sending `{"message": "..."}` to `POST /api/turn`; the canonical request shape is `{"text": "..."}` (pinned by `apps/orchestrator/main.py::TurnRequest`, 11 pytest cases, eval runner, redteam runner, and README).
+
+## Live verification (all 3 tool paths, 2026-05-15 ~22:44Z)
+| Tool | citations | warnings | tool_calls.arguments |
+|---|---|---|---|
+| `search_logs` | 10 | NONE | `{"query":"door fault Atlantic station"}` |
+| `detect_pattern` | 39 | NONE | `{"log_id":"L-001234"}` |
+| `summarize_incident` | 2 | NONE | `{"incident_id":"INC-1001"}` |
+
+Bug #10 (PR #16) fix holds. detect_pattern still resolves `log_id` correctly.
+
+## Mystery resolution
+Banner's earlier Bug #10 smoke at 22:18Z **already saw the real log-analyst image** (10/39/2 citations cannot come from Hello World). Okoye-2's 22:29Z redeploy (revision `log-analyst--azd-1778884163`) was likely a refresh of the already-deployed real image, not a Hello-World → real transition. ACA prunes old revisions, which is why her `az containerapp revision list` saw only one. No hidden fallback exists in the orchestrator dispatch path (verified in `main.py:97-119` and `agent/tools.py::dispatch`).
+
+## ⚠️ Process note for Sean
+The Bug #12 brief used `{"message":"..."}` in its test commands — that was the source of the 422s. Future test payloads should use `{"text":"..."}` to match the canonical contract.
+
+## What to use for UAT
+```powershell
+$orchUrl = "https://orchestrator.blackriver-0ab9be19.swedencentral.azurecontainerapps.io"
+$body = @{ text = "Show me door-fault logs from Atlantic station" } | ConvertTo-Json
+Invoke-RestMethod -Uri "$orchUrl/api/turn" -Method Post -Body $body -ContentType "application/json"
+```
+
+Frontend separately uses `/ws/voice` (WebSocket), not `/api/turn`, so this never affected the push-to-talk UI.
+
+## Diagnosis doc
+`.squad/files/banner-bug12-diagnosis-2026-05-15.md` — full forensic trace, expected-vs-actual diff, mystery resolution, recommendation.
+
+## Optional follow-up (not a blocker)
+Bug #10 secondary symptom (model occasionally tries `search_logs.time_range` as string) still produces 400s in log-analyst tail that the model self-corrects from. Net customer impact: zero (citations: 10, warnings: NONE). A tightened schema with an example value would silence those tail lines. Tracked but not urgent.
+
 ## Guidelines
 
 - All meaningful changes require team consensus.
 - Document architectural decisions here.
 - Keep history focused on work, decisions focused on direction.
 - Casting changes require a T'Challa sign-off entry.
+
+
+
 
