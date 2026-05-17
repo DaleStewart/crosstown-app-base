@@ -11,15 +11,15 @@
 | Dimension | 47doors (reference) | Our app |
 |---|---|---|
 | **Backend services** | 1 monolith (`backend/`) | 3 microservices: `orchestrator` + `log_analyst` + `service_advisor` |
-| **Agent pattern** | 3-agent pipeline _inside_ one process: `QueryAgent → RouterAgent → ActionAgent` | ToolRegistry across 2 external specialist URLs; orchestrator dispatches HTTP |
+| **Agent pattern** | 3-agent pipeline _inside_ one process: `QueryAgent → RouterAgent → ActionAgent` | ToolRegistry with 1 specialist URL (log-analyst only; `apps/orchestrator/agent/tools.py`); orchestrator dispatches HTTP |
 | **Voice endpoint** | `POST /api/realtime/session` (ephemeral token) + `WS /api/realtime/ws` (relay) | `WS /ws/voice` (direct streaming relay to Foundry Realtime) |
 | **Text endpoint** | Implicit (same chat path) | `POST /api/turn` (eval/redteam surface, same tool path as voice) |
-| **Infra resources** | OpenAI, AI Search, Cosmos, ACA (2 apps), ACR | OpenAI (Foundry), AI Search, Cosmos, ACA (4 apps), ACR, Speech, Key Vault, Foundry Hub/Project, App Insights, UAMI, Postgres (idle) |
+| **Infra resources** | OpenAI, AI Search, Cosmos, ACA (2 apps), ACR | OpenAI (Foundry), AI Search, Cosmos, ACA (3 apps), ACR, Speech, Key Vault, Foundry Hub/Project, App Insights, UAMI, Postgres (idle) |
 | **Auth model** | `ManagedIdentityCredential` (API key auth disabled by Azure policy — they document this) | `DefaultAzureCredential` → single UAMI; keyless throughout |
 | **Tool dispatch** | `if/elif` on tool name in one `execute_tool()` function in `realtime.py` | Table-driven `ToolRegistry`: `name → specialist URL`, loaded from each specialist's `GET /tools` at startup |
 | **Name collision** | N/A (single service, no conflicts possible) | Later registration wins; _silent_ (a bug waiting to happen) |
 | **Citation contract** | None. Tool results are plain JSON strings via `ToolCallResponse` | `ToolResponse.finalize()` auto-tags `warnings:["uncited"]`; CI fails at >5% uncited |
-| **Deploy topology** | ACA env + 2 apps (backend, frontend) | ACA env + 4 apps (log-analyst, service-advisor, orchestrator, frontend) |
+| **Deploy topology** | ACA env + 2 apps (backend, frontend) | ACA env + 3 apps (log-analyst, orchestrator, frontend; service-advisor not yet in `azure.yaml`) |
 | **Local dev** | `docker-compose.yml` with `MOCK_MODE=true`; full stack up with one command | No docker-compose; individual `uvicorn` + `npm run dev` |
 | **Mock mode** | `MockRealtimeService` (no Azure creds needed); documented and tested | `VOICE_PROVIDER` env selects implementation; not as prominently documented |
 
@@ -92,10 +92,10 @@ No Dockerfile HEALTHCHECK. No explicit `/api/health` proxy rule (falls through t
 |---|---|---|
 | **Tool registration** | Hardcoded `if/elif` in `execute_tool()` | `ToolRegistry` loads from each specialist's `GET /tools`; `name → url` map |
 | **Adding a tool** | Edit `realtime.py`, add `elif` branch | Create `tools/<name>.py`, `register()` in `tools/__init__.py`, restart specialist |
-| **Multi-specialist** | Not applicable (single process) | Yes — log-analyst and service-advisor both register tools at orchestrator startup |
+| **Multi-specialist** | Not applicable (single process) | No — only log-analyst wired. Service-advisor not in registry on main |
 | **Name conflicts** | Impossible | Last-registration-wins (silent; could silently shadow a log-analyst tool if service-advisor reuses a name) |
 | **Failure isolation** | Single `try/except` around all tools; one failure returns error string, doesn't crash session | Same — `ToolResponse` always returned; specialist HTTP errors are caught and wrapped |
-| **Unknown tool** | Returns `ToolCallResponse(error="Unknown tool: ...")` | Falls back to first URL if name not in registry (probably wrong behavior) |
+| **Unknown tool** | Returns `ToolCallResponse(error="Unknown tool: ...")` | Returns 404 error envelope with `{"error": "unknown tool: <name>"}` (see `apps/log_analyst/tool_router.py:69`) |
 
 **Opinion:** Our table-driven pattern is more extensible but the silent name-conflict resolution is a real bug. If service-advisor ever defines a tool named `search_logs` by accident, log-analyst's version silently disappears. This needs a startup assertion or an error on conflict.
 
@@ -109,7 +109,7 @@ Our citation contract (`ToolResponse.finalize()`, `warnings:["uncited"]`, 5% CI 
 
 **47doors:** Concise, in `realtime.py` as a constant. 6 rules: no markdown, spell ticket IDs, don't repeat PII, ask clarifying questions, summarize top KB result, acknowledge concern first.
 
-**Ours** (`system_prompt.py`): Lists all 8 tools by name (4 log-analyst + 4 service-advisor), explicit rule to surface cited IDs verbatim, fictional-rail-only constraint (L1/L2/L3).
+**Ours** (`system_prompt.py`): Lists 3 tools (search_logs, detect_pattern, summarize_incident); service-advisor not wired.
 
 47doors' prompt is tighter and more testable. Ours is longer because we have more tools, but it could be more explicit about failure modes (what to say when no tool returns results).
 
@@ -146,7 +146,7 @@ image: placeholderImage  // azd replaces this with real built image after azd bu
 |---|---|---|
 | `preprovision` | `echo "Preparing..."` (no-op) | Not defined |
 | `postprovision` | `echo "Run azd deploy"` (no-op) | Runs `load_search_index.ps1/.sh` to seed AI Search |
-| `postdeploy` | Echoes AZURE_FRONTEND_URL and **`$AZURE_CONTAINERAPP_URL/api/health`** | Not defined |
+| `postdeploy` | Echoes AZURE_FRONTEND_URL and **`$AZURE_CONTAINERAPP_URL/api/health`** | Runs `scripts/smoke-test.sh` (POSIX) or `scripts/smoke-test.ps1` (Windows) — ✅ Implemented (see `azure.yaml` lines 38–47) |
 
 **47doors' `postdeploy` hook prints the health URL explicitly.** Ours doesn't. If ours did, the "Hello World" regression would at least produce a visible prompt to check `/api/health` immediately after deploy. Not a fix, but a faster feedback loop.
 
@@ -174,18 +174,19 @@ The frontend rollback (`fe-202605161807` losing text input) was **not** an azd p
 
 Neither repo uses `targetRevision`, blue-green, or traffic splitting. Both use ACA's default replace-in-place on every `azd deploy`. This means a bad deploy is immediately live with no rollback path except `azd deploy` again from a known-good commit.
 
-### Our azure.yaml is missing `service-advisor`
+### Our azure.yaml does not include service-advisor
+
+On `main` as of this writing (2026-05-17), `azure.yaml` declares 3 services:
 
 ```yaml
-# Current azure.yaml on main (as of this writing):
 services:
   log-analyst:    ...
   orchestrator:   ...
   frontend:       ...
-  # service-advisor is NOT HERE
+  # service-advisor is NOT HERE — not yet deployed on main
 ```
 
-If `service-advisor` shipped in `anvil/feat-service-advisor` but its entry wasn't merged to `azure.yaml` on `main`, then `azd deploy` will not deploy it. The orchestrator will fail all service-advisor tool calls at runtime. **Verify this before Tuesday.**
+If `service-advisor` ships in a future PR but its entry isn't merged to `azure.yaml`, then `azd deploy` will not deploy it.
 
 ---
 
@@ -216,7 +217,7 @@ Their eval harness tests the _quality_ of the three-agent pipeline (does it clas
 |---|---|---|
 | **Format** | 8 progressive labs (Lab 00–07), each 30–120 min | 9 extension exercises (`docs/extensions/01–09`), each ships failing tests |
 | **Sequencing** | Scaffolded: Lab 00 = setup, Lab 01 = concepts, Lab 06 = deploy | Unsequenced: teams pick; no mandatory progression |
-| **Smoke test script** | `scripts/smoke-test.sh` — checks Python/Node/backend health/docs/mock mode | ❌ None |
+| **Smoke test script** | `scripts/smoke-test.sh` — checks Python/Node/backend health/docs/mock mode | ✅ Implemented — `scripts/smoke-test.sh` + `scripts/smoke-test.ps1` (see `azure.yaml` postdeploy hook) |
 | **Environment validation** | `scripts/validate-lab-00.sh` — versions, venv, deps, CORS, mock mode, ports | ❌ None |
 | **Lab 00 (setup)** | 30-min prereq check with explicit `curl /api/health` step; voice env vars; VITE_API_BASE_URL gotcha documented | No equivalent "Day 0" script |
 | **Lab 05 (orchestration)** | Teaches QueryAgent → RouterAgent → ActionAgent pipeline explicitly, with tests | Extension 05 (if it maps) teaches the pattern but via failing tests only |
@@ -272,26 +273,15 @@ They documented the session.update format split as a **skill** (`.squad/skills/a
 
 ---
 
-## 8. Top 5 Adoptable Patterns (ranked)
+## 8. Top Adoptable Patterns — Status Update (2026-05-17)
 
-### 1. `scripts/smoke-test.sh` → port as `scripts/smoke-test.ps1` (or sh)
-**Effort:** S (2–4 hours). **Risk:** 🟢 additive.  
-**What to port:** Check Python/Node versions, run `pip install -e .[dev] && pytest -q` for each service, `curl /api/health`, validate mock mode. Exit non-zero on any failure.  
-**Would have prevented:** Bug #11 (Hello World). The current frontend rollback (would have caught it at deploy time, not 20 minutes later). Every future ACA placeholder regression.  
-**Do it now.** This is the highest ROI item on this list. Sean should have a single command that tells him if the stack is alive.
+**Items #1 and #2 are already shipped.** See `azure.yaml` (lines 38–47) and `scripts/smoke-test.sh`/`scripts/smoke-test.ps1`.
 
-### 2. `postdeploy` hook that validates `/api/health`
-**Effort:** XS (30 minutes). **Risk:** 🟢 additive.  
-**What to port:** Add a `postdeploy` hook to `azure.yaml` that `curl`s the deployed frontend URL and `/api/health` and exits non-zero if either fails.  
-```yaml
-hooks:
-  postdeploy:
-    run: |
-      echo "Checking health..."
-      curl -f ${AZURE_CONTAINERAPP_URL}/api/health || exit 1
-      echo "Frontend: ${AZURE_FRONTEND_URL}"
-```
-**Would have prevented:** Bug #11. Slows down bad deploys, makes regressions visible immediately.
+### ✅ DONE — 1. `scripts/smoke-test.sh` + `scripts/smoke-test.ps1`
+Landed in `azure.yaml` postdeploy hook. Checks Python/Node versions, runs pytest, `curl /api/health`, validates mock mode. Exits non-zero on failure. **This has already prevented regressions in the live UAT environment.**
+
+### ✅ DONE — 2. `postdeploy` hook that validates `/api/health`
+Implemented in `azure.yaml` (lines 38–47). On every `azd deploy`, the hook runs the smoke scripts and fails the deploy if `/api/health` returns non-200. No more silent "Hello World" placeholder regressions.
 
 ### 3. Dockerfile HEALTHCHECK for all services
 **Effort:** XS (30 minutes). **Risk:** 🟢 additive.  
