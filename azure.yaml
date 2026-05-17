@@ -16,6 +16,13 @@ services:
     docker:
       path: Dockerfile
       context: .
+  service-advisor:
+    project: ./apps/service_advisor
+    host: containerapp
+    language: python
+    docker:
+      path: Dockerfile
+      context: .
   orchestrator:
     project: ./apps/orchestrator
     host: containerapp

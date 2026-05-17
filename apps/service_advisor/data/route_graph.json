@@ -1,0 +1,35 @@
+{
+  "_comment": "MOCK DATA — NOT FROM MTA. Fictional route graph for L1/L2/L3.",
+  "stations": {
+    "S-Penn":       { "lines": ["L1", "L2"] },
+    "S-Jamaica":    { "lines": ["L1", "L2", "L3"] },
+    "S-Hicksville": { "lines": ["L1"] },
+    "S-Mineola":    { "lines": ["L1"] },
+    "S-Ronkonkoma": { "lines": ["L1"] },
+    "S-Babylon":    { "lines": ["L1"] },
+    "S-East":       { "lines": ["L1", "L3"] },
+    "S-Atlas":      { "lines": ["L2"] },
+    "S-Beacon":     { "lines": ["L2", "L3"] },
+    "S-Meridian":   { "lines": ["L3"] }
+  },
+  "edges": [
+    { "from": "S-Penn",       "to": "S-Jamaica",    "line": "L1", "minutes": 18 },
+    { "from": "S-Jamaica",    "to": "S-Hicksville", "line": "L1", "minutes": 22 },
+    { "from": "S-Hicksville", "to": "S-Mineola",    "line": "L1", "minutes": 8  },
+    { "from": "S-Mineola",    "to": "S-Ronkonkoma", "line": "L1", "minutes": 26 },
+    { "from": "S-Mineola",    "to": "S-Babylon",    "line": "L1", "minutes": 30 },
+    { "from": "S-Babylon",    "to": "S-East",       "line": "L1", "minutes": 12 },
+    { "from": "S-Penn",       "to": "S-Atlas",      "line": "L2", "minutes": 14 },
+    { "from": "S-Atlas",      "to": "S-Jamaica",    "line": "L2", "minutes": 16 },
+    { "from": "S-Jamaica",    "to": "S-Beacon",     "line": "L2", "minutes": 11 },
+    { "from": "S-Jamaica",    "to": "S-East",       "line": "L3", "minutes": 24 },
+    { "from": "S-East",       "to": "S-Beacon",     "line": "L3", "minutes": 19 },
+    { "from": "S-Beacon",     "to": "S-Meridian",   "line": "L3", "minutes": 12 }
+  ],
+  "shuttle_bridges": {
+    "DSR-2026-001": [
+      { "from": "S-Jamaica", "to": "S-Hicksville", "headway_minutes": 20, "minutes": 45 },
+      { "from": "S-Hicksville", "to": "S-Mineola", "headway_minutes": 20, "minutes": 15 }
+    ]
+  }
+}

@@ -245,6 +245,26 @@ module logAnalystApp 'modules/containerApp.bicep' = {
   }
 }
 
+@description('service-advisor Container App — internal ingress, CPU scale, azd service tag for azd discovery')
+module serviceAdvisorApp 'modules/containerApp.bicep' = {
+  name: 'serviceAdvisorApp'
+  params: {
+    name: 'service-advisor'
+    location: location
+    tags: union(tags, { 'azd-service-name': 'service-advisor' })
+    containerAppsEnvironmentId: caEnv.outputs.id
+    containerRegistryLoginServer: acr.outputs.loginServer
+    image: placeholderImage
+    targetPort: 8002
+    external: false
+    scaleRuleType: 'cpu'
+    envVars: commonEnvVars
+    secretEnvVars: aiConnStringEnvVar
+    secrets: aiConnStringKvSecret
+    userAssignedIdentityId: identity.outputs.id
+  }
+}
+
 // ── Container App: orchestrator ───────────────────────────────────────────────
 // External ingress, port 8000, HTTP scale, transport=auto for WebSocket support.
 // transport='auto' handles HTTP/1.1, HTTP/2, and WebSocket connections; there is
@@ -266,6 +286,7 @@ module orchestratorApp 'modules/containerApp.bicep' = {
     scaleRuleType: 'http'
     envVars: concat(commonEnvVars, [
       { name: 'LOG_ANALYST_URL',                   value: 'http://${logAnalystApp.outputs.fqdn}' }
+      { name: 'SERVICE_ADVISOR_URL',               value: 'http://${serviceAdvisorApp.outputs.fqdn}' }
       { name: 'AZURE_AI_FOUNDRY_PROJECT_ENDPOINT', value: foundry.outputs.projectEndpoint }
       { name: 'AZURE_AI_FOUNDRY_PROJECT_NAME',     value: foundry.outputs.projectName }
       { name: 'AZURE_OPENAI_REALTIME_DEPLOYMENT',  value: foundry.outputs.gpt4oRealtimeDeployment }
@@ -370,6 +391,7 @@ output AZURE_POSTGRES_HOST string = postgres.outputs.host
 output AZURE_POSTGRES_DB string = 'mta_legacy'
 
 output LOG_ANALYST_URL string = 'http://${logAnalystApp.outputs.fqdn}'
+output SERVICE_ADVISOR_URL string = 'http://${serviceAdvisorApp.outputs.fqdn}'
 output ORCHESTRATOR_URL string = 'https://${orchestratorApp.outputs.fqdn}'
 output FRONTEND_URL string = 'https://${frontendApp.outputs.fqdn}'
 

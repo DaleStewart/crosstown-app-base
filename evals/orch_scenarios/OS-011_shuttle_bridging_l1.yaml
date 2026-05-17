@@ -1,0 +1,8 @@
+id: OS-011
+title: "Shuttle bridging lookup for active L1 disruption"
+prompt: "Are shuttle buses running while L1 is down?"
+expected_substrings:
+  - "shuttle"
+expect_citations: true
+expected_tools:
+  - get_shuttle_bridging

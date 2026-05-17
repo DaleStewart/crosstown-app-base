@@ -1,0 +1,33 @@
+{
+  "_comment": "MOCK DATA — NOT FROM MTA. Fictional line shutdown for hackathon use only. Inspired by public reporting on transit disruptions; rail lines L1/L2/L3 are fictional.",
+  "disruption_id": "DSR-2026-001",
+  "title": "L1 line — full service suspension",
+  "line": "L1",
+  "status": "active",
+  "severity": "critical",
+  "opened_at": "2026-05-16T03:00:00+00:00",
+  "estimated_resume": "unknown",
+  "summary": "All revenue service on L1 is suspended pending resolution of a labor action affecting on-board crews. Service on L2 and L3 is operating on a normal weekday schedule.",
+  "affected_stations": [
+    "S-Penn",
+    "S-Jamaica",
+    "S-Hicksville",
+    "S-Mineola",
+    "S-Ronkonkoma",
+    "S-Babylon",
+    "S-East"
+  ],
+  "shuttle_plan_runbook": "RB-12-shuttle-bus-bridging",
+  "rider_guidance_runbook": "RB-13-wfh-and-alternate-modes",
+  "parent_runbook": "RB-11-line-shutdown-contingency",
+  "advisories": [
+    "Shuttle bus bridging is available between S-Jamaica and S-Hicksville every 20 minutes; expect 35–50 minute travel times versus 18 minutes via rail.",
+    "L2 and L3 are accepting cross-honor at S-Jamaica during the disruption. Tap-in fares are unchanged.",
+    "Riders who can work remotely are encouraged to do so on impacted weekdays."
+  ],
+  "do_not_state": [
+    "Service will resume at <specific time> — only state the published estimated_resume value verbatim.",
+    "Fare changes — fares are unchanged; only cite the advisories field for fare guidance.",
+    "Any commentary on the underlying labor dispute, employees, or union positions."
+  ]
+}

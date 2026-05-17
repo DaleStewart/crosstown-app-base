@@ -1,0 +1,9 @@
+id: OS-009
+title: "Disruption status routing — L1 active suspension"
+prompt: "Is the L1 line running right now?"
+expected_substrings:
+  - "L1"
+  - "DSR-2026-001"
+expect_citations: true
+expected_tools:
+  - get_disruption_status
