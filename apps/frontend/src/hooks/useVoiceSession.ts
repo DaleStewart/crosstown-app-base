@@ -289,22 +289,18 @@ export function useVoiceSession(
       await micRef.current.stop();
       micRef.current = null;
     }
+    send({ type: "stop" });
     dispatch({ type: "recording", value: false });
-  }, []);
+  }, [send]);
 
   const disconnect = useCallback(async (): Promise<void> => {
     await stopTalking();
     if (wsRef.current) {
-      try {
-        send({ type: "stop" });
-      } catch {
-        /* noop */
-      }
       wsRef.current.close();
       wsRef.current = null;
     }
     dispatch({ type: "reset" });
-  }, [send, stopTalking]);
+  }, [stopTalking]);
 
   useEffect(() => {
     return () => {
