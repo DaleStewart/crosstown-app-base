@@ -9,20 +9,19 @@ Azure Static Web App that hackathon coaches use to score teams at the NYC MTA AI
 - **SWA:** `mtahack-swa-5vqz4ojvidqwi`
 - **Cosmos:** `mtahack-cosmos-5vqz4ojvidqwi` (serverless, DB `mtahack`)
 - **azd env:** `mtahack-prod`
-- **Bootstrap admin:** `segayle@microsoft.com` (configured via `ADMIN_EMAILS` app setting; additional admins can be invited from the SWA Role Management blade)
+- **Bootstrap admin:** `segayle` (GitHub username, configured via `ADMIN_USERS` app setting; additional admins can be invited from the SWA Role Management blade)
 - **Deployed:** 2026-05-17 via `azd up` (Okoye)
 
 Post-provision follow-ups before judges sign in (see sections below for full detail):
 
-1. Configure the AAD identity provider on the SWA (tenant `microsoft.com`); add `AAD_CLIENT_ID` / `AAD_CLIENT_SECRET` app settings.
-2. Replace `{{TODO_TENANT_GUID}}` in `staticwebapp.config.json` and redeploy.
-3. Seed teams from `scripts/teams.csv` (see "Seed teams" below).
+1. Set `ADMIN_USERS` app setting with comma-separated GitHub usernames (e.g., `segayle,otheradmin`).
+2. Seed teams from `scripts/teams.csv` (see "Seed teams" below).
 
 ## Architecture
 - Frontend: vanilla HTML/CSS/JS (no build step) served by Azure Static Web Apps
 - API: Azure Functions (Node 20, JS) bundled as SWA managed Functions
 - DB: Azure Cosmos DB for NoSQL (serverless, East US 2). Containers: `teams`, `scores`, `events` (partition `/track`)
-- Auth: SWA built-in AAD, tenant-restricted to microsoft.com. Admin role gated for `/admin.html` and admin-only API routes.
+- Auth: SWA built-in GitHub OAuth (no app registration needed). Admin role gated for `/admin.html` and admin-only API routes.
 
 ## Prerequisites
 - Node 20+
@@ -43,8 +42,7 @@ SWA CLI proxies API calls to Functions and emulates auth — use the auth simula
 2. `azd auth login`
 3. `azd up`
 4. When prompted: pick subscription, region (East US 2 recommended), environment name (e.g., `mtahack-prod`).
-5. After provision: set the **AAD tenant GUID** in `staticwebapp.config.json` (search for `TODO_TENANT_GUID`), then push or redeploy.
-6. The output `STATIC_WEB_APP_DEFAULT_HOSTNAME` is your live URL.
+5. The output `STATIC_WEB_APP_DEFAULT_HOSTNAME` is your live URL. No further config needed — GitHub OAuth is built-in.
 
 > **Caveat — azd + Static Web Apps:** the `staticwebapp` host in azd deploys the `web` service from `./src` but does not always discover the sibling `./api` folder as managed Functions. If `azd deploy web` skips the API, deploy the API with the SWA CLI instead from `apps/judging/`:
 >
@@ -55,19 +53,17 @@ SWA CLI proxies API calls to Functions and emulates auth — use the auth simula
 > ```
 
 ## Configure auth (one-time, post-provision)
-1. In the Azure Portal, open the Static Web App → Authentication → set up Azure AD identity provider (single-tenant, microsoft.com).
-2. Copy the **Application (client) ID** and **Tenant ID**.
-3. SWA app settings → add:
-   - `AAD_CLIENT_ID` = client ID
-   - `AAD_CLIENT_SECRET` = client secret
-4. Edit `apps/judging/staticwebapp.config.json` and replace `{{TODO_TENANT_GUID}}` with your tenant ID, commit and push (or redeploy).
+1. In the Azure Portal, open the Static Web App → Configuration → Application settings.
+2. Add `ADMIN_USERS` = comma-separated list of GitHub usernames (lowercase, e.g., `segayle,alice,bob`).
+3. Save. GitHub OAuth is pre-configured in `staticwebapp.config.json` — no further action needed.
+4. Test by opening `/judge.html` in incognito — you should be redirected to GitHub login.
 
 ## Assign admin role
 1. In the Azure Portal, open the Static Web App → Role Management.
 2. Invite a user by email, assign role `admin`.
 3. They'll get an invite link — once accepted, they can hit `/admin.html`.
 
-Alternatively, the `ADMIN_EMAILS` app setting is read as a comma-separated allowlist that grants admin server-side. Use that to bootstrap before the role-management invite flow.
+Alternatively, the `ADMIN_USERS` app setting is read as a comma-separated allowlist of GitHub usernames that grants admin server-side. Use that to bootstrap before the role-management invite flow.
 
 ## Seed teams
 1. Fill in `apps/judging/scripts/teams.csv` (header: `name,track,members,room,slot`; `members` semicolon-separated).

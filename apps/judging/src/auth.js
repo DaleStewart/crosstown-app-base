@@ -66,7 +66,7 @@
     if (!host) return;
     if (!user) {
       host.innerHTML =
-        '<a href="/.auth/login/aad"><i class="ti ti-login-2"></i> Sign in</a>';
+        '<a href="/.auth/login/github"><i class="ti ti-login-2"></i> Sign in</a>';
       return;
     }
     const label = user.name || user.email || 'Signed in';

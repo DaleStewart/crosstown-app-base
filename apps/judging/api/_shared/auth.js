@@ -10,7 +10,7 @@ function getUser(req) {
     const email = (principal.userDetails || (emailClaim && emailClaim.val) || '').toLowerCase();
     const name = (nameClaim && nameClaim.val) || principal.userDetails || email;
     const roles = Array.isArray(principal.userRoles) ? principal.userRoles : [];
-    return { email, name, roles, identityProvider: principal.identityProvider };
+    return { email, name, roles, identityProvider: principal.identityProvider, userId: email };
   } catch (_e) {
     return null;
   }
@@ -19,11 +19,12 @@ function getUser(req) {
 function isAdmin(user) {
   if (!user) return false;
   if (Array.isArray(user.roles) && user.roles.includes('admin')) return true;
-  const adminEmails = (process.env.ADMIN_EMAILS || '')
+  // Support both ADMIN_EMAILS (legacy/email) and ADMIN_USERS (GitHub usernames)
+  const adminList = (process.env.ADMIN_USERS || process.env.ADMIN_EMAILS || '')
     .split(',')
     .map(s => s.trim().toLowerCase())
     .filter(Boolean);
-  return !!user.email && adminEmails.includes(user.email);
+  return !!user.email && adminList.includes(user.email);
 }
 
 function requireAuth(req) {

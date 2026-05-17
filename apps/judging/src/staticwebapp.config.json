@@ -1,13 +1,7 @@
 {
   "auth": {
     "identityProviders": {
-      "azureActiveDirectory": {
-        "registration": {
-          "openIdIssuer": "https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/v2.0",
-          "clientIdSettingName": "AAD_CLIENT_ID",
-          "clientSecretSettingName": "AAD_CLIENT_SECRET"
-        }
-      }
+      "github": {}
     }
   },
   "routes": [
@@ -22,7 +16,7 @@
     { "route": "/api/export",     "allowedRoles": ["admin"] }
   ],
   "responseOverrides": {
-    "401": { "redirect": "/.auth/login/aad", "statusCode": 302 }
+    "401": { "redirect": "/.auth/login/github", "statusCode": 302 }
   },
   "globalHeaders": {
     "Cache-Control": "no-store",

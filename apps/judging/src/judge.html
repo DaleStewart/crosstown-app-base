@@ -170,7 +170,7 @@ async function init() {
   window.MTAAuth.mountTopbar(user);
   if (!user) {
     document.getElementById('page-lede').innerHTML =
-      'You need to <a href="/.auth/login/aad">sign in</a> before judging.';
+      'You need to <a href="/.auth/login/github">sign in</a> before judging.';
     return;
   }
 
