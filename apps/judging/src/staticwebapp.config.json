@@ -1,9 +1,4 @@
 {
-  "auth": {
-    "identityProviders": {
-      "github": {}
-    }
-  },
   "routes": [
     { "route": "/judge.html",     "allowedRoles": ["authenticated"] },
     { "route": "/admin.html",     "allowedRoles": ["admin"] },
