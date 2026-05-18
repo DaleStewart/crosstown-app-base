@@ -84,6 +84,11 @@ function reducer(state: State, action: Action): State {
       return {
         ...state,
         awaitingResponse: true,
+        // For the TextInput path (where there is no WS streaming voice),
+        // also flip `streaming` true so the StopButton becomes visible and
+        // the user can abort the in-flight HTTP request. Cleared in
+        // `append_assistant` / `cancelled` / `error`.
+        streaming: true,
         transcripts: [
           ...state.transcripts,
           { id: cryptoId(), role: "user", text: action.text, final: true },
@@ -109,6 +114,7 @@ function reducer(state: State, action: Action): State {
       return {
         ...state,
         awaitingResponse: false,
+        streaming: false,
         transcripts: [
           ...state.transcripts,
           { id: cryptoId(), role: "assistant", text: action.text, final: true },
@@ -279,6 +285,13 @@ export type UseVoiceSession = {
    *  to the orchestrator so Foundry stops generating. Safe to call when
    *  nothing is streaming — server treats it as a no-op. */
   cancelResponse: () => void;
+  /** Submit a text-input turn to /api/turn through the hook (instead of from
+   *  TextInput directly). Owning this here lets cancelResponse() abort the
+   *  in-flight fetch AND lets `streaming` reflect text requests too —
+   *  otherwise the StopButton never appears for Sean's typed questions
+   *  (2026-05-17 UAT). Resolves with the assistant text on success, with
+   *  `null` if the request was cancelled. */
+  sendUserText: (text: string) => Promise<string | null>;
   appendUserTurn: (text: string) => void;
   appendAssistantTurn: (payload: { text: string; citations: Citation[]; warnings: string[] }) => void;
 };
@@ -295,6 +308,9 @@ export function useVoiceSession(
   const wsRef = useRef<WebSocket | null>(null);
   const micRef = useRef<MicSession | null>(null);
   const playerRef = useRef<AudioPlayer>(new AudioPlayer());
+  // AbortController for any in-flight /api/turn fetch. Held in a ref so
+  // cancelResponse() can abort regardless of which call started the request.
+  const textAbortRef = useRef<AbortController | null>(null);
   const mode = options.mode ?? "push_to_talk";
   const url = options.url ?? DEFAULT_ORCHESTRATOR_WS;
 
@@ -407,11 +423,74 @@ export function useVoiceSession(
     // We don't wait for the server round-trip (Foundry may still flush a
     // few hundred ms of audio after `response.cancel`); see AudioPlayer.stop.
     playerRef.current.stop();
+    // Abort any in-flight /api/turn fetch (TextInput path). The fetch
+    // rejection in sendUserText will be caught and treated as cancelled.
+    if (textAbortRef.current) {
+      textAbortRef.current.abort();
+      textAbortRef.current = null;
+    }
     send({ type: "cancel_response" });
     // Optimistic local clear — the orchestrator will also send
     // `response_cancelled`, which is idempotent through the reducer.
     dispatch({ type: "cancelled" });
   }, [send]);
 
-  return { state, connect, disconnect, startTalking, stopTalking, sendText, cancelResponse, appendUserTurn, appendAssistantTurn };
+  const sendUserText = useCallback(
+    async (text: string): Promise<string | null> => {
+      const trimmed = text.trim();
+      if (!trimmed) return null;
+      // Cancel any prior in-flight text request (the form prevents this in
+      // normal use, but be defensive).
+      if (textAbortRef.current) {
+        textAbortRef.current.abort();
+      }
+      const controller = new AbortController();
+      textAbortRef.current = controller;
+
+      // Optimistic: append user line + flip streaming on (so StopButton shows).
+      dispatch({ type: "append_user", text: trimmed });
+      try {
+        const res = await fetch("/api/turn", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: trimmed }),
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+        const data = (await res.json()) as {
+          text: string;
+          citations?: Citation[];
+          warnings?: string[];
+        };
+        // Race guard: if cancelResponse() fired while the fetch was resolving,
+        // the controller is now null/replaced. Don't append the assistant
+        // turn we cancelled.
+        if (textAbortRef.current !== controller) return null;
+        textAbortRef.current = null;
+        dispatch({
+          type: "append_assistant",
+          text: data.text,
+          citations: data.citations ?? [],
+          warnings: data.warnings ?? [],
+        });
+        return data.text;
+      } catch (err) {
+        if (controller.signal.aborted) {
+          // Cancelled by user; cancelResponse() already dispatched 'cancelled'.
+          return null;
+        }
+        if (textAbortRef.current === controller) textAbortRef.current = null;
+        dispatch({
+          type: "append_assistant",
+          text: `[Error] ${err instanceof Error ? err.message : String(err)}`,
+          citations: [],
+          warnings: ["error"],
+        });
+        return null;
+      }
+    },
+    []
+  );
+
+  return { state, connect, disconnect, startTalking, stopTalking, sendText, cancelResponse, sendUserText, appendUserTurn, appendAssistantTurn };
 }

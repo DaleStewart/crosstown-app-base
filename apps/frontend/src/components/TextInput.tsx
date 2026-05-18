@@ -1,51 +1,36 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Send } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Citation } from "@/lib/protocol";
 
 export interface TextInputProps {
-  onUserTurn: (text: string) => void;
-  onAssistantTurn: (payload: { text: string; citations: Citation[]; warnings: string[] }) => void;
+  /** Submits the typed text through useVoiceSession.sendUserText so the
+   *  StopButton, audio drain, and cancel path all hang off the same state.
+   *  Returns a promise that resolves when the assistant turn is appended
+   *  (or null if the user cancelled). */
+  onSubmit: (text: string) => Promise<string | null>;
+  /** When true, the form input is disabled (a response is in flight or the
+   *  request is being cancelled). Driven by state.streaming in App.tsx. */
+  busy?: boolean;
 }
 
-export function TextInput({ onUserTurn, onAssistantTurn }: TextInputProps): ReactNode {
+export function TextInput({ onSubmit, busy }: TextInputProps): ReactNode {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
 
   async function handleSubmit(e: FormEvent): Promise<void> {
     e.preventDefault();
     const message = text.trim();
-    if (!message || sending) return;
+    if (!message || sending || busy) return;
     setSending(true);
-    onUserTurn(message);
     setText("");
     try {
-      const res = await fetch("/api/turn", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: message }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-      const data = (await res.json()) as {
-        text: string;
-        citations?: Citation[];
-        warnings?: string[];
-      };
-      onAssistantTurn({
-        text: data.text,
-        citations: data.citations ?? [],
-        warnings: data.warnings ?? [],
-      });
-    } catch (err) {
-      onAssistantTurn({
-        text: `[Error] ${err instanceof Error ? err.message : String(err)}`,
-        citations: [],
-        warnings: ["error"],
-      });
+      await onSubmit(message);
     } finally {
       setSending(false);
     }
   }
+
+  const disabled = sending || busy;
 
   return (
     <form
@@ -60,8 +45,8 @@ export function TextInput({ onUserTurn, onAssistantTurn }: TextInputProps): Reac
         type="text"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={sending ? "Sending…" : "Type a question…"}
-        disabled={sending}
+        placeholder={disabled ? "Sending…" : "Type a question…"}
+        disabled={disabled}
         className={cn(
           "flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm",
           "placeholder:text-slate-400",
@@ -72,7 +57,7 @@ export function TextInput({ onUserTurn, onAssistantTurn }: TextInputProps): Reac
       />
       <button
         type="submit"
-        disabled={sending || !text.trim()}
+        disabled={disabled || !text.trim()}
         className={cn(
           "flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition",
           "bg-subway-blue text-white hover:bg-subway-ink",

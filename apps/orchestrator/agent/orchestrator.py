@@ -51,6 +51,23 @@ class TurnAccumulator:
         # text accumulated up to the cancel point gets rendered as if it were
         # a normal completed turn, defeating the point of the stop button.
         self.cancel_pending = False
+        # Tracks the text of the most-recently-forwarded FINALIZED assistant
+        # transcript_delta on this turn. Used to dedupe tool-mediated re-emits
+        # (Sean's 2026-05-17 UAT bug after PR #45):
+        #
+        # When the model speaks AND calls a tool in cycle 1, then re-speaks the
+        # same answer in cycle 2 after the tool result, Foundry emits two
+        # `response.audio_transcript.done` events with identical text. PR #43's
+        # dedupe only covers the Final-frame echo of an already-streamed
+        # transcript — not a second finalized transcript_delta across cycle
+        # boundaries. The frontend `transcript_delta` reducer creates a new
+        # bubble when the previous one is already finalized, so without this
+        # the user sees the same answer twice.
+        #
+        # We clear this per-RESPONSE on Final (matching how
+        # assistant_transcript_sent resets), so a legitimately different
+        # cycle-2 answer still reaches the client.
+        self.last_finalized_assistant_text = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -116,6 +133,10 @@ async def run_voice_session(
                         await _cancel_inflight(session, turn, send_json)
                     user_text = str(parsed.get("text", ""))
                     turn.user_text = (turn.user_text + " " + user_text).strip()
+                    # New user turn → clear the per-turn dedupe state so a
+                    # legitimately-identical answer to a different question
+                    # still reaches the client.
+                    turn.last_finalized_assistant_text = ""
                     await session.send_text(user_text)
                     # send_text fires `response.create` under the hood. Mark the
                     # request as in-flight NOW (before any assistant frame
@@ -138,6 +159,8 @@ async def run_voice_session(
                             await _cancel_inflight(session, turn, send_json)
                         commit = getattr(session, "commit_audio", None)
                         if callable(commit):
+                            # New user audio turn → clear per-turn dedupe.
+                            turn.last_finalized_assistant_text = ""
                             await commit()
                             # commit_audio sends `response.create`. Mark in-flight
                             # immediately so a barge-in before the first assistant
@@ -244,6 +267,12 @@ async def _handle_event(
     if isinstance(ev, TranscriptDelta):
         if ev.role == "user" and ev.final:
             turn.user_text = (turn.user_text + " " + ev.text).strip()
+            # Server-driven turn boundary (continuous mode / server VAD):
+            # the client never sent `text`/`stop`, so the dedupe field never
+            # got cleared from the previous turn. Clear it here so a
+            # legitimately-identical next answer still reaches the client.
+            # (Caught by adversarial review, gpt-5.3-codex 2026-05-17.)
+            turn.last_finalized_assistant_text = ""
         if ev.role == "assistant":
             # First assistant frame of a response → mark in-flight so a new
             # user turn auto-cancels (Sean's overlap fix).
@@ -257,6 +286,28 @@ async def _handle_event(
         # response).
         if turn.cancel_pending and ev.role == "assistant":
             return
+        # Tool-mediated duplicate guard (Sean's 2026-05-17 UAT bug after PR #45):
+        # When the model speaks AND calls a tool in cycle 1, then re-speaks
+        # the same answer in cycle 2 after the tool result, Foundry emits two
+        # `response.audio_transcript.done` events with identical text. The
+        # frontend's transcript_delta reducer creates a new bubble when the
+        # previous one is already finalized, producing two identical bubbles.
+        # Suppress the duplicate at the relay so the contract stays:
+        # "one finalized assistant transcript per logical answer".
+        if (
+            ev.role == "assistant"
+            and ev.final
+            and ev.text
+            and ev.text == turn.last_finalized_assistant_text
+        ):
+            _log.info(
+                "relay.drop transcript_delta role=assistant final=True "
+                "duplicate_of_prior_cycle text_len=%d",
+                len(ev.text),
+            )
+            return
+        if ev.role == "assistant" and ev.final and ev.text:
+            turn.last_finalized_assistant_text = ev.text
         _log.info(
             "relay.send transcript_delta role=%s final=%s len=%d",
             ev.role, ev.final, len(ev.text or ""),

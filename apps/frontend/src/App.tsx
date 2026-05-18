@@ -15,7 +15,7 @@ const MODE = (import.meta.env.VITE_VOICE_MODE === "continuous"
   : "push_to_talk") as "continuous" | "push_to_talk";
 
 export default function App(): ReactNode {
-  const { state, startTalking, stopTalking, cancelResponse, appendUserTurn, appendAssistantTurn } = useVoiceSession({ mode: MODE });
+  const { state, startTalking, stopTalking, cancelResponse, sendUserText } = useVoiceSession({ mode: MODE });
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
@@ -37,7 +37,7 @@ export default function App(): ReactNode {
             <DisruptionBanner entries={state.toolCalls} />
             <AlternateRouteCard entries={state.toolCalls} />
             <Transcript lines={state.transcripts} thinking={state.awaitingResponse} />
-            <TextInput onUserTurn={appendUserTurn} onAssistantTurn={appendAssistantTurn} />
+            <TextInput onSubmit={sendUserText} busy={state.streaming || state.awaitingResponse} />
           </section>
         </ErrorBoundary>
         <aside className="lg:row-span-1">
