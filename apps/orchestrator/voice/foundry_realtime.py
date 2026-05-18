@@ -88,6 +88,26 @@ class FoundryRealtimeSession:
                 return
             yield ev
 
+    async def cancel(self) -> None:
+        """Tell Foundry to abort the in-flight response.
+
+        Resolves Sean's "keeps talking / voice changes mid-stream" symptom
+        (2026-05-17). Without this, Foundry GA streams the entire response
+        even after the user starts a new turn, and a second `response.create`
+        interleaves with the still-running first response — producing the
+        overlapping voices / repeated text he saw.
+
+        We send `response.cancel` unconditionally and let the server ignore it
+        if no response is active. The GA endpoint treats an extra cancel as a
+        no-op rather than an error (verified: OpenAI Realtime API reference,
+        `response.cancel` event — no required fields, server is tolerant of
+        canceling when idle). Keeping this idempotent lets the relay fire
+        defensively on every new user commit without bookkeeping races.
+        """
+        if self._ws is None or self._closed:
+            return
+        await self._ws.send(json.dumps({"type": "response.cancel"}))
+
     async def submit_tool_result(self, call_id: str, result: dict[str, Any]) -> None:
         if self._ws is None or self._closed:
             return

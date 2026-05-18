@@ -6,7 +6,11 @@ export type ClientStart = {
 
 export type ClientText = { type: "text"; text: string };
 export type ClientStop = { type: "stop" };
-export type ClientMessage = ClientStart | ClientText | ClientStop;
+/** Sent when the user hits the on-screen stop button. The orchestrator
+ *  forwards `response.cancel` to Foundry and replies with a
+ *  `response_cancelled` server frame. */
+export type ClientCancelResponse = { type: "cancel_response" };
+export type ClientMessage = ClientStart | ClientText | ClientStop | ClientCancelResponse;
 
 export type Citation = {
   source?: string;
@@ -52,6 +56,12 @@ export type ErrorFrame = {
   message: string;
 };
 
+/** Server-side acknowledgement that a response.cancel was forwarded to Foundry
+ *  (in response to either an explicit user stop or an auto-interrupt). */
+export type ResponseCancelled = {
+  type: "response_cancelled";
+};
+
 /** Normalized user-turn transcript from the orchestrator.
  *  Wanda may send this under several event names — all are normalized here. */
 export type UserTranscript = {
@@ -75,7 +85,8 @@ export type ServerMessage =
   | ToolResult
   | Final
   | ErrorFrame
-  | UserTranscript;
+  | UserTranscript
+  | ResponseCancelled;
 
 export function isServerMessage(value: unknown): value is ServerMessage {
   if (typeof value !== "object" || value === null) return false;
@@ -88,6 +99,7 @@ export function isServerMessage(value: unknown): value is ServerMessage {
     t === "final" ||
     t === "error" ||
     t === "user_transcript" ||
+    t === "response_cancelled" ||
     (typeof t === "string" && USER_TRANSCRIPT_ALIASES.has(t))
   );
 }

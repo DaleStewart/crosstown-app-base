@@ -54,6 +54,17 @@ class VoiceSession(Protocol):
 
     async def submit_tool_result(self, call_id: str, result: dict[str, Any]) -> None: ...
 
+    async def cancel(self) -> None:
+        """Cancel the in-flight model response.
+
+        Implementations should send the provider's cancellation frame
+        (Foundry/OpenAI Realtime: ``response.cancel``) and be a no-op when
+        no response is currently streaming. Must be idempotent — the
+        orchestrator may call this defensively before forwarding a new
+        user turn even when no response is active.
+        """
+        ...
+
     async def close(self) -> None: ...
 
 

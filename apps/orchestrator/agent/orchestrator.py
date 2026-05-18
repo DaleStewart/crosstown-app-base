@@ -37,6 +37,20 @@ class TurnAccumulator:
         # clear `awaitingResponse` and attach citations — only the redundant
         # text is suppressed.
         self.assistant_transcript_sent = False
+        # True from the first assistant frame of a response until the matching
+        # Final arrives. Used by the auto-interrupt path: if a new user turn
+        # (audio commit via `stop`, or a `text` message) arrives while this is
+        # set, the relay sends `response.cancel` to Foundry BEFORE forwarding
+        # the new turn. Without that, Foundry interleaves two responses and
+        # Sean hears the "voice changes mid-stream / keeps repeating" symptom
+        # (2026-05-17).
+        self.response_in_flight = False
+        # True while a cancel has been requested but the matching `response.done`
+        # / `Final` has not yet arrived. Used to suppress the (now-stale)
+        # assistant transcript text on the trailing Final — without this, the
+        # text accumulated up to the cancel point gets rendered as if it were
+        # a normal completed turn, defeating the point of the stop button.
+        self.cancel_pending = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -95,9 +109,21 @@ async def run_voice_session(
                     if session is None:
                         session = await provider.open_session(SYSTEM_PROMPT, tools.specs)
                         await _spawn_event_pump(session, ws, tools, turn, send_json)
+                    # Auto-interrupt: if a response is still streaming, cancel it
+                    # before queuing the new user turn so Foundry doesn't
+                    # interleave two responses. See TurnAccumulator.response_in_flight.
+                    if turn.response_in_flight:
+                        await _cancel_inflight(session, turn, send_json)
                     user_text = str(parsed.get("text", ""))
                     turn.user_text = (turn.user_text + " " + user_text).strip()
                     await session.send_text(user_text)
+                    # send_text fires `response.create` under the hood. Mark the
+                    # request as in-flight NOW (before any assistant frame
+                    # arrives) so a follow-up user turn that races in still
+                    # auto-cancels. Caught by adversarial review: prior code
+                    # only flipped in_flight on the first assistant delta,
+                    # leaving a window where two responses could overlap.
+                    turn.response_in_flight = True
                 elif kind == "stop":
                     # Flush the audio buffer and trigger a model response.
                     # Do NOT break — stay in the receive loop so events pumped
@@ -105,9 +131,25 @@ async def run_voice_session(
                     # from disconnect() will produce a websocket.disconnect
                     # message that breaks the loop cleanly.
                     if session is not None:
+                        # Auto-interrupt before committing the new audio: this
+                        # is the path that fixes "voice changes mid-stream"
+                        # without any UI action (Sean's #1 complaint).
+                        if turn.response_in_flight:
+                            await _cancel_inflight(session, turn, send_json)
                         commit = getattr(session, "commit_audio", None)
                         if callable(commit):
                             await commit()
+                            # commit_audio sends `response.create`. Mark in-flight
+                            # immediately so a barge-in before the first assistant
+                            # frame still auto-cancels. (See `text` handler above.)
+                            turn.response_in_flight = True
+                elif kind == "cancel_response":
+                    # Explicit "stop button" from the UI. Cancel even if our
+                    # in-flight flag is unset (e.g., we missed the first frame
+                    # or the user is preemptively stopping a pending turn) —
+                    # `response.cancel` is a no-op server-side when idle.
+                    if session is not None:
+                        await _cancel_inflight(session, turn, send_json, force=True)
                 else:
                     await send_json({"type": "error", "message": f"unknown type {kind}"})
             elif data is not None:
@@ -117,6 +159,53 @@ async def run_voice_session(
         if session is not None:
             await session.close()
         await store.upsert_turn(conversation_id, turn.to_dict())
+
+
+async def _cancel_inflight(
+    session: VoiceSession,
+    turn: TurnAccumulator,
+    send_json: Any,
+    force: bool = False,
+) -> None:
+    """Send `response.cancel` to the provider and notify the client.
+
+    Called from two paths:
+      - auto-interrupt: new user turn arrives while a response streams
+        (resolves Sean's overlapping-voice bug, 2026-05-17).
+      - explicit stop: client sent `cancel_response` (the UI stop button).
+
+    Idempotent: safe to call when no response is in flight (provider treats
+    the cancel as a no-op). We always emit a `response_cancelled` frame to
+    the client so the frontend can clear its `streaming` state even on the
+    auto path.
+
+    Important: `cancel_pending` is only set when there is actually a response
+    in flight. If we set it on a force-cancel-while-idle, the NEXT assistant
+    response would be silently blanked because no matching Final exists to
+    clear the flag. (Caught by adversarial review, gpt-5.3-codex 2026-05-17.)
+    """
+    import logging as _logging
+    _log = _logging.getLogger("voice.relay")
+    was_in_flight = turn.response_in_flight
+    if not force and not was_in_flight:
+        return
+    if was_in_flight:
+        turn.cancel_pending = True
+    turn.response_in_flight = False
+    try:
+        cancel = getattr(session, "cancel", None)
+        if callable(cancel):
+            await cancel()
+        _log.info(
+            "relay.cancel sent response.cancel force=%s was_in_flight=%s",
+            force, was_in_flight,
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        _log.warning("relay.cancel failed: %s", exc)
+    try:
+        await send_json({"type": "response_cancelled"})
+    except Exception:
+        pass
 
 
 async def _spawn_event_pump(
@@ -156,9 +245,18 @@ async def _handle_event(
         if ev.role == "user" and ev.final:
             turn.user_text = (turn.user_text + " " + ev.text).strip()
         if ev.role == "assistant":
+            # First assistant frame of a response → mark in-flight so a new
+            # user turn auto-cancels (Sean's overlap fix).
+            turn.response_in_flight = True
             turn.assistant_text = (turn.assistant_text + ev.text).strip()
             if ev.final:
                 turn.assistant_transcript_sent = True
+        # If a cancel is pending, drop late assistant frames so the UI doesn't
+        # render text/audio the user explicitly stopped. User-role transcripts
+        # still flow (they describe what the user just said, not the cancelled
+        # response).
+        if turn.cancel_pending and ev.role == "assistant":
+            return
         _log.info(
             "relay.send transcript_delta role=%s final=%s len=%d",
             ev.role, ev.final, len(ev.text or ""),
@@ -172,9 +270,30 @@ async def _handle_event(
             }
         )
     elif isinstance(ev, AudioDelta):
+        if turn.cancel_pending:
+            # User hit stop — drop trailing audio chunks. Foundry may keep
+            # streaming for a few hundred ms after `response.cancel` (server
+            # still flushing). Don't forward; the frontend has already drained
+            # its local playback buffer.
+            return
+        # Audio is part of an in-flight response.
+        turn.response_in_flight = True
         _log.debug("relay.send audio_delta bytes_b64=%d", len(ev.audio_b64))
         await send_json({"type": "audio_delta", "audio_b64": ev.audio_b64})
     elif isinstance(ev, ToolCall):
+        if turn.cancel_pending:
+            # Drop tool calls from a cancelled response. Otherwise we would
+            # dispatch the tool AND submit_tool_result (which sends a fresh
+            # `response.create`), resurrecting the work the user just stopped
+            # and racing with their new turn. Caught by adversarial review
+            # (gpt-5.3-codex 2026-05-17). Events bound to this cancelled
+            # response are silently discarded; the trailing Final still flows
+            # to reset per-response flags.
+            _log.info(
+                "relay.drop tool_call name=%s call_id=%s cancel_pending=True",
+                ev.name, ev.call_id,
+            )
+            return
         turn.tool_calls.append(
             {"name": ev.name, "arguments": ev.arguments, "call_id": ev.call_id}
         )
@@ -205,9 +324,9 @@ async def _handle_event(
         )
         await session.submit_tool_result(ev.call_id, result)
     elif isinstance(ev, Final):
-        if ev.text:
+        if ev.text and not turn.cancel_pending:
             turn.assistant_text = ev.text
-        if ev.citations:
+        if ev.citations and not turn.cancel_pending:
             turn.citations.extend(ev.citations)
         # Dedupe: if a finalized assistant transcript was already streamed (via
         # response.output_audio_transcript.done), suppress the text in the
@@ -215,11 +334,19 @@ async def _handle_event(
         # frontend's `final` branch (useVoiceSession.applyFrame) appends a new
         # bubble when text is present and the last line is already final — so
         # echoing the same text here produces a duplicate assistant turn.
-        out_text = "" if turn.assistant_transcript_sent else ev.text
+        # Also: if a cancel was requested for this response, blank the text —
+        # the user pressed stop and we should not splat the (now stale) full
+        # text into the transcript.
+        out_text = (
+            ""
+            if (turn.assistant_transcript_sent or turn.cancel_pending)
+            else ev.text
+        )
         _log.info(
-            "relay.send final text_len=%d citations=%d transcript_already_sent=%s",
+            "relay.send final text_len=%d citations=%d transcript_already_sent=%s "
+            "cancel_pending=%s",
             len(out_text or ""), len(ev.citations or []),
-            turn.assistant_transcript_sent,
+            turn.assistant_transcript_sent, turn.cancel_pending,
         )
         await send_json(
             {"type": "final", "text": out_text, "citations": ev.citations}
@@ -231,6 +358,8 @@ async def _handle_event(
         # subsequent text-only Final would be blanked. (Caught by adversarial
         # review of PR; see also test_multiple_responses_reset_flag.)
         turn.assistant_transcript_sent = False
+        turn.response_in_flight = False
+        turn.cancel_pending = False
 
 
 def encode_pcm(pcm: bytes) -> str:

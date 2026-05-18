@@ -32,6 +32,10 @@ type State = {
   error: string | null;
   recording: boolean;
   awaitingResponse: boolean;
+  /** True from the first assistant frame of a response until the matching
+   *  `final` arrives OR the user cancels. Drives the visibility of the on-
+   *  screen stop button — see App.tsx. */
+  streaming: boolean;
 };
 
 type Action =
@@ -41,6 +45,7 @@ type Action =
   | { type: "recording"; value: boolean }
   | { type: "reset" }
   | { type: "awaiting"; value: boolean }
+  | { type: "cancelled" }
   | { type: "append_user"; text: string }
   | { type: "append_assistant"; text: string; citations: Citation[]; warnings: string[] };
 
@@ -51,6 +56,7 @@ const initial: State = {
   error: null,
   recording: false,
   awaitingResponse: false,
+  streaming: false,
 };
 
 function reducer(state: State, action: Action): State {
@@ -58,13 +64,20 @@ function reducer(state: State, action: Action): State {
     case "status":
       return { ...state, status: action.status };
     case "error":
-      return { ...state, status: "error", error: action.message, awaitingResponse: false };
+      return { ...state, status: "error", error: action.message, awaitingResponse: false, streaming: false };
     case "recording":
       return { ...state, recording: action.value };
     case "reset":
       return initial;
     case "awaiting":
       return { ...state, awaitingResponse: action.value };
+    case "cancelled":
+      // The orchestrator (or the user-side optimistic action) cancelled the
+      // in-flight response. Clear both awaiting + streaming so the UI returns
+      // to idle. We leave existing transcripts as-is — the partial assistant
+      // text the user already saw is intentionally preserved so they have
+      // context for what they cut off.
+      return { ...state, awaitingResponse: false, streaming: false };
     case "frame":
       return applyFrame(state, action.frame);
     case "append_user":
@@ -118,6 +131,12 @@ function applyFrame(state: State, frame: ServerMessage): State {
       // (e.g. continuous-mode voice with server VAD).
       const awaitingAfterUser =
         frame.role === "user" && frame.final ? true : nextAwaiting;
+      // Streaming bit: any non-final assistant transcript_delta means a
+      // response is actively flowing → show the stop button. A final assistant
+      // delta also implies the response is winding down; the matching `final`
+      // frame will clear `streaming` for good.
+      const nextStreaming =
+        frame.role === "assistant" && !frame.final ? true : state.streaming;
       const last = state.transcripts[state.transcripts.length - 1];
       if (last && last.role === frame.role && !last.final) {
         const merged: TranscriptLine = {
@@ -128,12 +147,14 @@ function applyFrame(state: State, frame: ServerMessage): State {
         return {
           ...state,
           awaitingResponse: awaitingAfterUser,
+          streaming: nextStreaming,
           transcripts: [...state.transcripts.slice(0, -1), merged],
         };
       }
       return {
         ...state,
         awaitingResponse: awaitingAfterUser,
+        streaming: nextStreaming,
         transcripts: [
           ...state.transcripts,
           {
@@ -180,6 +201,7 @@ function applyFrame(state: State, frame: ServerMessage): State {
         return {
           ...state,
           awaitingResponse: false,
+          streaming: false,
           transcripts: [
             ...state.transcripts.slice(0, -1),
             { ...last, text: frame.text, final: true },
@@ -198,25 +220,32 @@ function applyFrame(state: State, frame: ServerMessage): State {
         last.final &&
         last.text === frame.text
       ) {
-        return { ...state, awaitingResponse: false };
+        return { ...state, awaitingResponse: false, streaming: false };
       }
       if (frame.text) {
         return {
           ...state,
           awaitingResponse: false,
+          streaming: false,
           transcripts: [
             ...state.transcripts,
             { id: cryptoId(), role: "assistant", text: frame.text, final: true },
           ],
         };
       }
-      return { ...state, awaitingResponse: false };
+      return { ...state, awaitingResponse: false, streaming: false };
     }
     case "error":
-      return { ...state, error: frame.message, status: "error", awaitingResponse: false };
+      return { ...state, error: frame.message, status: "error", awaitingResponse: false, streaming: false };
     case "audio_delta":
       // First audio chunk from the assistant also implies streaming has begun.
-      return state.awaitingResponse ? { ...state, awaitingResponse: false } : state;
+      return state.streaming && !state.awaitingResponse
+        ? state
+        : { ...state, awaitingResponse: false, streaming: true };
+    case "response_cancelled":
+      // Server confirmed the cancel landed. Clear streaming/awaiting; the UI
+      // returns to idle and the stop button hides.
+      return { ...state, awaitingResponse: false, streaming: false };
     case "user_transcript": {
       // Append a finalized user-turn line from Wanda's server-side transcription.
       if (!frame.text) return state;
@@ -246,6 +275,10 @@ export type UseVoiceSession = {
   startTalking: () => Promise<void>;
   stopTalking: () => Promise<void>;
   sendText: (text: string) => void;
+  /** Hard stop: drains local audio immediately AND sends `cancel_response`
+   *  to the orchestrator so Foundry stops generating. Safe to call when
+   *  nothing is streaming — server treats it as a no-op. */
+  cancelResponse: () => void;
   appendUserTurn: (text: string) => void;
   appendAssistantTurn: (payload: { text: string; citations: Citation[]; warnings: string[] }) => void;
 };
@@ -369,5 +402,16 @@ export function useVoiceSession(
     []
   );
 
-  return { state, connect, disconnect, startTalking, stopTalking, sendText, appendUserTurn, appendAssistantTurn };
+  const cancelResponse = useCallback((): void => {
+    // Drain local audio FIRST so Sean hears silence the instant he clicks.
+    // We don't wait for the server round-trip (Foundry may still flush a
+    // few hundred ms of audio after `response.cancel`); see AudioPlayer.stop.
+    playerRef.current.stop();
+    send({ type: "cancel_response" });
+    // Optimistic local clear — the orchestrator will also send
+    // `response_cancelled`, which is idempotent through the reducer.
+    dispatch({ type: "cancelled" });
+  }, [send]);
+
+  return { state, connect, disconnect, startTalking, stopTalking, sendText, cancelResponse, appendUserTurn, appendAssistantTurn };
 }

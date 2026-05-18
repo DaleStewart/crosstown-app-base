@@ -59,6 +59,11 @@ export async function startMic(onPcm: PcmCallback): Promise<MicSession> {
 export class AudioPlayer {
   private ctx: AudioContext | null = null;
   private nextStartTime = 0;
+  // Track every scheduled source so `stop()` can yank them mid-playback.
+  // Without this, calling `ctx.close()` cuts audio but a fresh chunk that
+  // gets enqueued immediately after (e.g. trailing audio_delta after the
+  // user pressed stop) would create a new context and keep talking.
+  private sources: Set<AudioBufferSourceNode> = new Set();
 
   ensure(): AudioContext {
     if (!this.ctx) this.ctx = new AudioContext();
@@ -81,6 +86,10 @@ export class AudioPlayer {
     const start = Math.max(ctx.currentTime, this.nextStartTime);
     src.start(start);
     this.nextStartTime = start + floatBuf.duration;
+    this.sources.add(src);
+    src.onended = (): void => {
+      this.sources.delete(src);
+    };
   }
 
   async pause(): Promise<void> {
@@ -89,6 +98,27 @@ export class AudioPlayer {
 
   async resume(): Promise<void> {
     if (this.ctx) await this.ctx.resume();
+  }
+
+  /** Cut playback immediately and drop any buffered chunks.
+   *
+   * Used by the stop button: Sean must hear silence the instant he clicks,
+   * not wait for the server's response.cancel round-trip and the trailing
+   * audio frames it may still flush. We stop every scheduled source and
+   * rewind nextStartTime so a subsequent assistant response starts cleanly.
+   */
+  stop(): void {
+    for (const src of this.sources) {
+      try {
+        src.onended = null;
+        src.stop();
+        src.disconnect();
+      } catch {
+        /* already stopped */
+      }
+    }
+    this.sources.clear();
+    this.nextStartTime = this.ctx?.currentTime ?? 0;
   }
 }
 

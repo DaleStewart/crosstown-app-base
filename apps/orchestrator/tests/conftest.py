@@ -24,6 +24,8 @@ class FakeSession:
         self.tool_results: list[tuple[str, dict[str, Any]]] = []
         self._events: list[VoiceEvent] = []
         self.closed = False
+        self.cancel_calls = 0
+        self.committed = 0
 
     def queue(self, ev: VoiceEvent) -> None:
         self._events.append(ev)
@@ -36,6 +38,12 @@ class FakeSession:
 
     async def submit_tool_result(self, call_id: str, result: dict[str, Any]) -> None:
         self.tool_results.append((call_id, result))
+
+    async def cancel(self) -> None:
+        self.cancel_calls += 1
+
+    async def commit_audio(self) -> None:
+        self.committed += 1
 
     async def events(self) -> AsyncIterator[VoiceEvent]:
         for ev in list(self._events):
