@@ -20,7 +20,7 @@ only the nested form and works in production.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any  # noqa: F401  (kept for type hints elsewhere)
 from unittest.mock import AsyncMock
 
 import pytest
@@ -253,7 +253,7 @@ def test_phase2_session_update_uses_only_nested_transcription_form() -> None:
             token = "fake-token"
 
         class _FakeCred:
-            async def __aenter__(self) -> "_FakeCred":
+            async def __aenter__(self) -> _FakeCred:
                 return self
 
             async def __aexit__(self, *_args: object) -> None:
