@@ -103,6 +103,13 @@
         </div>
       </form>
     </details>
+
+    <details class="add-team" id="logins-section">
+      <summary><i class="ti ti-users"></i> Who has signed in</summary>
+      <div class="form-body" id="logins-body">
+        <div class="empty"><span class="spinner"></span> Loading sign-ins…</div>
+      </div>
+    </details>
   </div>
 
 </div>
@@ -162,7 +169,62 @@ async function init() {
   document.getElementById('lock-toggle').addEventListener('change', onLockToggle);
   document.getElementById('add-team-form').addEventListener('submit', onAddTeam);
 
+  // Load logins on first expand
+  const loginsSec = document.getElementById('logins-section');
+  if (loginsSec) {
+    loginsSec.addEventListener('toggle', function () {
+      if (loginsSec.open) loadLogins();
+    });
+  }
+
   refresh();
+}
+
+async function loadLogins() {
+  const host = document.getElementById('logins-body');
+  host.innerHTML = '<div class="empty"><span class="spinner"></span> Loading sign-ins…</div>';
+  try {
+    const data = await fetchJson('/api/logins?limit=500');
+    const users = (data && data.users) || [];
+    const totalLogins = (data && data.totalLogins) || 0;
+    if (!users.length) {
+      host.innerHTML = '<div class="empty">No sign-ins recorded yet.</div>';
+      return;
+    }
+    const summary = '<div class="lede" style="margin-bottom:1rem;">' +
+      '<strong>' + users.length + '</strong> unique judges · ' +
+      '<strong>' + totalLogins + '</strong> total sign-ins.</div>';
+    const rows = users.map(function (u) {
+      const fmt = function (iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return isNaN(d) ? iso : d.toLocaleString();
+      };
+      const rolePill = (u.roles || []).includes('admin')
+        ? '<span class="pill amber" style="margin-left:6px;">admin</span>'
+        : '';
+      return '<tr>' +
+        '<td class="team"><strong>' + esc(u.actor || '—') + '</strong>' + rolePill + '</td>' +
+        '<td>' + esc(u.name || '') + '</td>' +
+        '<td class="num">' + (u.loginCount || 0) + '</td>' +
+        '<td>' + esc(fmt(u.firstSeen)) + '</td>' +
+        '<td>' + esc(fmt(u.lastSeen)) + '</td>' +
+      '</tr>';
+    }).join('');
+    host.innerHTML = summary +
+      '<div class="table-wrap">' +
+        '<table class="lb">' +
+          '<thead><tr>' +
+            '<th>User</th><th>Name</th><th class="num">Logins</th><th>First seen</th><th>Last seen</th>' +
+          '</tr></thead>' +
+          '<tbody>' + rows + '</tbody>' +
+        '</table>' +
+      '</div>';
+  } catch (err) {
+    console.error(err);
+    host.innerHTML = '<div class="empty"><i class="ti ti-alert-triangle"></i> Failed to load sign-ins. ' +
+      (err && err.status === 403 ? 'Admin only.' : '') + '</div>';
+  }
 }
 
 async function refresh() {

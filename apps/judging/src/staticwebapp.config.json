@@ -1,7 +1,15 @@
 {
   "platform": { "apiRuntime": "node:18" },
   "auth": {
-    "rolesSource": "/api/GetRoles"
+    "rolesSource": "/api/GetRoles",
+    "identityProviders": {
+      "github": {
+        "registration": {
+          "clientIdSettingName": "GITHUB_CLIENT_ID",
+          "clientSecretSettingName": "GITHUB_CLIENT_SECRET"
+        }
+      }
+    }
   },
   "routes": [
     { "route": "/judge.html",     "allowedRoles": ["authenticated"] },
@@ -12,7 +20,8 @@
     { "route": "/api/score",      "allowedRoles": ["authenticated"] },
     { "route": "/api/leaderboard","allowedRoles": ["authenticated"] },
     { "route": "/api/lock",       "allowedRoles": ["admin"] },
-    { "route": "/api/export",     "allowedRoles": ["admin"] }
+    { "route": "/api/export",     "allowedRoles": ["admin"] },
+    { "route": "/api/logins",     "allowedRoles": ["admin"] }
   ],
   "responseOverrides": {
     "401": { "redirect": "/.auth/login/github", "statusCode": 302 }
@@ -22,6 +31,6 @@
     "X-Frame-Options": "DENY",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Content-Security-Policy": "default-src 'self'; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; font-src https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+    "Content-Security-Policy": "default-src 'self'; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; font-src https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'"
   }
 }

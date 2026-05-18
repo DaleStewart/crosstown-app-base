@@ -34,7 +34,7 @@ export function Header(): ReactNode {
     <header className="flex items-center justify-between bg-subway-blue text-white px-6 py-3 shadow-md">
       <div className="flex items-center gap-3">
         <Train className="h-6 w-6 text-subway-yellow" aria-hidden />
-        <h1 className="text-lg font-semibold">MTA Hackathon — Voice Demo</h1>
+        <h1 className="text-lg font-semibold">MTA Hackathon — Crosstown App</h1>
       </div>
       <Badge tone="yellow" data-testid="provider-badge">
         {providerLabel}
