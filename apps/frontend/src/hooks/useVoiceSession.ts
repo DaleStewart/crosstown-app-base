@@ -328,28 +328,35 @@ export function useVoiceSession(
   const connect = useCallback(async (): Promise<void> => {
     if (wsRef.current) return;
     dispatch({ type: "status", status: "connecting" });
-    const ws = new WebSocket(url);
-    ws.binaryType = "arraybuffer";
-    ws.onopen = (): void => {
-      const start: ClientMessage = {
-        type: "start",
-        conversationId: null,
-        mode,
+    return new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(url);
+      ws.binaryType = "arraybuffer";
+      let opened = false;
+      ws.onopen = (): void => {
+        opened = true;
+        const start: ClientMessage = {
+          type: "start",
+          conversationId: null,
+          mode,
+        };
+        ws.send(JSON.stringify(start));
+        dispatch({ type: "status", status: "connected" });
+        resolve();
       };
-      ws.send(JSON.stringify(start));
-      dispatch({ type: "status", status: "connected" });
-    };
-    ws.onmessage = (ev: MessageEvent): void => {
-      if (typeof ev.data === "string") handleMessage(ev.data);
-    };
-    ws.onerror = (): void => {
-      dispatch({ type: "error", message: "websocket error" });
-    };
-    ws.onclose = (): void => {
-      wsRef.current = null;
-      dispatch({ type: "status", status: "idle" });
-    };
-    wsRef.current = ws;
+      ws.onmessage = (ev: MessageEvent): void => {
+        if (typeof ev.data === "string") handleMessage(ev.data);
+      };
+      ws.onerror = (): void => {
+        dispatch({ type: "error", message: "websocket error" });
+        if (!opened) reject(new Error("websocket error"));
+      };
+      ws.onclose = (): void => {
+        wsRef.current = null;
+        dispatch({ type: "status", status: "idle" });
+        if (!opened) reject(new Error("websocket closed before open"));
+      };
+      wsRef.current = ws;
+    });
   }, [handleMessage, mode, url]);
 
   const send = useCallback((msg: ClientMessage): void => {
@@ -367,13 +374,25 @@ export function useVoiceSession(
   );
 
   const startTalking = useCallback(async (): Promise<void> => {
-    if (!wsRef.current) await connect();
     if (micRef.current) return;
+    try {
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        await connect();
+      }
+    } catch {
+      dispatch({ type: "recording", value: false });
+      return;
+    }
     dispatch({ type: "recording", value: true });
-    micRef.current = await startMic((pcm) => {
-      const ws = wsRef.current;
-      if (ws && ws.readyState === WebSocket.OPEN) ws.send(pcm);
-    });
+    try {
+      micRef.current = await startMic((pcm) => {
+        const ws = wsRef.current;
+        if (ws && ws.readyState === WebSocket.OPEN) ws.send(pcm);
+      });
+    } catch {
+      dispatch({ type: "recording", value: false });
+      dispatch({ type: "error", message: "microphone unavailable" });
+    }
   }, [connect]);
 
   const stopTalking = useCallback(async (): Promise<void> => {
