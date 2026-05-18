@@ -1,7 +1,7 @@
 // @ts-check
 /**
  * Shared helpers for stubbing /.auth/me and core API endpoints so E2E tests
- * never touch real AAD or real Cosmos DB.
+ * never touch real GitHub OAuth or real Cosmos DB.
  */
 'use strict';
 
@@ -13,7 +13,7 @@ const ANON = { clientPrincipal: null };
 function principal(roles, email) {
   return {
     clientPrincipal: {
-      identityProvider: 'aad',
+      identityProvider: 'github',
       userId: 'test-user-id',
       userDetails: email || 'judge@microsoft.com',
       userRoles: ['anonymous', 'authenticated'].concat(roles || [])
