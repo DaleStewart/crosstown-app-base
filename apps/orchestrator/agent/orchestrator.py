@@ -126,11 +126,11 @@ async def run_voice_session(
                     if session is None:
                         session = await provider.open_session(SYSTEM_PROMPT, tools.specs)
                         await _spawn_event_pump(session, ws, tools, turn, send_json)
-                    # Auto-interrupt: if a response is still streaming, cancel it
-                    # before queuing the new user turn so Foundry doesn't
-                    # interleave two responses. See TurnAccumulator.response_in_flight.
-                    if turn.response_in_flight:
-                        await _cancel_inflight(session, turn, send_json)
+                    # PR #45 auto-cancel disabled (2026-05-18 demo): it was
+                    # racing with cycle-2 (post-tool) response.create and
+                    # killing assistant replies. Without it the AI may
+                    # occasionally talk over a fast follow-up, but it WILL
+                    # reliably answer. Trade chosen for hackathon demo.
                     user_text = str(parsed.get("text", ""))
                     turn.user_text = (turn.user_text + " " + user_text).strip()
                     # New user turn → clear the per-turn dedupe state so a
@@ -138,12 +138,6 @@ async def run_voice_session(
                     # still reaches the client.
                     turn.last_finalized_assistant_text = ""
                     await session.send_text(user_text)
-                    # send_text fires `response.create` under the hood. Mark the
-                    # request as in-flight NOW (before any assistant frame
-                    # arrives) so a follow-up user turn that races in still
-                    # auto-cancels. Caught by adversarial review: prior code
-                    # only flipped in_flight on the first assistant delta,
-                    # leaving a window where two responses could overlap.
                     turn.response_in_flight = True
                 elif kind == "stop":
                     # Flush the audio buffer and trigger a model response.
@@ -152,25 +146,18 @@ async def run_voice_session(
                     # from disconnect() will produce a websocket.disconnect
                     # message that breaks the loop cleanly.
                     if session is not None:
-                        # Auto-interrupt before committing the new audio: this
-                        # is the path that fixes "voice changes mid-stream"
-                        # without any UI action (Sean's #1 complaint).
-                        if turn.response_in_flight:
-                            await _cancel_inflight(session, turn, send_json)
+                        # PR #45 auto-cancel disabled here too — see text
+                        # handler above for rationale.
                         commit = getattr(session, "commit_audio", None)
                         if callable(commit):
                             # New user audio turn → clear per-turn dedupe.
                             turn.last_finalized_assistant_text = ""
                             await commit()
-                            # commit_audio sends `response.create`. Mark in-flight
-                            # immediately so a barge-in before the first assistant
-                            # frame still auto-cancels. (See `text` handler above.)
                             turn.response_in_flight = True
                 elif kind == "cancel_response":
-                    # Explicit "stop button" from the UI. Cancel even if our
-                    # in-flight flag is unset (e.g., we missed the first frame
-                    # or the user is preemptively stopping a pending turn) —
-                    # `response.cancel` is a no-op server-side when idle.
+                    # Explicit cancel from the UI (StopButton was removed in
+                    # PR #49 so this is currently unreachable, but the handler
+                    # is preserved for future re-introduction).
                     if session is not None:
                         await _cancel_inflight(session, turn, send_json, force=True)
                 else:
