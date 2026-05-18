@@ -242,4 +242,76 @@ describe("useVoiceSession", () => {
     expect(result.current.state.awaitingResponse).toBe(false);
     unmount();
   });
+
+  it("dedupes a final frame whose text matches the already-finalized assistant line", async () => {
+    // Regression for Sean's 2026-05-18 duplicate-assistant-turn bug. Foundry GA
+    // emits BOTH `response.output_audio_transcript.done` (forwarded as a
+    // transcript_delta final=true) AND `response.done` (forwarded as a final
+    // frame). The orchestrator now strips the duplicate text, but the frontend
+    // also defensively dedupes in case any other provider echoes it back.
+    const { result, unmount } = renderHook(() =>
+      useVoiceSession({ url: "ws://test/ws/voice" })
+    );
+    await act(async () => {
+      await result.current.connect();
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    const ws = FakeWebSocket.instances[0]!;
+
+    act(() => {
+      ws.emit({
+        type: "transcript_delta",
+        role: "assistant",
+        text: "L1 service is fully suspended right now.",
+        final: true,
+      });
+    });
+    act(() => {
+      ws.emit({
+        type: "final",
+        text: "L1 service is fully suspended right now.",
+        citations: [],
+      });
+    });
+
+    const assistantLines = result.current.state.transcripts.filter(
+      (t) => t.role === "assistant"
+    );
+    expect(assistantLines).toHaveLength(1);
+    expect(result.current.state.awaitingResponse).toBe(false);
+    unmount();
+  });
+
+  it("empty-text final frame after assistant transcript clears awaiting without adding a line", async () => {
+    // Mirrors post-fix orchestrator behavior: when a transcript_delta final=true
+    // was already sent, the orchestrator emits {type:"final", text:""}.
+    const { result, unmount } = renderHook(() =>
+      useVoiceSession({ url: "ws://test/ws/voice" })
+    );
+    await act(async () => {
+      await result.current.connect();
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    const ws = FakeWebSocket.instances[0]!;
+
+    act(() => {
+      ws.emit({
+        type: "transcript_delta",
+        role: "assistant",
+        text: "Doors held cluster on L2.",
+        final: true,
+      });
+    });
+    act(() => {
+      ws.emit({ type: "final", text: "", citations: [] });
+    });
+
+    const assistantLines = result.current.state.transcripts.filter(
+      (t) => t.role === "assistant"
+    );
+    expect(assistantLines).toHaveLength(1);
+    expect(assistantLines[0]!.text).toBe("Doors held cluster on L2.");
+    expect(result.current.state.awaitingResponse).toBe(false);
+    unmount();
+  });
 });

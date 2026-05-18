@@ -28,6 +28,15 @@ class TurnAccumulator:
         self.assistant_text = ""
         self.tool_calls: list[dict[str, Any]] = []
         self.citations: list[dict[str, Any]] = []
+        # Tracks whether we've forwarded a finalized assistant transcript to the
+        # client this turn (via response.output_audio_transcript.done). Foundry
+        # GA also emits a `response.done` carrying the same transcript text; if
+        # we forwarded that text again as a `final` frame the frontend reducer
+        # would render it as a SECOND assistant bubble (Sean's duplicate-turn
+        # bug, 2026-05-18). The Final frame is still sent so the frontend can
+        # clear `awaitingResponse` and attach citations — only the redundant
+        # text is suppressed.
+        self.assistant_transcript_sent = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -148,6 +157,8 @@ async def _handle_event(
             turn.user_text = (turn.user_text + " " + ev.text).strip()
         if ev.role == "assistant":
             turn.assistant_text = (turn.assistant_text + ev.text).strip()
+            if ev.final:
+                turn.assistant_transcript_sent = True
         _log.info(
             "relay.send transcript_delta role=%s final=%s len=%d",
             ev.role, ev.final, len(ev.text or ""),
@@ -198,13 +209,28 @@ async def _handle_event(
             turn.assistant_text = ev.text
         if ev.citations:
             turn.citations.extend(ev.citations)
+        # Dedupe: if a finalized assistant transcript was already streamed (via
+        # response.output_audio_transcript.done), suppress the text in the
+        # `final` frame. Foundry GA emits both for every voice response. The
+        # frontend's `final` branch (useVoiceSession.applyFrame) appends a new
+        # bubble when text is present and the last line is already final — so
+        # echoing the same text here produces a duplicate assistant turn.
+        out_text = "" if turn.assistant_transcript_sent else ev.text
         _log.info(
-            "relay.send final text_len=%d citations=%d",
-            len(ev.text or ""), len(ev.citations or []),
+            "relay.send final text_len=%d citations=%d transcript_already_sent=%s",
+            len(out_text or ""), len(ev.citations or []),
+            turn.assistant_transcript_sent,
         )
         await send_json(
-            {"type": "final", "text": ev.text, "citations": ev.citations}
+            {"type": "final", "text": out_text, "citations": ev.citations}
         )
+        # Reset per-response, not per-session. Foundry emits one `response.done`
+        # per assistant response; the next response (e.g. after a tool-call
+        # roundtrip or a follow-up user turn) starts a fresh streaming cycle
+        # and needs the suppression flag cleared. Without this reset, any
+        # subsequent text-only Final would be blanked. (Caught by adversarial
+        # review of PR; see also test_multiple_responses_reset_flag.)
+        turn.assistant_transcript_sent = False
 
 
 def encode_pcm(pcm: bytes) -> str:

@@ -332,27 +332,27 @@ class FoundryRealtimeProvider:
                 "language=en (flat+nested)",
                 self._transcription_deployment,
             )
+            # GA-ONLY nested form. The flat `session.input_audio_transcription`
+            # field is rejected by the GA `/openai/v1/realtime` endpoint with
+            # `Unknown parameter: 'session.input_audio_transcription'` (observed
+            # 2026-05-18 in swedencentral orchestrator logs). Because the entire
+            # session.update is atomic, sending both forms in one payload caused
+            # the nested form to be discarded along with the rejected flat form
+            # — silently disabling transcription, which is why Sean has not seen
+            # a user transcript across 5 prior PR attempts.
+            #
+            # 47doors uses the same GA-only nested form successfully in
+            # production: see backend/app/services/azure/realtime.py:124-138.
             await ws.send(
                 json.dumps(
                     {
                         "type": "session.update",
                         "session": {
-                            # GA requires session.type on every session.update or
-                            # the server rejects with "session configuration
-                            # rejected" (silent in some builds). See migration
-                            # guide Troubleshooting → "Session configuration
-                            # rejected".
+                            # GA requires session.type on every session.update.
                             "type": "realtime",
-                            # Flat form (preview schema). `language` is ISO 639-1
-                            # and pins the transcription model — without it,
-                            # gpt-4o-mini-transcribe auto-detects on short
-                            # utterances and mislabels English as Korean
-                            # (Sean's bug, 2026-05-17).
-                            "input_audio_transcription": {
-                                "model": self._transcription_deployment,
-                                "language": "en",
-                            },
-                            # Nested form (GA v1 schema). Same parameters.
+                            # Nested form (GA v1 schema). `language` is ISO 639-1
+                            # and pins gpt-4o-mini-transcribe; without it short
+                            # utterances were mislabelled as Korean.
                             "audio": {
                                 "input": {
                                     "transcription": {

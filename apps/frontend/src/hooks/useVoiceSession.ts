@@ -186,6 +186,20 @@ function applyFrame(state: State, frame: ServerMessage): State {
           ],
         };
       }
+      // Belt-and-suspenders dedupe: if the last assistant bubble is already
+      // finalized with matching text, this is the redundant `final` frame
+      // Foundry GA emits after response.output_audio_transcript.done. The
+      // orchestrator now strips the text in this case, but if any other
+      // provider echoes the same text back we still avoid a duplicate bubble.
+      if (
+        frame.text &&
+        last &&
+        last.role === "assistant" &&
+        last.final &&
+        last.text === frame.text
+      ) {
+        return { ...state, awaitingResponse: false };
+      }
       if (frame.text) {
         return {
           ...state,
