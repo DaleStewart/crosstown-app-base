@@ -269,25 +269,6 @@ class FoundryRealtimeSession:
             text = data.get("transcript", "")
             if isinstance(text, str):
                 return TranscriptDelta(role="assistant", text=text, final=True)
-        # Text-modality deltas. When `output_modalities` includes "text", Foundry
-        # emits `response.output_text.delta` / `response.text.delta` for the
-        # assistant text stream — independent of audio generation. This is the
-        # fallback path when audio is preempted or cycle-2 returns short audio
-        # (otherwise no transcript_delta fires and the UI shows a blank bubble).
-        if kind in (
-            "response.output_text.delta",
-            "response.text.delta",
-        ):
-            text = data.get("delta", "")
-            if isinstance(text, str) and text:
-                return TranscriptDelta(role="assistant", text=text, final=False)
-        if kind in (
-            "response.output_text.done",
-            "response.text.done",
-        ):
-            text = data.get("text", "")
-            if isinstance(text, str):
-                return TranscriptDelta(role="assistant", text=text, final=True)
         # Input-audio transcription events: the migration guide does not call out
         # a rename, but some GA builds emit `conversation.item.input_transcript.*`
         # while others retain `input_audio_transcription.*`. Accept both shapes.
@@ -390,16 +371,7 @@ class FoundryRealtimeProvider:
                         "instructions": system_prompt,
                         "tools": tool_specs,
                         "tool_choice": "auto",
-                        # Request BOTH audio and text output. Audio alone meant the
-                        # frontend's only source of assistant text was
-                        # `response.audio_transcript.delta`, which is gated on audio
-                        # actually being generated. When cycle-2 (post-tool) got
-                        # preempted by a barge-in or returned a short audio chunk,
-                        # zero transcript deltas fired and the UI showed a blank
-                        # bubble ("..." forever). With "text" in modalities, the
-                        # model also emits `response.output_text.delta` events
-                        # which are independent of TTS generation.
-                        "output_modalities": ["audio", "text"],
+                        "output_modalities": ["audio"],
                     },
                 }
             )

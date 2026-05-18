@@ -97,35 +97,6 @@ def test_translate_assistant_transcript_done_ga(session: FoundryRealtimeSession)
     assert ev.final is True
 
 
-def test_translate_assistant_text_delta(session: FoundryRealtimeSession) -> None:
-    """Text-modality deltas (emitted when `output_modalities` includes 'text')
-    must be translated to TranscriptDelta. Without this, voice cycles with
-    preempted/short audio show a blank assistant bubble."""
-    ev = session._translate({"type": "response.output_text.delta", "delta": "hel"})  # noqa: SLF001
-    assert isinstance(ev, TranscriptDelta)
-    assert ev.role == "assistant"
-    assert ev.text == "hel"
-    assert ev.final is False
-
-
-def test_translate_assistant_text_delta_legacy_name(session: FoundryRealtimeSession) -> None:
-    ev = session._translate({"type": "response.text.delta", "delta": "hel"})  # noqa: SLF001
-    assert isinstance(ev, TranscriptDelta)
-    assert ev.role == "assistant"
-    assert ev.text == "hel"
-    assert ev.final is False
-
-
-def test_translate_assistant_text_done(session: FoundryRealtimeSession) -> None:
-    ev = session._translate(  # noqa: SLF001
-        {"type": "response.output_text.done", "text": "Hello."}
-    )
-    assert isinstance(ev, TranscriptDelta)
-    assert ev.role == "assistant"
-    assert ev.text == "Hello."
-    assert ev.final is True
-
-
 def test_translate_user_transcript_completed(session: FoundryRealtimeSession) -> None:
     ev = session._translate(  # noqa: SLF001
         {
