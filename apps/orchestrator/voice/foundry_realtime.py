@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import logging
 import sys
 from collections.abc import AsyncIterator
 from typing import Any
@@ -19,6 +20,18 @@ from voice.base import (
 )
 
 REALTIME_SCOPE = "https://cognitiveservices.azure.com/.default"
+
+# Dedicated logger so operators can grep container logs for `voice.foundry`.
+# Sean has been chasing the missing user transcript across 3 PRs — these logs
+# make the relay path observable end-to-end without another spawn cycle.
+logger = logging.getLogger("voice.foundry")
+if not logger.handlers:
+    # Match uvicorn's default formatter so lines interleave cleanly.
+    _h = logging.StreamHandler(sys.stderr)
+    _h.setFormatter(logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s"))
+    logger.addHandler(_h)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
 
 
 class FoundryRealtimeSession:
@@ -100,34 +113,68 @@ class FoundryRealtimeSession:
         try:
             data = json.loads(raw)
         except json.JSONDecodeError:
+            logger.warning("foundry.recv non-json frame (%d bytes)", len(raw))
             return
+        kind = data.get("type", "<missing>")
         ev = self._translate(data)
-        if ev is not None:
-            await self._inbound.put(ev)
+        if ev is None:
+            # We received a Foundry frame and chose not to forward — log so we
+            # can see e.g. an input_audio_transcription.failed or an unknown
+            # event name we should be handling.
+            logger.info("foundry.recv DROP type=%s", kind)
+            return
+        logger.info(
+            "foundry.recv EMIT type=%s -> %s", kind, type(ev).__name__
+        )
+        await self._inbound.put(ev)
 
     def _translate(self, data: dict[str, Any]) -> VoiceEvent | None:
         kind = data.get("type", "")
-        if kind == "response.audio.delta":
+        # GA Realtime API (the /openai/v1/realtime endpoint we connect to) renamed
+        # response events with an `output_` prefix. The preview names are kept as
+        # fallbacks for older deployments and existing test fixtures. Without the
+        # GA names, the only client-bound frame was `{type: "final"}` from
+        # response.done — exactly Sean's "no transcript_delta, no audio" symptom.
+        # Ref: Foundry Realtime Preview→GA migration guide.
+        if kind in ("response.output_audio.delta", "response.audio.delta"):
             audio = data.get("delta", "")
             if isinstance(audio, str) and audio:
                 return AudioDelta(audio_b64=audio)
-        if kind == "response.audio_transcript.delta":
+        if kind in (
+            "response.output_audio_transcript.delta",
+            "response.audio_transcript.delta",
+        ):
             text = data.get("delta", "")
             if isinstance(text, str):
                 return TranscriptDelta(role="assistant", text=text, final=False)
-        if kind == "response.audio_transcript.done":
+        if kind in (
+            "response.output_audio_transcript.done",
+            "response.audio_transcript.done",
+        ):
             text = data.get("transcript", "")
             if isinstance(text, str):
                 return TranscriptDelta(role="assistant", text=text, final=True)
-        if kind == "conversation.item.input_audio_transcription.delta":
+        # Input-audio transcription events: the migration guide does not call out
+        # a rename, but some GA builds emit `conversation.item.input_transcript.*`
+        # while others retain `input_audio_transcription.*`. Accept both shapes.
+        if kind in (
+            "conversation.item.input_audio_transcription.delta",
+            "conversation.item.input_transcript.delta",
+        ):
             text = data.get("delta", "")
             if isinstance(text, str) and text:
                 return TranscriptDelta(role="user", text=text, final=False)
-        if kind == "conversation.item.input_audio_transcription.completed":
+        if kind in (
+            "conversation.item.input_audio_transcription.completed",
+            "conversation.item.input_transcript.completed",
+        ):
             text = data.get("transcript", "")
             if isinstance(text, str):
                 return TranscriptDelta(role="user", text=text, final=True)
-        if kind == "conversation.item.input_audio_transcription.failed":
+        if kind in (
+            "conversation.item.input_audio_transcription.failed",
+            "conversation.item.input_transcript.failed",
+        ):
             return None
         if kind == "response.function_call_arguments.done":
             name = str(data.get("name", ""))
@@ -280,18 +327,37 @@ class FoundryRealtimeProvider:
         # (default is ""). PR #38 wired the deployment in foundry.bicep.
         if self._transcription_deployment:
             phase2_active = True
+            logger.info(
+                "foundry.send session.update phase2 transcription deployment=%s "
+                "language=en (flat+nested)",
+                self._transcription_deployment,
+            )
             await ws.send(
                 json.dumps(
                     {
                         "type": "session.update",
                         "session": {
+                            # GA requires session.type on every session.update or
+                            # the server rejects with "session configuration
+                            # rejected" (silent in some builds). See migration
+                            # guide Troubleshooting → "Session configuration
+                            # rejected".
+                            "type": "realtime",
+                            # Flat form (preview schema). `language` is ISO 639-1
+                            # and pins the transcription model — without it,
+                            # gpt-4o-mini-transcribe auto-detects on short
+                            # utterances and mislabels English as Korean
+                            # (Sean's bug, 2026-05-17).
                             "input_audio_transcription": {
                                 "model": self._transcription_deployment,
+                                "language": "en",
                             },
+                            # Nested form (GA v1 schema). Same parameters.
                             "audio": {
                                 "input": {
                                     "transcription": {
                                         "model": self._transcription_deployment,
+                                        "language": "en",
                                     },
                                 },
                             },
@@ -305,8 +371,17 @@ class FoundryRealtimeProvider:
             # so Sean / Brady can diagnose without staring at DevTools.
             try:
                 await asyncio.wait_for(phase2_ack.wait(), timeout=2.0)
+                if phase2_error:
+                    logger.warning(
+                        "foundry phase2 ack=error msg=%s", phase2_error[0]
+                    )
+                else:
+                    logger.info("foundry phase2 ack=session.updated (transcription enabled)")
             except TimeoutError:
-                pass
+                logger.warning(
+                    "foundry phase2 ack=timeout (no session.updated or error in 2s) — "
+                    "transcription may be silently disabled"
+                )
             phase2_active = False
             if phase2_error:
                 print(

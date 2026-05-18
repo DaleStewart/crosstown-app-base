@@ -141,11 +141,17 @@ async def _handle_event(
     turn: TurnAccumulator,
     send_json: Any,
 ) -> None:
+    import logging as _logging
+    _log = _logging.getLogger("voice.relay")
     if isinstance(ev, TranscriptDelta):
         if ev.role == "user" and ev.final:
             turn.user_text = (turn.user_text + " " + ev.text).strip()
         if ev.role == "assistant":
             turn.assistant_text = (turn.assistant_text + ev.text).strip()
+        _log.info(
+            "relay.send transcript_delta role=%s final=%s len=%d",
+            ev.role, ev.final, len(ev.text or ""),
+        )
         await send_json(
             {
                 "type": "transcript_delta",
@@ -155,11 +161,13 @@ async def _handle_event(
             }
         )
     elif isinstance(ev, AudioDelta):
+        _log.debug("relay.send audio_delta bytes_b64=%d", len(ev.audio_b64))
         await send_json({"type": "audio_delta", "audio_b64": ev.audio_b64})
     elif isinstance(ev, ToolCall):
         turn.tool_calls.append(
             {"name": ev.name, "arguments": ev.arguments, "call_id": ev.call_id}
         )
+        _log.info("relay.send tool_call name=%s call_id=%s", ev.name, ev.call_id)
         await send_json(
             {
                 "type": "tool_call",
@@ -190,6 +198,10 @@ async def _handle_event(
             turn.assistant_text = ev.text
         if ev.citations:
             turn.citations.extend(ev.citations)
+        _log.info(
+            "relay.send final text_len=%d citations=%d",
+            len(ev.text or ""), len(ev.citations or []),
+        )
         await send_json(
             {"type": "final", "text": ev.text, "citations": ev.citations}
         )

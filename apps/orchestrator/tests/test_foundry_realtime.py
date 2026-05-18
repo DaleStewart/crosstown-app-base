@@ -17,6 +17,15 @@ def test_translate_audio_delta(session: FoundryRealtimeSession) -> None:
     assert ev.audio_b64 == "abc=="
 
 
+def test_translate_audio_delta_ga(session: FoundryRealtimeSession) -> None:
+    # GA renamed response.audio.delta -> response.output_audio.delta.
+    ev = session._translate(  # noqa: SLF001
+        {"type": "response.output_audio.delta", "delta": "abc=="}
+    )
+    assert isinstance(ev, AudioDelta)
+    assert ev.audio_b64 == "abc=="
+
+
 def test_translate_audio_delta_empty_ignored(session: FoundryRealtimeSession) -> None:
     ev = session._translate({"type": "response.audio.delta", "delta": ""})  # noqa: SLF001
     assert ev is None
@@ -30,8 +39,28 @@ def test_translate_assistant_transcript_delta(session: FoundryRealtimeSession) -
     assert ev.final is False
 
 
+def test_translate_assistant_transcript_delta_ga(session: FoundryRealtimeSession) -> None:
+    # GA renamed response.audio_transcript.delta -> response.output_audio_transcript.delta.
+    ev = session._translate(  # noqa: SLF001
+        {"type": "response.output_audio_transcript.delta", "delta": "hel"}
+    )
+    assert isinstance(ev, TranscriptDelta)
+    assert ev.role == "assistant"
+    assert ev.text == "hel"
+    assert ev.final is False
+
+
 def test_translate_assistant_transcript_done(session: FoundryRealtimeSession) -> None:
     ev = session._translate({"type": "response.audio_transcript.done", "transcript": "Hello."})  # noqa: SLF001
+    assert isinstance(ev, TranscriptDelta)
+    assert ev.role == "assistant"
+    assert ev.final is True
+
+
+def test_translate_assistant_transcript_done_ga(session: FoundryRealtimeSession) -> None:
+    ev = session._translate(  # noqa: SLF001
+        {"type": "response.output_audio_transcript.done", "transcript": "Hello."}
+    )
     assert isinstance(ev, TranscriptDelta)
     assert ev.role == "assistant"
     assert ev.final is True
@@ -78,6 +107,30 @@ def test_translate_user_transcript_failed_returns_none(session: FoundryRealtimeS
         }
     )
     assert ev is None
+
+
+def test_translate_user_transcript_completed_ga(session: FoundryRealtimeSession) -> None:
+    # Some GA builds emit conversation.item.input_transcript.completed.
+    ev = session._translate(  # noqa: SLF001
+        {
+            "type": "conversation.item.input_transcript.completed",
+            "transcript": "doors held on L2",
+        }
+    )
+    assert isinstance(ev, TranscriptDelta)
+    assert ev.role == "user"
+    assert ev.text == "doors held on L2"
+    assert ev.final is True
+
+
+def test_translate_user_transcript_delta_ga(session: FoundryRealtimeSession) -> None:
+    ev = session._translate(  # noqa: SLF001
+        {"type": "conversation.item.input_transcript.delta", "delta": "doors"}
+    )
+    assert isinstance(ev, TranscriptDelta)
+    assert ev.role == "user"
+    assert ev.text == "doors"
+    assert ev.final is False
 
 
 def test_translate_tool_call(session: FoundryRealtimeSession) -> None:
