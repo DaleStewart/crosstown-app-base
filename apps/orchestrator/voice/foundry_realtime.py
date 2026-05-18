@@ -21,6 +21,16 @@ from voice.base import (
 
 REALTIME_SCOPE = "https://cognitiveservices.azure.com/.default"
 
+# Audio format sent by the frontend (apps/frontend/src/lib/audio.ts, targetRate=16000).
+# 16 kHz PCM 16-bit mono = 32 000 bytes / second.
+# OpenAI / Foundry Realtime recommends ≥ 100 ms per commit; shorter clips cause
+# Whisper hallucinations (confirmed in production logs 2026-05-18: "Brooklyn →
+# Ozone" hallucination from a sub-1-second burst producing a 0-byte second commit).
+_SAMPLE_RATE_HZ: int = 16_000
+_BYTES_PER_SAMPLE: int = 2  # 16-bit mono
+_MIN_COMMIT_MS: int = 100
+_MIN_COMMIT_BYTES: int = _SAMPLE_RATE_HZ * _BYTES_PER_SAMPLE * _MIN_COMMIT_MS // 1000  # 3200
+
 # Dedicated logger so operators can grep container logs for `voice.foundry`.
 # Sean has been chasing the missing user transcript across 3 PRs — these logs
 # make the relay path observable end-to-end without another spawn cycle.
@@ -56,6 +66,12 @@ class FoundryRealtimeSession:
         # Reset to None on `.completed` so a future turn starting with the
         # same first syllable is not falsely suppressed.
         self._last_user_delta_text: str | None = None
+        # Running byte count of PCM audio appended since the last successful
+        # commit. Used by commit_audio() to gate commits below the Whisper
+        # minimum (< 100 ms produces hallucinations — "Brooklyn → Ozone" bug,
+        # 2026-05-18). Reset to 0 on every successful commit; NOT reset on a
+        # skipped commit so short clips accumulate until they cross the threshold.
+        self._pending_audio_bytes: int = 0
 
     async def commit_audio(self) -> None:
         """Flush the audio buffer and ask the model to respond.
@@ -63,15 +79,32 @@ class FoundryRealtimeSession:
         Called when the client signals end-of-utterance (push-to-talk release).
         With server_vad this is belt-and-suspenders; without it, it is required.
         Without an explicit commit + response.create, the model never processes speech.
+
+        Guard: if fewer than _MIN_COMMIT_MS (100 ms) of audio have been appended
+        since the last successful commit, the commit is silently dropped. Whisper
+        hallucinates predictably on sub-250 ms clips; 100 ms is the OpenAI-
+        recommended minimum and firmly in "noise / hot-mic burst" territory.
+        The byte counter is NOT reset on a skipped commit so successive short
+        bursts accumulate until they cross the threshold.
         """
         if self._ws is None or self._closed:
             return
+        if self._pending_audio_bytes < _MIN_COMMIT_BYTES:
+            duration_ms = (
+                self._pending_audio_bytes * 1000 // (_SAMPLE_RATE_HZ * _BYTES_PER_SAMPLE)
+            )
+            logger.info(
+                "commit_skipped reason=insufficient_audio duration_ms=%d", duration_ms
+            )
+            return
         await self._ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
         await self._ws.send(json.dumps({"type": "response.create"}))
+        self._pending_audio_bytes = 0
 
     async def send_audio(self, pcm: bytes) -> None:
         if self._ws is None or self._closed:
             return
+        self._pending_audio_bytes += len(pcm)
         msg = {
             "type": "input_audio_buffer.append",
             "audio": base64.b64encode(pcm).decode("ascii"),

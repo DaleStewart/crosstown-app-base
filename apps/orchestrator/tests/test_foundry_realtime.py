@@ -1,17 +1,45 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import cast
 
 import pytest
 
 from voice.base import AudioDelta, Final, ToolCall, TranscriptDelta
-from voice.foundry_realtime import FoundryRealtimeSession
+from voice.foundry_realtime import (
+    _BYTES_PER_SAMPLE,
+    _SAMPLE_RATE_HZ,
+    FoundryRealtimeSession,
+)
 
 
 @pytest.fixture
 def session() -> FoundryRealtimeSession:
     return FoundryRealtimeSession(ws=None)
+
+
+class _MockWs:
+    """Records every JSON string sent via send()."""
+
+    def __init__(self) -> None:
+        self.sent: list[str] = []
+
+    async def send(self, msg: str) -> None:
+        self.sent.append(msg)
+
+    def sent_types(self) -> list[str]:
+        return [json.loads(m).get("type", "") for m in self.sent]
+
+
+@pytest.fixture
+def mock_ws() -> _MockWs:
+    return _MockWs()
+
+
+@pytest.fixture
+def live_session(mock_ws: _MockWs) -> FoundryRealtimeSession:
+    return FoundryRealtimeSession(ws=mock_ws)
 
 
 def test_translate_audio_delta(session: FoundryRealtimeSession) -> None:
@@ -341,3 +369,110 @@ async def test_ingest_logs_error_event_contents(
     assert "unknown_parameter" in combined
     assert "session.audio.input.transcription.language" in combined
     assert "language is not supported" in combined
+
+
+# ─── Audio commit guard tests ─────────────────────────────────────────────────
+# These four tests cover the guard added to commit_audio() that prevents
+# sub-100ms audio bursts from being committed to Foundry (root cause of the
+# "Brooklyn → Ozone" Whisper hallucination bug observed 2026-05-18).
+#
+# Byte math: 16 kHz × 2 bytes/sample = 32 000 bytes/sec
+#   50 ms → 1 600 bytes  (below threshold)
+#  100 ms → 3 200 bytes  (exactly at threshold — use 200 ms for "safe" tests)
+#  200 ms → 6 400 bytes  (above threshold)
+
+_PCM_50MS = bytes(_SAMPLE_RATE_HZ * _BYTES_PER_SAMPLE * 50 // 1000)   # 1600 B
+_PCM_100MS = bytes(_SAMPLE_RATE_HZ * _BYTES_PER_SAMPLE * 100 // 1000)  # 3200 B
+_PCM_200MS = bytes(_SAMPLE_RATE_HZ * _BYTES_PER_SAMPLE * 200 // 1000)  # 6400 B
+
+
+def _attach_foundry_logger(caplog: pytest.LogCaptureFixture) -> logging.Logger:
+    """Attach caplog to voice.foundry (propagate=False bypasses root logger)."""
+    flog = logging.getLogger("voice.foundry")
+    flog.addHandler(caplog.handler)
+    return flog
+
+
+@pytest.mark.asyncio
+async def test_commit_guard_skips_insufficient_audio(
+    live_session: FoundryRealtimeSession,
+    mock_ws: _MockWs,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """50 ms of audio (< 100 ms threshold) → commit is dropped, INFO log emitted."""
+    flog = _attach_foundry_logger(caplog)
+    try:
+        await live_session.send_audio(_PCM_50MS)
+        with caplog.at_level(logging.INFO, logger="voice.foundry"):
+            await live_session.commit_audio()
+    finally:
+        flog.removeHandler(caplog.handler)
+
+    assert "input_audio_buffer.commit" not in mock_ws.sent_types(), (
+        "commit must NOT be sent for < 100 ms of audio"
+    )
+    log_text = " ".join(r.getMessage() for r in caplog.records)
+    assert "commit_skipped" in log_text, "Expected commit_skipped in INFO log"
+    assert "insufficient_audio" in log_text
+    assert "duration_ms=50" in log_text
+
+
+@pytest.mark.asyncio
+async def test_commit_guard_allows_sufficient_audio(
+    live_session: FoundryRealtimeSession,
+    mock_ws: _MockWs,
+) -> None:
+    """200 ms of audio (> 100 ms threshold) → commit IS sent to Foundry."""
+    await live_session.send_audio(_PCM_200MS)
+    await live_session.commit_audio()
+
+    assert "input_audio_buffer.commit" in mock_ws.sent_types(), (
+        "commit MUST be sent for >= 100 ms of audio"
+    )
+    assert "response.create" in mock_ws.sent_types()
+
+
+@pytest.mark.asyncio
+async def test_commit_guard_accumulates_across_sends(
+    live_session: FoundryRealtimeSession,
+    mock_ws: _MockWs,
+) -> None:
+    """50 ms + 100 ms = 150 ms total → commit IS sent (accumulation works)."""
+    await live_session.send_audio(_PCM_50MS)   # 1600 bytes — below threshold alone
+    await live_session.send_audio(_PCM_100MS)  # +3200 bytes = 4800 total → above
+    await live_session.commit_audio()
+
+    assert "input_audio_buffer.commit" in mock_ws.sent_types(), (
+        "Accumulated 150 ms must cross the threshold and commit"
+    )
+
+
+@pytest.mark.asyncio
+async def test_commit_guard_resets_counter_after_successful_commit(
+    live_session: FoundryRealtimeSession,
+    mock_ws: _MockWs,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """After a successful commit, counter resets — 50 ms in the next window is dropped."""
+    # First window: enough audio → commit succeeds.
+    await live_session.send_audio(_PCM_200MS)
+    await live_session.commit_audio()
+    assert "input_audio_buffer.commit" in mock_ws.sent_types()
+
+    # Clear recorded messages to isolate the second window.
+    mock_ws.sent.clear()
+
+    # Second window: only 50 ms since last commit → must be skipped.
+    flog = _attach_foundry_logger(caplog)
+    try:
+        await live_session.send_audio(_PCM_50MS)
+        with caplog.at_level(logging.INFO, logger="voice.foundry"):
+            await live_session.commit_audio()
+    finally:
+        flog.removeHandler(caplog.handler)
+
+    assert "input_audio_buffer.commit" not in mock_ws.sent_types(), (
+        "50 ms after a reset must be dropped (counter was reset on prior commit)"
+    )
+    log_text = " ".join(r.getMessage() for r in caplog.records)
+    assert "commit_skipped" in log_text
