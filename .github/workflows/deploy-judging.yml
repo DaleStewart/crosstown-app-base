@@ -1,0 +1,79 @@
+name: deploy-judging
+# Auto-deploys the Coach Scoring SWA (apps/judging) whenever sources under
+# apps/judging/** land on main. The root deploy.yml only targets the
+# orchestrator stack (azure.yaml at repo root) and historically left this
+# app stranded (PRs #35–#41 merged but never reached the SWA until a manual
+# `azd deploy` was run from apps/judging/).
+#
+# Prereq: the federated credential on the deploy managed identity must permit
+# this workflow path (.github/workflows/deploy-judging.yml on refs/heads/main)
+# and the identity must have Contributor on rg-mtahack-prod. Reuses the same
+# AZURE_CLIENT_ID / AZURE_TENANT_ID / AZURE_SUBSCRIPTION_ID repo vars as
+# deploy.yml. AZURE_ENV_NAME_JUDGING must be set to the judging azd env
+# (e.g. `mtahack-prod`); falls back to `mtahack-prod` if unset.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/judging/**'
+      - '.github/workflows/deploy-judging.yml'
+  workflow_dispatch:
+    inputs:
+      confirm_non_main:
+        description: "Override main-only deploy guard. Set to true to deploy from a non-main ref."
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    defaults:
+      run:
+        working-directory: apps/judging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Main-only deploy guard
+        working-directory: .
+        env:
+          GH_REF: ${{ github.ref }}
+          GH_EVENT: ${{ github.event_name }}
+          GH_ACTOR: ${{ github.actor }}
+          CONFIRM_NON_MAIN: ${{ github.event.inputs.confirm_non_main }}
+        run: |
+          if [ "$GH_REF" = "refs/heads/main" ]; then
+            echo "✅ Deploy guard: ref is refs/heads/main; proceeding."
+            exit 0
+          fi
+          if [ "$GH_EVENT" = "workflow_dispatch" ] && [ "$CONFIRM_NON_MAIN" = "true" ]; then
+            echo "::warning title=Non-main deploy override::Deploying from ${GH_REF} (actor: ${GH_ACTOR}) with confirm_non_main=true."
+            exit 0
+          fi
+          echo "❌ Deploy guard: deploys must originate from main (current ref: ${GH_REF})."
+          exit 1
+
+      - name: Install azd
+        uses: Azure/setup-azd@v2
+
+      - name: Log in (OIDC)
+        run: |
+          azd auth login \
+            --client-id "$AZURE_CLIENT_ID" \
+            --federated-credential-provider github \
+            --tenant-id "$AZURE_TENANT_ID"
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+
+      - name: Deploy judging SWA
+        run: azd deploy --no-prompt
+        env:
+          AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME_JUDGING || 'mtahack-prod' }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}

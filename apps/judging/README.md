@@ -44,6 +44,17 @@ SWA CLI proxies API calls to Functions and emulates auth — use the auth simula
 4. When prompted: pick subscription, region (East US 2 recommended), environment name (e.g., `mtahack-prod`).
 5. The output `STATIC_WEB_APP_DEFAULT_HOSTNAME` is your live URL. No further config needed — GitHub OAuth is built-in.
 
+### Manual redeploy (just the SWA, no infra changes)
+The repo's root `deploy.yml` workflow only watches the orchestrator stack — changes under `apps/judging/**` do **not** automatically trigger a deploy unless `.github/workflows/deploy-judging.yml` is wired up and the deploy identity has perms on `rg-mtahack-prod`. To force a redeploy from your laptop:
+
+```powershell
+cd apps/judging
+azd env select mtahack-prod
+azd deploy --no-prompt
+```
+
+This rebuilds and republishes `src/` + `api/` to the existing SWA without re-running Bicep.
+
 > **Caveat — azd + Static Web Apps:** the `staticwebapp` host in azd deploys the `web` service from `./src` but does not always discover the sibling `./api` folder as managed Functions. If `azd deploy web` skips the API, deploy the API with the SWA CLI instead from `apps/judging/`:
 >
 > ```bash
