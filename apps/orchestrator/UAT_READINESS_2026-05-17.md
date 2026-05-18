@@ -66,3 +66,43 @@ The app IS deployed and live — text input works end-to-end right now. Voice lo
 ## Verdict justification
 
 🟡 Ship with caveats. The app is live, deployed, and the text-input path demonstrates the full orchestrator → specialist → cited-response chain (modulo the 400 on log-analyst which needs a quick schema/index check). Voice is broken on main because `stopTalking()` never sends the commit boundary — but this is a single-PR fix (PR #26) that Sean can rebase in 15 minutes. The deploy pipeline works via `azure-dev.yml` (green on every push). This is not a 🔴 because the demo has a working fallback (text input) and the voice fix is authored and tested — it just needs a conflict resolution. It's not a 🟢 because voice — the headline feature — doesn't work without merging PR #26, and log-analyst tool calls are returning 400 in production.
+
+---
+
+## 2026-05-18 02:18 ET — End of day status
+
+**Assessor:** McManus  ·  **PRs shipped today:** 15+ (see `TOMORROW.md`)
+
+### Live deployment state
+- **Frontend:** https://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/ — ✅ 200 OK
+- **Orchestrator:** https://orchestrator.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/ — ✅ reachable
+- **Latest deploy:** commit `ed4136e` via `26010848121` (2026-05-18 ~00:00 ET)
+- **Bundle:** `index-JNX-cGYF.js` (or newer — run `Invoke-WebRequest https://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/` to verify)
+
+### What's working (post-15-PR avalanche)
+- ✅ **Text input** → orchestrator → log-analyst → response with citations (since PR #36, "null-safe specialist responses")
+- ✅ **User-turn bubbles** in chat UI (PR #37)
+- ✅ **Thinking dots** while assistant thinks (PR #37)
+- ✅ **Stop button** visible during streaming (PR #45, "Stop button + auto-interrupt")
+- ✅ **Tool-mediated dedupe** — `TextInput` streaming flip + tool result dedup (PR #46–47)
+- ✅ **Foundry error frame surfacing** if voice fails (PR #47, "Foundry error frame surfacing")
+- ✅ **Language=en pinned** + voice logging telemetry (PR #42)
+
+### What's uncertain (voice loop)
+- 🟡 **Voice (mic) transcription:** Transcripts reach the browser (PR #40, "Forward Foundry user transcript") BUT Whisper guesses **Korean instead of English** despite `language=en` pin. Diagnostic telemetry now in place (PR #47). Requires fresh English turn + container logs to diagnose root cause.
+- 🟡 **Voice → response:** `stopTalking()` commit boundary landed in PR #45; user partial dedupe landed in PR #47. Still requires real-world test.
+
+### Judging app (separate stack)
+- ✅ **GitHub OAuth** live and working (PRs #39–41 pivot from AAD complete)
+- ✅ **ADMIN_USERS** env var honored (GitHub usernames, lowercase)
+- ✅ **Auto-deploy workflow** in place (`.github/workflows/deploy-judging.yml` on push to main touching `apps/judging/**`)
+- 🟡 **First signed-in request to `/api/teams` → 500** — PR #44 added `err.code + detail` to response body; **awaiting error JSON from Sean's next browser DevTools check**
+
+### Recommendation for Tuesday morning
+1. **☕ Fresh eyes.** Do NOT iterate on voice tonight.
+2. **One English voice turn** against the live frontend → check DevTools WebSocket frames + orchestrator container logs for Whisper issue
+3. **Decision:** If voice clearly works → continue voice polish. If Whisper still guesses Korean → **demo text-only** (which is fully functional).
+4. **Demo primary modality:** Text input (fully working, no blockers).
+5. **Demo stretch:** Working voice if the Korean transcription is solved tomorrow AM.
+
+See `TOMORROW.md` for the full decision tree and rollback nuke option.

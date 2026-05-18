@@ -370,3 +370,20 @@ They have a `DemoPage.tsx` component and a referenced demo runbook. Their smoke 
 ---
 
 *Comparison written against: 47doors `47doors-main` (extracted `.squad/files/47doors-ref/47doors-main/`) vs our app at `main` (bc53e11). 47doors CHANGELOG last entry: 2026-03-01 (359/359 backend tests passing).*
+
+---
+
+### 2026-05-18 — Post-15-PR Update on Voice Loop
+
+PRs #34–47 (shipped 2026-05-17 end-of-day) addressed most of the voice session lifecycle gaps noted above:
+
+| Item | Previous | Now |
+|------|----------|-----|
+| **stopTalking commit boundary** | ❌ Missing — orchestrator never got commit signal | ✅ PR #34 landed; stop frame now sent on mic release |
+| **User transcript rendering** | ❌ Transcripts not forwarded to frontend | ✅ PR #40 "Forward Foundry user transcript"; user bubbles visible (PR #37) |
+| **Stop button UX** | ❌ Not wired | ✅ PR #45 "Stop button + auto-interrupt" visible during streaming |
+| **Tool-mediated dedupe** | ❌ Loose dedupe, potential repeats | ✅ PRs #46–47 "Tool-mediated dedupe + TextInput streaming flip" + "user partial dedupe" |
+| **Language pinning** | ❌ Realtime lang may drift | ✅ PR #42 "Pin language=en + voice loggers"; telemetry added for diagnosing Whisper issues |
+| **Error frame surfacing** | ❌ Silent voice failures | ✅ PR #47 "Foundry error frame surfacing" — diagnostic instrumentation for Korean transcription issue |
+
+**Known remaining issue:** Despite language=en pin (PR #42), Whisper transcribes English audio as Korean. Diagnostic telemetry now in place (PR #47) to surface root cause on next demo attempt. See `TOMORROW.md` § "Recommended morning plan, step 2" for diagnosis workflow.

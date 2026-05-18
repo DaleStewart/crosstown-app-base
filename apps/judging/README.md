@@ -45,12 +45,12 @@ SWA CLI proxies API calls to Functions and emulates auth — use the auth simula
 5. The output `STATIC_WEB_APP_DEFAULT_HOSTNAME` is your live URL. No further config needed — GitHub OAuth is built-in.
 
 ### Manual redeploy (just the SWA, no infra changes)
-The repo's root `deploy.yml` workflow only watches the orchestrator stack — changes under `apps/judging/**` do **not** automatically trigger a deploy unless `.github/workflows/deploy-judging.yml` is wired up and the deploy identity has perms on `rg-mtahack-prod`. To force a redeploy from your laptop:
+Changes under `apps/judging/**` automatically trigger deploy via `.github/workflows/deploy-judging.yml` on push to main. To force a redeploy from your laptop:
 
 ```powershell
 cd apps/judging
 azd env select mtahack-prod
-azd deploy --no-prompt
+azd deploy web --no-prompt
 ```
 
 This rebuilds and republishes `src/` + `api/` to the existing SWA without re-running Bicep.
@@ -65,7 +65,7 @@ This rebuilds and republishes `src/` + `api/` to the existing SWA without re-run
 
 ## Configure auth (one-time, post-provision)
 1. In the Azure Portal, open the Static Web App → Configuration → Application settings.
-2. Add `ADMIN_USERS` = comma-separated list of GitHub usernames (lowercase, e.g., `segayle,alice,bob`).
+2. Add `ADMIN_USERS` = comma-separated list of GitHub usernames (lowercase, e.g., `segayle,alice,bob`). (Previously `ADMIN_EMAILS` for AAD — deprecated as of PR #39.)
 3. Save. GitHub OAuth is pre-configured in `staticwebapp.config.json` — no further action needed.
 4. Test by opening `/judge.html` in incognito — you should be redirected to GitHub login.
 
@@ -76,7 +76,7 @@ This rebuilds and republishes `src/` + `api/` to the existing SWA without re-run
 
 Alternatively, the `ADMIN_USERS` app setting is read as a comma-separated allowlist of GitHub usernames that grants admin server-side. Use that to bootstrap before the role-management invite flow.
 
-## Seed teams
+## Seed teams (cookie-based via StaticWebAppsAuthCookie)
 1. Fill in `apps/judging/scripts/teams.csv` (header: `name,track,members,room,slot`; `members` semicolon-separated).
 2. Make sure you have admin access on the SWA (see above).
 3. Capture an auth cookie from a signed-in browser session (DevTools → Application → Cookies → copy `StaticWebAppsAuthCookie`).

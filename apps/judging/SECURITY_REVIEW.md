@@ -303,6 +303,20 @@ All common secret-carrying file patterns are now excluded.
 
 Both partials (H2, M4) are infrastructure-layer concerns with documented technical constraints for a hackathon deployment. All user-facing and API-layer security gaps are closed. The two partials require action before any production-grade or multi-tenant deployment.
 
+---
+
+## 2026-05-18 — Post-OAuth-Pivot Note
+
+**PR #39 pivoted from Azure AD (AAD) to GitHub OAuth.** The following security findings are **no longer applicable** since the auth mechanism has changed:
+
+- **C2 (`{{TODO_TENANT_GUID}}` placeholder):** Superseded. The app now uses GitHub OAuth via SWA's built-in provider (`staticwebapp.config.json`). The AAD issuer URL is not referenced.
+- **H1 (`Content-Security-Policy` for AAD's openIdIssuer):** The CSP still stands for general XSS mitigation, but it is no longer tied to AAD redirect URIs.
+- **L3 (Seed script AAD auth):** The `scripts/seed-teams.js` now uses the StaticWebAppsAuthCookie instead of AAD token bearer. The security posture remains the same (must be authenticated before seeding).
+
+**All other findings remain valid:** H2 (Cosmos public network), M1–M4 (leaderboard, lock, gitignore, connection string in ARM history) are orthogonal to auth and require the same remediation.
+
+---
+
 ## 🟡 Ship after small remediations
 
 H2 and M4 remain open at the infrastructure layer with documented technical rationale. Acceptable to ship for a bounded hackathon event; revisit H2 (Cosmos firewall / private endpoint) and M4 (Key Vault secret reference) before any broader rollout.

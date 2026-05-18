@@ -51,9 +51,9 @@ After: `🚇 Checking L1 line status… (2 evidence sources)`
 
 2. **Find** the `ToolCallRow` component (line 28). This renders each tool call. Notice:
    - Line 43: `{entry.name}` — the raw tool name
-   - Line 48: `{(entry.citations ?? []).length} cites` — citation count badge
+   - Line 48: `{(entry.citations ?? []).length} cites` — citation count badge (inside a `<Badge>` element)
 
-3. **Add** a helper function before `export function ToolCallPanel` (before line 7):
+3. **Add** a helper function at the very top of the file, before the `ToolCallPanel` function definition (before line 7):
 
    ```typescript
    // Helper: humanize tool name + args into a friendly label
@@ -84,7 +84,7 @@ After: `🚇 Checking L1 line status… (2 evidence sources)`
    {humanizeToolCall(entry.name, entry.args)}
    ```
 
-5. **Also replace** line 48 (the badge) to say:
+5. **Also update** line 48 (the badge) to say:
 
    ```typescript
    <Badge tone="default">
@@ -211,7 +211,7 @@ Create a new tool called `get_station_amenities` that returns elevator/restroom 
 
 #### Part B: Frontend — render a custom card for the new tool
 
-4. **Back in** `apps/frontend/src/components/ToolCallPanel.tsx`, update the `ToolCallRow` component to handle the new tool. Find the section inside `ToolCallRow` (around line 51–67) where citations are rendered:
+4. **Back in** `apps/frontend/src/components/ToolCallPanel.tsx`, update the `ToolCallRow` component to handle the new tool. Find the section where citations are rendered (around line 56–67, inside the `{open && (...)}` block):
 
    ```typescript
    {open && (
