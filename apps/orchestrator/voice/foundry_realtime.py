@@ -45,6 +45,17 @@ class FoundryRealtimeSession:
         self._ws = ws
         self._inbound: asyncio.Queue[VoiceEvent | None] = asyncio.Queue()
         self._closed = False
+        # Last forwarded user-role input_audio_transcription delta text. Foundry
+        # GA has been observed (2026-05-18 swedencentral, ~04:24:37Z) emitting
+        # two identical `conversation.item.input_audio_transcription.delta`
+        # frames ~1ms apart for the same partial — see Sean's DevTools dump
+        # showing `"받"` duplicated. Streaming partials grow; identical text
+        # = duplicate, not partial. We dedupe at the relay source so the
+        # frontend reducer doesn't have to special-case it, and so assistant
+        # context (which uses these frames downstream) isn't double-fed.
+        # Reset to None on `.completed` so a future turn starting with the
+        # same first syllable is not falsely suppressed.
+        self._last_user_delta_text: str | None = None
 
     async def commit_audio(self) -> None:
         """Flush the audio buffer and ask the model to respond.
@@ -136,13 +147,64 @@ class FoundryRealtimeSession:
             logger.warning("foundry.recv non-json frame (%d bytes)", len(raw))
             return
         kind = data.get("type", "<missing>")
+        # Surface mid-stream error frames. Prior to this PR, `_translate`
+        # returned None for `type=error` and the only log line was
+        # "foundry.recv DROP type=error" — the error code/message/param/
+        # event_id were discarded. That blind spot is exactly why we still
+        # can't explain why `gpt-4o-mini-transcribe` is transcribing Sean's
+        # English speech as Korean despite the Phase 2 session.update being
+        # accepted (logs 2026-05-18T04:24:37Z: two `DROP type=error` frames
+        # arrive bracketing the input_audio_transcription.delta stream and
+        # their contents are gone). Log loudly enough that the next turn's
+        # transcription failure tells us the actual root cause.
+        if kind == "error":
+            err = data.get("error", {}) if isinstance(data.get("error"), dict) else {}
+            logger.error(
+                "foundry.recv ERROR event_id=%s code=%s type=%s param=%s message=%s",
+                data.get("event_id", "<none>"),
+                err.get("code", "<none>"),
+                err.get("type", "<none>"),
+                err.get("param", "<none>"),
+                err.get("message", "<none>"),
+            )
         ev = self._translate(data)
         if ev is None:
+            # `.failed` ends a transcription turn just like `.completed` does,
+            # but `_translate` returns None for it (no useful TranscriptDelta).
+            # Still clear the dedupe state so the NEXT turn's first partial
+            # isn't falsely suppressed if it happens to match the failed
+            # turn's last partial text. (Reviewer-caught regression: without
+            # this, `"hi" → .failed → "hi"` swallowed the second `"hi"`.)
+            if kind in (
+                "conversation.item.input_audio_transcription.failed",
+                "conversation.item.input_transcript.failed",
+            ):
+                self._last_user_delta_text = None
             # We received a Foundry frame and chose not to forward — log so we
             # can see e.g. an input_audio_transcription.failed or an unknown
             # event name we should be handling.
             logger.info("foundry.recv DROP type=%s", kind)
             return
+        # Dedupe consecutive identical user-role partial transcript deltas.
+        # See note on `_last_user_delta_text` in __init__ for why this is
+        # safe (Foundry GA double-emits partials; growing partials have
+        # different text and pass through unchanged).
+        if (
+            isinstance(ev, TranscriptDelta)
+            and ev.role == "user"
+            and not ev.final
+            and ev.text == self._last_user_delta_text
+        ):
+            logger.info(
+                "foundry.recv DEDUPE user transcript_delta text=%r", ev.text
+            )
+            return
+        if isinstance(ev, TranscriptDelta) and ev.role == "user":
+            if ev.final:
+                # `.completed` arrived — clear so the next turn starts fresh.
+                self._last_user_delta_text = None
+            else:
+                self._last_user_delta_text = ev.text
         logger.info(
             "foundry.recv EMIT type=%s -> %s", kind, type(ev).__name__
         )
