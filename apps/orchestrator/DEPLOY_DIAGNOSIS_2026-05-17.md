@@ -103,3 +103,92 @@ The relay layer is either: (a) committing the buffer too early (before mic audio
 - **Hackathon impact (Track 2):** the Tuesday demo (specs/002-tuesday-demo) depends on the deploy lane producing a working `FRONTEND_URL` for the smoke test (`scripts/smoke-test.*` + `azure.yaml` postdeploy hook). With OIDC broken, the demo URL cannot be refreshed with current PR #21 / PR #22 / PR #27 changes (user-turn transcripts, VAD fix, service-advisor feature). Judges will hit stale or broken endpoints.
 - **Eval/red-team live mode** (`EVAL_MODE=live ORCHESTRATOR_URL=…`) cannot be exercised against the deployed stack until this clears, so we lose live-path coverage on top of hermetic cassettes.
 - **Time cost:** ~5 min Azure portal change once a Contributor on the app registration is available. Every hour of delay is an hour the Track 2 stack ships on stale bits.
+
+---
+
+## 2026-05-18 ~11:46 ET — Missing assistant response diagnosis
+
+**Investigator:** Wanda (Maximoff)
+**Report time:** 2026-05-18T11:46 ET (Sean, live orchestrator)
+**Symptom:** Voice turn → tool fires (`get_disruption_status({"line": "L2"})`) → user sees tool-call panel + user transcripts — **no assistant message bubble appears.**
+
+### Root cause classification: **B — Relay emits `Final(text="")` → frontend shows nothing**
+
+The backend relay IS generating and forwarding a `Final` event after the tool call cycle. It is not dropped. However, the `Final` arrives with `text=""` because Foundry's cycle-2 response (post-tool-result) returned `response.done` with an **empty `output[]` array** (the server preempted cycle 2 before any text/audio was generated). The frontend's `final` case handler (`useVoiceSession.ts:242`) correctly falls through to the no-text branch: it clears `awaitingResponse: false` but adds **no assistant bubble**. Tool citations land in the `tool_result` frame but without a `final` with text there is no bubble for the answer.
+
+### Direct log evidence
+
+```
+# Cycle 1 (healthy — first response, before the tool turn)
+15:43:56,... voice.foundry INFO foundry.recv EMIT type=response.output_audio_transcript.delta -> TranscriptDelta  [×14]
+15:43:56,... voice.foundry INFO foundry.recv EMIT type=response.output_audio.delta -> AudioDelta               [×12]
+15:43:57,191 voice.foundry INFO foundry.recv EMIT type=response.output_audio_transcript.done -> TranscriptDelta
+15:43:57,195 voice.foundry INFO foundry.recv EMIT type=response.done -> Final                ← HEALTHY
+
+# Tool-call response (15:45:37–38) — correctly dropped
+15:45:37,139 voice.foundry INFO foundry.recv DROP type=response.created
+15:45:38,198 voice.foundry INFO foundry.recv EMIT type=response.function_call_arguments.done -> ToolCall  ← tool fires ✓
+15:45:38,210 voice.foundry INFO foundry.recv DROP type=response.done            ← tool-call response correctly dropped
+
+# Cycle 2 (post-tool) — SMOKING GUN
+15:45:38,265 voice.foundry INFO foundry.recv DROP type=response.created
+# ← ZERO response.output_audio_transcript.delta events in this window
+# ← ZERO audio_delta events
+15:45:38,576 voice.foundry INFO foundry.recv EMIT type=conversation.item.input_audio_transcription.completed -> TranscriptDelta  ← user msg 2 simultaneous
+15:45:38,576 voice.foundry INFO foundry.recv EMIT type=response.done -> Final   ← 311ms cycle, empty output[]
+
+# Cycle 3 (user msg 2 turn) — same empty pattern
+15:45:56,627 voice.foundry INFO foundry.recv DROP type=response.created
+15:45:57,069 voice.foundry INFO foundry.recv EMIT type=conversation.item.input_audio_transcription.completed -> TranscriptDelta
+15:45:57,307 voice.foundry INFO foundry.recv EMIT type=response.done -> Final   ← also empty
+```
+
+### Interpretation
+
+| Fact | Implication |
+|------|-------------|
+| Cycle 1 has 14 audio_transcript.delta events before response.done | Healthy Foundry voice response path works |
+| Cycle 2 completes in **311 ms** with **zero** audio_transcript.delta events | Foundry returned empty response — no model output generated |
+| `response.done → Final EMIT` fires at exact same ms as user msg 2 `transcription.completed` | Foundry server-VAD committed user msg 2 while cycle 2 was in flight; preempted cycle 2 |
+| No relay-level `cancel_inflight` fired | Orchestrator did **not** proactively cancel — `response_in_flight` was `False` during tool-execution window |
+| `_translate` (foundry_realtime.py:287): `not outputs` branch | `output=[]` → `Final(text="")` forwarded |
+| `_handle_event` (orchestrator.py:391–403): `out_text=""` | `{"type":"final","text":"","citations":[...]}` sent to frontend |
+| Frontend `useVoiceSession.ts:231`: `if (frame.text)` falsy → line 242 fallback | `awaitingResponse: false` — state cleared, **no assistant bubble created** |
+
+### Root cause chain
+
+```
+User msg 1 voice turn
+  → Foundry server-VAD auto-commits audio → cycle 1 response → tool call dispatched ✓
+  → submit_tool_result() fires response.create for cycle 2
+  → BUT: response_in_flight still False (set only on first assistant frame, NOT at submit_tool_result)
+  → User msg 2 arrives; server-VAD auto-commits without orchestrator sending response.cancel
+  → Foundry preempts cycle 2 → response.done with output=[] → Final(text="")
+  → Frontend line 242 fallback → no bubble, awaitingResponse cleared
+```
+
+### Suspected commit
+
+**PR #49** (`a92ecf3` — "fix(frontend): remove manual StopButton") is the proximate aggravator. Before PR #49, users could hit Stop → `cancel_response` → `_cancel_inflight(force=True)` — an explicit safety valve for mid-response barge-ins even when `response_in_flight` was False. Without the StopButton there is no compensating cancel path for the tool-result → cycle-2 window.
+
+The **underlying gap** traces to PR #45/#46: `response_in_flight` is never set to `True` when `submit_tool_result()` fires `response.create` (orchestrator.py:334–376 — no `turn.response_in_flight = True` after that await). This gap existed since PR #45 but was masked by the StopButton.
+
+**PR #53** (`fa20430`) is **not** the cause — it guards CLIENT-SIDE commits only; Foundry server-VAD commits bypass the guard.
+
+### Recommended fix
+
+**One line** in `apps/orchestrator/agent/orchestrator.py`, ToolCall branch of `_handle_event`, after `await session.submit_tool_result(ev.call_id, result)`:
+
+```python
+turn.response_in_flight = True  # cycle 2 response.create just fired via submit_tool_result
+```
+
+**Fix owner: Stark**
+
+### Confidence: High
+
+- Zero audio_transcript.delta events in cycle 2 is unambiguous — Foundry produced no output.
+- 311ms cycle time is below any realistic model generation floor.
+- `response_in_flight = False` gap confirmed by reading orchestrator.py:334–376.
+- Frontend line 242 fallback for `frame.text=""` confirmed by reading useVoiceSession.ts:204–242.
+- Tool citations delivered (`tool_result` frame) — tool path healthy; only answer bubble missing.
