@@ -1,5 +1,13 @@
 const { CosmosClient } = require('@azure/cosmos');
 
+if (typeof globalThis.crypto === 'undefined') {
+  try {
+    globalThis.crypto = require('node:crypto').webcrypto;
+  } catch (_e) {
+    globalThis.crypto = require('crypto').webcrypto;
+  }
+}
+
 const DB_NAME = 'mtahack';
 let _client = null;
 let _db = null;

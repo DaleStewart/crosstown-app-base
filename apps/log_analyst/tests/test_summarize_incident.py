@@ -29,11 +29,20 @@ async def test_summarize_incident_happy_path(
     assert body.get("warnings") in (None, [])
 
 
-async def test_summarize_incident_missing_returns_404(client: httpx.AsyncClient) -> None:
+async def test_summarize_incident_missing_returns_not_found_envelope(
+    client: httpx.AsyncClient,
+) -> None:
+    # Incident not found must return HTTP 200 with an error envelope so the
+    # orchestrator's raise_for_status() doesn't treat a missing-data result the
+    # same as a missing route — mirrors get_disruption_status returning 200 for
+    # "operating_normally" instead of 404.
     resp = await client.post(
         "/tools/summarize_incident", json={"incident_id": "INC-DOES-NOT-EXIST"}
     )
-    assert resp.status_code == 404
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["result"]["incident_id"] == "INC-DOES-NOT-EXIST"
+    assert "not_found" in (body.get("warnings") or [])
 
 
 async def test_summarize_incident_without_related_runbook_uses_regex(

@@ -1,4 +1,8 @@
 {
+  "platform": { "apiRuntime": "node:18" },
+  "auth": {
+    "rolesSource": "/api/GetRoles"
+  },
   "routes": [
     { "route": "/judge.html",     "allowedRoles": ["authenticated"] },
     { "route": "/admin.html",     "allowedRoles": ["admin"] },

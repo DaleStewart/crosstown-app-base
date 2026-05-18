@@ -85,7 +85,23 @@ async def handle_summarize_incident(body: dict[str, Any], trace_id: str) -> Tool
         raise HTTPException(status_code=400, detail="incident_id must be a non-empty string")
 
     # Cosmos + OpenAI SDKs are sync — offload to a worker thread.
-    incident, summary, runbook = await asyncio.to_thread(_do_summarize, incident_id)
+    # Catch HTTPException(404) from _fetch_incident and return HTTP 200 with an
+    # error body so the orchestrator's raise_for_status() doesn't explode on a
+    # "data not found" outcome the same way it would for a routing 404.
+    # This mirrors get_disruption_status which returns 200 for "operating_normally"
+    # instead of raising 404 when there is no active disruption.
+    try:
+        incident, summary, runbook = await asyncio.to_thread(_do_summarize, incident_id)
+    except HTTPException as exc:
+        if exc.status_code == 404:
+            return ToolResponse(
+                tool="summarize_incident",
+                result={"error": str(exc.detail), "incident_id": incident_id},
+                citations=[],
+                trace_id=trace_id,
+                warnings=["not_found", "uncited"],
+            )
+        raise
 
     citations: list[Citation] = [
         Citation(
