@@ -6,11 +6,7 @@ export type ClientStart = {
 
 export type ClientText = { type: "text"; text: string };
 export type ClientStop = { type: "stop" };
-/** Sent when the user hits the on-screen stop button. The orchestrator
- *  forwards `response.cancel` to Foundry and replies with a
- *  `response_cancelled` server frame. */
-export type ClientCancelResponse = { type: "cancel_response" };
-export type ClientMessage = ClientStart | ClientText | ClientStop | ClientCancelResponse;
+export type ClientMessage = ClientStart | ClientText | ClientStop;
 
 export type Citation = {
   source?: string;

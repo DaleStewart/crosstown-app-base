@@ -1,7 +1,6 @@
 import { type ReactNode } from "react";
 import { Header } from "@/components/Header";
 import { PushToTalkButton } from "@/components/PushToTalkButton";
-import { StopButton } from "@/components/StopButton";
 import { Transcript } from "@/components/Transcript";
 import { DisruptionBanner } from "@/components/DisruptionBanner";
 import { AlternateRouteCard } from "@/components/AlternateRouteCard";
@@ -15,7 +14,7 @@ const MODE = (import.meta.env.VITE_VOICE_MODE === "continuous"
   : "push_to_talk") as "continuous" | "push_to_talk";
 
 export default function App(): ReactNode {
-  const { state, startTalking, stopTalking, cancelResponse, sendUserText } = useVoiceSession({ mode: MODE });
+  const { state, startTalking, stopTalking, sendUserText } = useVoiceSession({ mode: MODE });
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
@@ -28,10 +27,6 @@ export default function App(): ReactNode {
                 recording={state.recording}
                 onStart={() => void startTalking()}
                 onStop={() => void stopTalking()}
-              />
-              <StopButton
-                visible={state.streaming}
-                onClick={cancelResponse}
               />
             </div>
             <DisruptionBanner entries={state.toolCalls} />

@@ -85,8 +85,8 @@ function reducer(state: State, action: Action): State {
         ...state,
         awaitingResponse: true,
         // For the TextInput path (where there is no WS streaming voice),
-        // also flip `streaming` true so the StopButton becomes visible and
-        // the user can abort the in-flight HTTP request. Cleared in
+        // also flip `streaming` true so TextInput's `busy` prop becomes truthy
+        // and blocks overlapping submits. Cleared in
         // `append_assistant` / `cancelled` / `error`.
         streaming: true,
         transcripts: [
@@ -281,16 +281,18 @@ export type UseVoiceSession = {
   startTalking: () => Promise<void>;
   stopTalking: () => Promise<void>;
   sendText: (text: string) => void;
-  /** Hard stop: drains local audio immediately AND sends `cancel_response`
-   *  to the orchestrator so Foundry stops generating. Safe to call when
-   *  nothing is streaming — server treats it as a no-op. */
+  /** Internal cancel: drains local audio and aborts any in-flight /api/turn
+   *  fetch. Used by `sendUserText` as the abort plumbing — no longer wired to
+   *  a UI control after the StopButton was removed (2026-05-18). The
+   *  orchestrator's own auto-cancel-on-new-turn state machine handles
+   *  barge-in cancellation server-side. */
   cancelResponse: () => void;
   /** Submit a text-input turn to /api/turn through the hook (instead of from
    *  TextInput directly). Owning this here lets cancelResponse() abort the
-   *  in-flight fetch AND lets `streaming` reflect text requests too —
-   *  otherwise the StopButton never appears for Sean's typed questions
-   *  (2026-05-17 UAT). Resolves with the assistant text on success, with
-   *  `null` if the request was cancelled. */
+   *  in-flight fetch AND keeps `streaming` reflecting text requests too —
+   *  TextInput's `busy` prop reads `streaming || awaitingResponse` to
+   *  prevent overlapping submits. Resolves with the assistant text on
+   *  success, with `null` if the request was cancelled. */
   sendUserText: (text: string) => Promise<string | null>;
   appendUserTurn: (text: string) => void;
   appendAssistantTurn: (payload: { text: string; citations: Citation[]; warnings: string[] }) => void;
@@ -419,9 +421,7 @@ export function useVoiceSession(
   );
 
   const cancelResponse = useCallback((): void => {
-    // Drain local audio FIRST so Sean hears silence the instant he clicks.
-    // We don't wait for the server round-trip (Foundry may still flush a
-    // few hundred ms of audio after `response.cancel`); see AudioPlayer.stop.
+    // Drain local audio so any buffered playback stops immediately.
     playerRef.current.stop();
     // Abort any in-flight /api/turn fetch (TextInput path). The fetch
     // rejection in sendUserText will be caught and treated as cancelled.
@@ -429,11 +429,12 @@ export function useVoiceSession(
       textAbortRef.current.abort();
       textAbortRef.current = null;
     }
-    send({ type: "cancel_response" });
-    // Optimistic local clear — the orchestrator will also send
-    // `response_cancelled`, which is idempotent through the reducer.
+    // NOTE: we deliberately do NOT send `cancel_response` to the orchestrator
+    // anymore (StopButton removed 2026-05-18). Server-side auto-cancel on the
+    // next user turn handles barge-in. Keeping this function in the hook so
+    // sendUserText's abort plumbing has a single entry point.
     dispatch({ type: "cancelled" });
-  }, [send]);
+  }, []);
 
   const sendUserText = useCallback(
     async (text: string): Promise<string | null> => {
@@ -447,7 +448,7 @@ export function useVoiceSession(
       const controller = new AbortController();
       textAbortRef.current = controller;
 
-      // Optimistic: append user line + flip streaming on (so StopButton shows).
+      // Optimistic: append user line + flip streaming on (drives TextInput busy).
       dispatch({ type: "append_user", text: trimmed });
       try {
         const res = await fetch("/api/turn", {

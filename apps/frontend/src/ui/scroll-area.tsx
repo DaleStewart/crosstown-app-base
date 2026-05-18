@@ -1,9 +1,8 @@
-import { type HTMLAttributes, type ReactNode } from "react";
+import { forwardRef, type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-export function ScrollArea({
-  className,
-  ...props
-}: HTMLAttributes<HTMLDivElement>): ReactNode {
-  return <div className={cn("overflow-y-auto", className)} {...props} />;
-}
+export const ScrollArea = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
+  function ScrollArea({ className, ...props }, ref) {
+    return <div ref={ref} className={cn("overflow-y-auto", className)} {...props} />;
+  }
+);
