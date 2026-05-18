@@ -69,8 +69,8 @@ azd up               # ~15–20 min; provisions everything and deploys
 - ✅ Text input: stable end-to-end (orchestrator → specialists → citations)
 - ✅ Service Disruption Advisor: routes for L1/L2/L3 queries
 - ✅ Judging app: GitHub OAuth gate, /api/teams instrumented
-- 🟡 Voice input: end-to-end wired, text modality recommended for demo
-- Latest commit: `cb3a637` (fix: response_in_flight state hardening)
+- ✅ Voice input: end-to-end working; assistant reliably replies (brief overlap possible on rapid follow-up)
+- Latest commit: `8adf29e` (fix: disable PR #45 auto-cancel so AI reliably talks back)
 
 ## Demo win condition (Tuesday, 19-May)
 

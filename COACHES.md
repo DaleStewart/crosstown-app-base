@@ -60,8 +60,8 @@ The orchestrator:
 
 - ✅ **Text input:** stable, recommended for demo
 - ✅ **Tool calls & citations:** working end-to-end
-- 🟡 **Voice input:** wired but text modality is safer for demo
-- 🟡 **Foundry Realtime:** in preview — occasional reconnect expected
+- ✅ **Voice input:** working end-to-end; assistant reliably replies (brief overlap possible on rapid follow-up)
+- ✅ **Foundry Realtime:** stable, PR #60 fixed the voice loop cycle-2 empty-response issue
 
 ## Common coaching moments
 

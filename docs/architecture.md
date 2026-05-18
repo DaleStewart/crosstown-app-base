@@ -40,7 +40,7 @@ flowchart LR
   ORC --> COS
 ```
 
-The voice path is selected by `VOICE_PROVIDER` env var. See [voice.md](voice.md) for details.
+The voice path is selected by `VOICE_PROVIDER` env var. See [voice.md](voice.md) for details. **PR #60** disabled the relay-level auto-cancel that was occurring during tool-execution windows; the assistant now reliably replies after tool calls (brief overlap possible on rapid follow-up barge-ins is the acceptable trade-off).
 
 ## Data flow
 

@@ -31,7 +31,7 @@ Content-Type: application/json
 }
 ```
 
-Reuses the same voice-provider session + tool-routing path as the WebSocket flow, so the citation contract and routing behavior are identical. `tool_calls` is what the orchestrator eval grades against for routing correctness. If no citations and no `uncited` warning, the response is auto-tagged `"uncited"`.
+Reuses the same voice-provider session + tool-routing path as the WebSocket flow, so the citation contract and routing behavior are identical. `tool_calls` is what the orchestrator eval grades against for routing correctness. If no citations and no `uncited` warning, the response is auto-tagged `"uncited"`. **PR #60:** new user turns no longer cancel an in-flight response (relay-level auto-cancel disabled); explicit cancel is preserved for future StopButton integration.
 
 ## Run
 ```bash

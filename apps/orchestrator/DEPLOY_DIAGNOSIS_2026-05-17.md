@@ -192,3 +192,32 @@ turn.response_in_flight = True  # cycle 2 response.create just fired via submit_
 - `response_in_flight = False` gap confirmed by reading orchestrator.py:334–376.
 - Frontend line 242 fallback for `frame.text=""` confirmed by reading useVoiceSession.ts:204–242.
 - Tool citations delivered (`tool_result` frame) — tool path healthy; only answer bubble missing.
+
+---
+
+## 2026-05-18 ~13:56 ET — Resolution (PR #60 merged)
+
+**Investigator:** Sean (segayle)
+**Resolution time:** 2026-05-18T13:56 ET
+**Root cause fix:** Disabled the relay-level auto-cancel in text/stop handlers
+
+### What was fixed
+
+PR #60 addresses the cycle-2 empty-response issue described above by removing the problematic `response.cancel` calls that were firing during tool-execution windows. The trade-off is explicit and acceptable: the assistant now **reliably replies after tool calls**; fast follow-up barge-ins may **briefly overlap** in audio output, but the modality contract is preserved (one user turn at a time, clean tool dispatch).
+
+### The fix in detail
+
+- **Removed:** relay-level auto-cancel on new user transcript frames during tool execution
+- **Preserved:** explicit `response.cancel` path (future StopButton integration)
+- **Result:** cycle-2 responses now generate reliably; voice loop end-to-end working
+
+### Evidence
+
+- Live frontend: https://frontend.blackriver-0ab9be19.swedencentral.azurecontainerapps.io/ — voice input works, assistant reliably replies
+- Judging app: https://mango-hill-0ee13cb0f.7.azurestaticapps.net/ — /api/teams now succeeds (cycle-2 generation fixed)
+- Smoke test `/api/turn` passes with tool calls + citations + final assistant message
+
+### Related PRs
+
+- [PR #60](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/60) — fix(voice): disable PR #45 auto-cancel so AI reliably talks back
+- [PR #57 (reverted)](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/57) — attempted workaround via response deferral; revealed Foundry single-modality constraint

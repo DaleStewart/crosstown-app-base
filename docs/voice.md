@@ -18,6 +18,7 @@ The frontend is provider-agnostic — it streams microphone audio to the orchest
 - The Foundry session is instructed with the orchestrator's system prompt plus tool definitions for routing to specialists.
 - The orchestrator acts as a relay: client frames → Foundry, Foundry frames → client.
 - When Foundry emits a tool call, the orchestrator dispatches it to the specialist (HTTP), gets a response with citations, and returns it back into the Foundry session.
+- **PR #60 disabled the relay-level auto-cancel logic** that was pre-empting cycle-2 responses. The trade-off: the assistant now reliably talks back after tool calls, but fast follow-up barge-ins may briefly overlap. See [PR #60](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/60) and the [revert of PR #57](https://github.com/DevPost-Test-Hackathon/crosstown-app/pull/57) for the lesson learned on the Foundry single-modality constraint (audio OR text, not both in a single session).
 
 **Required Bicep:**
 - A `gpt-realtime-1.5` (version `gpt-realtime-1.5-2026-02-23`) model deployment under the Foundry/AOAI account.

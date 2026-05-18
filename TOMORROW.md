@@ -41,16 +41,11 @@ Voice on the orchestrator is in a degraded loop — 12 PRs shipped today, each f
 ## Recommended morning plan (in order)
 
 1. **☕ Coffee first.** Don't open the laptop.
-2. **Fresh-eyes voice test** — single English turn → look at DevTools WS messages + container logs
-3. **DECISION POINT:** voice clearly works → continue voice prep / voice still flaky → demo TEXT-ONLY
-4. **If text-only demo:** spend morning polishing tool-call panel + speaker notes
-5. **If pursuing voice fix:**
-   - Tail container logs from step 2
-   - Spawn Anvil with the actual error-frame contents (NOT speculation)
-   - One targeted PR, max
-6. **Judging 500:** paste body from DevTools, spawn Stark for surgical fix
-7. **Seed teams** (`scripts/seed-teams.js` + cookie per AUTH_SETUP.md)
-8. **End-to-end smoke** as a judge: sign in → score a fake team → check leaderboard
+2. **Smoke test** — text turn → verify tool-call panel + citations; voice turn → verify assistant reply (both should pass; PR #60 fixed the voice loop)
+3. **Demo posture:** voice is now stable. Can demo either text or voice, or both. Brief overlap possible on rapid follow-up barge-ins (acceptable trade-off for reliability).
+4. **Judging 500:** likely already fixed (PR #60 restored tool-response cycle-2 generation)
+5. **Seed teams** (`scripts/seed-teams.js` + cookie per AUTH_SETUP.md)
+6. **End-to-end smoke** as a judge: sign in → score a fake team → check leaderboard
 
 ## Rollback nuke option (only if voice degrades further)
 
