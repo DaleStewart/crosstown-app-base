@@ -20,7 +20,7 @@ only the nested form and works in production.
 
 from __future__ import annotations
 
-from typing import Any  # noqa: F401  (kept for type hints elsewhere)
+from typing import Any, Self  # noqa: F401  (kept for type hints elsewhere)
 from unittest.mock import AsyncMock
 
 import pytest
@@ -233,7 +233,7 @@ def test_phase2_session_update_uses_only_nested_transcription_form() -> None:
                 if parsed.get("type") == "session.update":
                     await self._queue.put(_json.dumps({"type": "session.updated"}))
 
-            def __aiter__(self):
+            def __aiter__(self) -> Self:
                 return self
 
             async def __anext__(self) -> str:

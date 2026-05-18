@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import cast
 
 import pytest
 
@@ -263,9 +264,9 @@ async def test_ingest_resets_dedupe_state_on_completed(
         events.append(await session._inbound.get())  # noqa: SLF001
     # partial, completed, partial-again all forwarded.
     assert len(events) == 3
-    assert events[0].text == "hi"
-    assert events[1].final is True
-    assert events[2].text == "hi"
+    assert cast(TranscriptDelta, events[0]).text == "hi"
+    assert cast(TranscriptDelta, events[1]).final is True
+    assert cast(TranscriptDelta, events[2]).text == "hi"
 
 
 @pytest.mark.asyncio
@@ -296,8 +297,8 @@ async def test_ingest_resets_dedupe_state_on_failed(
         f"Expected 2 forwarded partials (failed turn drops, but new turn must "
         f"pass through); got {len(events)}"
     )
-    assert events[0].text == "hi"
-    assert events[1].text == "hi"
+    assert cast(TranscriptDelta, events[0]).text == "hi"
+    assert cast(TranscriptDelta, events[1]).text == "hi"
 
 
 @pytest.mark.asyncio
