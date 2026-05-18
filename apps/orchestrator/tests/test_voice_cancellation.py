@@ -350,3 +350,78 @@ def test_auto_cancel_fires_before_first_assistant_frame(
     assert fake_session.cancel_calls == 1
     assert "first" in fake_session.sent_text
     assert "second" in fake_session.sent_text
+
+
+# ---------------------------------------------------------------------------
+# Regression: missing-assistant-response bug (Wanda's diagnosis 2026-05-18)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_submit_tool_result_marks_response_in_flight() -> None:
+    """After `submit_tool_result` fires (which triggers Foundry's cycle-2
+    `response.create`), the local `response_in_flight` flag MUST be True.
+
+    Bug: PR #46 only flipped this flag on the first assistant frame. If Foundry
+    preempts cycle 2 (e.g. user audio commit arrives before the first delta),
+    no assistant frame ever arrives, the flag stays False, no `response.cancel`
+    is sent on the next turn, and Foundry ships an empty Final(text="") that
+    the frontend silently no-ops. Result: "missing assistant response".
+
+    Fix: set the flag explicitly when we know cycle 2 was launched.
+    """
+    turn = TurnAccumulator()
+    captor = _Captor()
+    session = FakeSession()
+    tools = AsyncMock()
+    tools.dispatch = AsyncMock(
+        return_value={"result": "ok", "citations": [], "warnings": []}
+    )
+
+    assert turn.response_in_flight is False
+
+    await _handle_event(
+        ToolCall(name="search_logs", arguments={"q": "L1"}, call_id="c1"),
+        session, tools, turn, captor,
+    )
+
+    # Sanity: submit_tool_result actually fired (this is what kicks cycle 2).
+    assert session.tool_results == [("c1", {"result": "ok", "citations": [], "warnings": []})]
+    # The fix: cycle 2 is in flight even though no assistant frame has arrived.
+    assert turn.response_in_flight is True, (
+        "response_in_flight must be True immediately after submit_tool_result; "
+        "otherwise a barge-in during cycle 2's pre-first-frame window won't "
+        "auto-cancel and Foundry silently drops the response."
+    )
+
+
+@pytest.mark.asyncio
+async def test_submit_tool_result_keeps_flag_set_after_cycle1_final() -> None:
+    """The post-`submit_tool_result` flag assignment must survive a cycle-1
+    Final landing between cycles. Without the fix: Final clears the flag and
+    cycle 2 is born with response_in_flight=False, so a barge-in does not
+    auto-cancel. With the fix: re-asserting the flag after submit_tool_result
+    means cycle 2 is correctly marked in-flight before we hand control back
+    to the event loop.
+
+    This test guards against a regression where someone "simplifies" by
+    removing the assignment, relying on the first-frame handler instead —
+    which is the exact mistake PR #46 made.
+    """
+    turn = TurnAccumulator()
+    captor = _Captor()
+    session = FakeSession()
+    tools = AsyncMock()
+    tools.dispatch = AsyncMock(
+        return_value={"result": "ok", "citations": [], "warnings": []}
+    )
+
+    # Simulate: cycle 1 began (flag True), tool dispatched, submit_tool_result
+    # fires cycle 2, then cycle-1 Final arrives.
+    turn.response_in_flight = True
+    await _handle_event(
+        ToolCall(name="search_logs", arguments={"q": "L1"}, call_id="c1"),
+        session, tools, turn, captor,
+    )
+    # After submit_tool_result, flag must be True (cycle 2 is now in flight).
+    assert turn.response_in_flight is True

@@ -374,6 +374,15 @@ async def _handle_event(
             }
         )
         await session.submit_tool_result(ev.call_id, result)
+        # submit_tool_result triggers Foundry's cycle-2 `response.create` under
+        # the hood. Mark the response in-flight immediately so a barge-in (new
+        # audio commit or text turn) during the pre-first-frame window of
+        # cycle 2 routes through `_cancel_inflight` instead of racing with
+        # Foundry's auto-preempt (which silently ships an empty `output[]`).
+        # Without this flag, cycle 2 was being abandoned mid-flight on voice
+        # barge-in, producing the "missing assistant response" bug Wanda
+        # diagnosed on 2026-05-18.
+        turn.response_in_flight = True
     elif isinstance(ev, Final):
         if ev.text and not turn.cancel_pending:
             turn.assistant_text = ev.text
