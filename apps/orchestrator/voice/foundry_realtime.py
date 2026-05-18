@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import sys
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -216,6 +217,13 @@ class FoundryRealtimeProvider:
 
         session_ready: asyncio.Event = asyncio.Event()
         session_error: list[str] = []
+        # Phase 2 diagnostics: capture any error event that arrives in the brief
+        # window after we fire the transcription session.update. Fire-and-forget
+        # was hiding regressions (Sean's DevTools showed no user_transcript ever),
+        # so we now surface rejections to stderr instead of silently absorbing them.
+        phase2_active = False
+        phase2_error: list[str] = []
+        phase2_ack: asyncio.Event = asyncio.Event()
 
         async def pump() -> None:
             try:
@@ -226,11 +234,24 @@ class FoundryRealtimeProvider:
                         evt = json.loads(raw)
                         etype = evt.get("type", "")
                         if etype == "session.updated":
-                            session_ready.set()
+                            if not session_ready.is_set():
+                                session_ready.set()
+                            elif phase2_active:
+                                phase2_ack.set()
                         elif etype == "error":
                             msg = evt.get("error", {}).get("message", str(evt))
-                            session_error.append(msg)
-                            session_ready.set()  # unblock wait_for so we can raise
+                            if phase2_active:
+                                phase2_error.append(msg)
+                                phase2_ack.set()
+                                print(
+                                    f"[foundry_realtime] Phase 2 transcription "
+                                    f"session.update rejected: {msg}",
+                                    file=sys.stderr,
+                                    flush=True,
+                                )
+                            else:
+                                session_error.append(msg)
+                                session_ready.set()  # unblock wait_for so we can raise
                     except json.JSONDecodeError:
                         pass
                     await session._ingest(raw)
@@ -242,21 +263,31 @@ class FoundryRealtimeProvider:
         if session_error:
             raise RuntimeError(f"Foundry session.update rejected: {session_error[0]}")
 
-        # Phase 2 (conditional): enable input audio transcription.
-        # DANGER: Azure OpenAI closes the WebSocket if the deployment name is invalid —
-        # this is NOT a soft error. Only send when AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT
-        # is explicitly configured with a real deployment name (default is "").
-        # Infra: add a whisper-1 / gpt-4o-transcribe deployment to foundry.bicep first.
-        # OpenAI (non-Azure) accepts "whisper-1" without a custom deployment.
+        # Phase 2 (conditional): enable input audio transcription so Foundry emits
+        # `conversation.item.input_audio_transcription.{delta,completed}` events,
+        # which `_translate` converts to user-role TranscriptDelta frames and the
+        # browser renders as user turns. Without this, the only client-bound frame
+        # is `{type: "final"}` and the user's words are invisible (Sean's bug).
         #
-        # GA nested format for gpt-realtime-1.5 (audio.input.transcription.model).
-        # Ref: 47doors-ref/47doors-main/backend/app/services/azure/realtime.py
+        # Format: the canonical OpenAI Realtime WS schema uses the FLAT field
+        # `session.input_audio_transcription.model`. gpt-4o-mini-transcribe is the
+        # GA transcription model and is documented under this flat field. We also
+        # include the nested `audio.input.transcription.model` for forward-compat
+        # with future GA schema revisions — extra keys are ignored by the server.
+        #
+        # DANGER: an invalid deployment name will close the WebSocket. Only send
+        # when AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT is explicitly configured
+        # (default is ""). PR #38 wired the deployment in foundry.bicep.
         if self._transcription_deployment:
+            phase2_active = True
             await ws.send(
                 json.dumps(
                     {
                         "type": "session.update",
                         "session": {
+                            "input_audio_transcription": {
+                                "model": self._transcription_deployment,
+                            },
                             "audio": {
                                 "input": {
                                     "transcription": {
@@ -268,5 +299,22 @@ class FoundryRealtimeProvider:
                     }
                 )
             )
+            # Brief wait so any rejection is logged before we hand back the session.
+            # We do NOT raise — keep the voice loop running even if transcription
+            # can't be enabled (assistant still works). Surface the failure in logs
+            # so Sean / Brady can diagnose without staring at DevTools.
+            try:
+                await asyncio.wait_for(phase2_ack.wait(), timeout=2.0)
+            except TimeoutError:
+                pass
+            phase2_active = False
+            if phase2_error:
+                print(
+                    "[foundry_realtime] transcription disabled for this session "
+                    f"(deployment={self._transcription_deployment!r}); "
+                    "user-turn transcripts will not be emitted.",
+                    file=sys.stderr,
+                    flush=True,
+                )
 
         return session
