@@ -17,7 +17,7 @@
 
 ## 📌 Read this first — what this repo is (and isn't)
 
-The hackathon's **baseline** is your Devpost-provisioned Azure subscription + GitHub Copilot seat. Every team has that. This accelerator is **opt-in**: a working baseline (voice + orchestrator + two specialist agents) that forking teams extend toward their use case. If your team plans to greenfield in your own sandbox instead, treat this repo as an **architectural reference** — patterns to lift, not a path to follow.
+The hackathon's **DevTrack**
 
 If your use case is **Power Apps / Copilot Studio / Power Pages**, this isn't your repo — flag a Track 1 coach.
 
